@@ -1,0 +1,95 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { UserRepository } from "@/repositories/user-repository";
+import { loginSchema, registerSchema } from "@/schemas";
+
+export async function signInWithEmail(formData: FormData) {
+  const parsed = loginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function signUpWithEmail(formData: FormData) {
+  const parsed = registerSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    nickname: formData.get("nickname"),
+    country: formData.get("country"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const existing = await UserRepository.findByNickname(parsed.data.nickname);
+  if (existing) return { error: "El nickname ya está en uso" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: {
+      data: { nickname: parsed.data.nickname },
+    },
+  });
+
+  if (error) return { error: error.message };
+
+  if (data.user) {
+    await UserRepository.create({
+      id: data.user.id,
+      email: parsed.data.email,
+      nickname: parsed.data.nickname,
+      country: parsed.data.country,
+    });
+  }
+
+  return { success: true };
+}
+
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    },
+  });
+
+  if (error) return { error: error.message };
+  if (data.url) return { url: data.url };
+  return { error: "No se pudo iniciar sesión con Google" };
+}
+
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirect("/login");
+}
+
+export async function getCurrentUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  return UserRepository.findById(user.id);
+}

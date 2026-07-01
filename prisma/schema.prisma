@@ -1,0 +1,419 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum TournamentType {
+  LEAGUE
+  KNOCKOUT
+  GROUPS
+  GROUPS_KNOCKOUT
+  TWO_LEGS
+}
+
+enum TournamentStatus {
+  DRAFT
+  REGISTRATION
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+  WALKOVER
+}
+
+enum AchievementType {
+  FIRST_WIN
+  HAT_TRICK
+  CLEAN_SHEET_STREAK
+  TOURNAMENT_WINNER
+  UNBEATEN_RUN
+  TOP_SCORER
+  MVP_MASTER
+  COMEBACK_KING
+  LEGEND
+}
+
+enum ActivityType {
+  MATCH_PLAYED
+  MATCH_WON
+  MATCH_LOST
+  MATCH_DRAWN
+  TOURNAMENT_JOINED
+  TOURNAMENT_WON
+  ACHIEVEMENT_UNLOCKED
+  ELO_MILESTONE
+  GOAL_SCORED
+  ASSIST_MADE
+}
+
+// ─── Auth & Profile ──────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  nickname      String   @unique
+  avatarUrl     String?
+  country       String?
+  level         Int      @default(1)
+  elo           Int      @default(1000)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  favoriteTeamId String?
+  favoriteTeam   FcTeam? @relation(fields: [favoriteTeamId], references: [id])
+
+  stats          PlayerStats?
+  achievements   UserAchievement[]
+  activities     Activity[]
+  trophies       Trophy[]
+
+  tournamentsCreated Tournament[]       @relation("TournamentCreator")
+  participations     TournamentParticipant[]
+  matchEvents        MatchEvent[]
+  mvpMatches         Match[]            @relation("MatchMVP")
+
+  headToHeadAsUser     HeadToHead[] @relation("H2HUser")
+  headToHeadAsOpponent HeadToHead[] @relation("H2HOpponent")
+
+  @@map("users")
+}
+
+model PlayerStats {
+  id              String @id @default(uuid())
+  userId          String @unique
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  matchesPlayed   Int    @default(0)
+  wins            Int    @default(0)
+  draws           Int    @default(0)
+  losses          Int    @default(0)
+  goalsFor        Int    @default(0)
+  goalsAgainst    Int    @default(0)
+  goalDifference  Int    @default(0)
+  avgGoalsPerGame Float  @default(0)
+  biggestWin      Int    @default(0)
+  biggestLoss     Int    @default(0)
+  currentStreak   Int    @default(0)
+  bestStreak      Int    @default(0)
+  cleanSheets     Int    @default(0)
+  titlesWon       Int    @default(0)
+  seasonsPlayed   Int    @default(0)
+  totalAssists    Int    @default(0)
+  totalMvp        Int    @default(0)
+  yellowCards     Int    @default(0)
+  redCards        Int    @default(0)
+  ownGoals        Int    @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("player_stats")
+}
+
+// ─── FIFA Database ───────────────────────────────────────────────────────────
+
+model FcLeague {
+  id          String   @id @default(uuid())
+  fifaIndexId String   @unique
+  name        String
+  country     String?
+  logoUrl     String?
+  teams       FcTeam[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("fc_leagues")
+}
+
+model FcTeam {
+  id          String   @id @default(uuid())
+  fifaIndexId String   @unique
+  name        String
+  shortName   String?
+  leagueId    String?
+  league      FcLeague? @relation(fields: [leagueId], references: [id])
+  country     String?
+  crestUrl    String?
+  overall     Int?
+  players     FcPlayer[]
+  favoritedBy User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([leagueId])
+  @@map("fc_teams")
+}
+
+model FcPlayer {
+  id          String   @id @default(uuid())
+  fifaIndexId String   @unique
+  name        String
+  teamId      String?
+  team        FcTeam?  @relation(fields: [teamId], references: [id])
+  position    String?
+  overall     Int?
+  potential   Int?
+  nationality String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([teamId])
+  @@index([overall])
+  @@map("fc_players")
+}
+
+// ─── Seasons ─────────────────────────────────────────────────────────────────
+
+model Season {
+  id        String   @id @default(uuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+  tournaments Tournament[]
+  createdAt DateTime @default(now())
+
+  @@map("seasons")
+}
+
+// ─── Tournaments ─────────────────────────────────────────────────────────────
+
+model Tournament {
+  id              String           @id @default(uuid())
+  name            String
+  description     String?
+  type            TournamentType
+  status          TournamentStatus @default(DRAFT)
+  creatorId       String
+  creator         User             @relation("TournamentCreator", fields: [creatorId], references: [id])
+  seasonId        String?
+  season          Season?          @relation(fields: [seasonId], references: [id])
+
+  maxParticipants Int              @default(16)
+  groupsCount     Int?
+  teamsPerGroup   Int?
+  knockoutRounds  Int?
+  twoLegs         Boolean          @default(false)
+  pointsWin       Int              @default(3)
+  pointsDraw      Int              @default(1)
+  pointsLoss      Int              @default(0)
+
+  startDate       DateTime?
+  endDate         DateTime?
+  logoUrl         String?
+  rules           String?
+
+  participants    TournamentParticipant[]
+  matches         Match[]
+  standings       Standing[]
+  trophies        Trophy[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([seasonId])
+  @@map("tournaments")
+}
+
+model TournamentParticipant {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  seed         Int?
+  groupName    String?
+  eliminated   Boolean    @default(false)
+  placement    Int?
+
+  createdAt DateTime @default(now())
+
+  homeMatches Match[] @relation("HomeParticipant")
+  awayMatches Match[] @relation("AwayParticipant")
+  standings   Standing[]
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@index([userId])
+  @@map("tournament_participants")
+}
+
+// ─── Matches ─────────────────────────────────────────────────────────────────
+
+model Match {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  round        Int        @default(1)
+  groupName    String?
+  leg          Int        @default(1)
+  bracketPosition Int?
+
+  homeParticipantId String
+  homeParticipant   TournamentParticipant @relation("HomeParticipant", fields: [homeParticipantId], references: [id])
+  awayParticipantId String
+  awayParticipant   TournamentParticipant @relation("AwayParticipant", fields: [awayParticipantId], references: [id])
+
+  homeScore     Int?
+  awayScore     Int?
+  penaltiesHome Int?
+  penaltiesAway Int?
+
+  status      MatchStatus @default(SCHEDULED)
+  scheduledAt DateTime?
+  playedAt    DateTime?
+
+  mvpUserId String?
+  mvpUser   User?   @relation("MatchMVP", fields: [mvpUserId], references: [id])
+
+  events    MatchEvent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tournamentId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("matches")
+}
+
+model MatchEvent {
+  id          String @id @default(uuid())
+  matchId     String
+  match       Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User   @relation(fields: [userId], references: [id])
+
+  goals       Int    @default(0)
+  assists     Int    @default(0)
+  yellowCards Int    @default(0)
+  redCards    Int    @default(0)
+  ownGoals    Int    @default(0)
+  isMvp       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([matchId, userId])
+  @@index([matchId])
+  @@index([userId])
+  @@map("match_events")
+}
+
+// ─── Standings ───────────────────────────────────────────────────────────────
+
+model Standing {
+  id            String                @id @default(uuid())
+  tournamentId  String
+  tournament    Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   TournamentParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  groupName     String?
+
+  played   Int @default(0)
+  won      Int @default(0)
+  drawn    Int @default(0)
+  lost     Int @default(0)
+  gf       Int @default(0)
+  ga       Int @default(0)
+  gd       Int @default(0)
+  points   Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([tournamentId, participantId, groupName])
+  @@index([tournamentId])
+  @@map("standings")
+}
+
+// ─── Social & Gamification ───────────────────────────────────────────────────
+
+model HeadToHead {
+  id         String @id @default(uuid())
+  userId     String
+  user       User   @relation("H2HUser", fields: [userId], references: [id], onDelete: Cascade)
+  opponentId String
+  opponent   User   @relation("H2HOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
+
+  matchesPlayed Int @default(0)
+  wins          Int @default(0)
+  draws         Int @default(0)
+  losses        Int @default(0)
+  goalsFor      Int @default(0)
+  goalsAgainst  Int @default(0)
+  biggestWin    Int @default(0)
+  currentStreak Int @default(0)
+  bestStreak    Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, opponentId])
+  @@index([userId])
+  @@index([opponentId])
+  @@map("head_to_head")
+}
+
+model Trophy {
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournamentId String?
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+  title        String
+  placement    Int         @default(1)
+  seasonName   String?
+  wonAt        DateTime    @default(now())
+
+  @@index([userId])
+  @@map("trophies")
+}
+
+model Achievement {
+  id          String          @id @default(uuid())
+  type        AchievementType @unique
+  title       String
+  description String
+  icon        String?
+  xpReward    Int             @default(100)
+
+  users UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model Activity {
+  id        String       @id @default(uuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ActivityType
+  title     String
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  @@index([userId, createdAt])
+  @@map("activities")
+}
