@@ -5,24 +5,33 @@ import { getCurrentUser } from "@/actions/auth-actions";
 import { TournamentService } from "@/services/tournament-service";
 import { tournamentCreateSchema } from "@/schemas";
 
+function formValue(value: FormDataEntryValue | null) {
+  if (value === null || value === "") return undefined;
+  return value;
+}
+
 export async function createTournament(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "No autenticado" };
 
   const parsed = tournamentCreateSchema.safeParse({
     name: formData.get("name"),
-    description: formData.get("description"),
+    description: formValue(formData.get("description")),
     type: formData.get("type"),
     maxParticipants: formData.get("maxParticipants"),
-    groupsCount: formData.get("groupsCount"),
-    teamsPerGroup: formData.get("teamsPerGroup"),
+    groupsCount: formValue(formData.get("groupsCount")),
+    teamsPerGroup: formValue(formData.get("teamsPerGroup")),
     twoLegs: formData.get("twoLegs") === "true",
-    startDate: formData.get("startDate"),
-    endDate: formData.get("endDate"),
+    startDate: formValue(formData.get("startDate")),
+    endDate: formValue(formData.get("endDate")),
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+    const message = parsed.error.issues
+      .map((issue) => issue.message)
+      .filter(Boolean)
+      .join(". ");
+    return { error: message || "Datos inválidos" };
   }
 
   try {

@@ -2,20 +2,28 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { signInWithEmail, signInWithGoogle } from "@/actions/auth-actions";
+import { signInWithEmail } from "@/actions/auth-actions";
 import { APP_NAME } from "@/constants";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const authError = new URLSearchParams(window.location.search).get("error");
+    if (authError) {
+      setError(authError);
+      toast.error(authError);
+    }
+  }, []);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -29,12 +37,6 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     });
-  }
-
-  async function handleGoogle() {
-    const result = await signInWithGoogle();
-    if (result.error) toast.error(result.error);
-    if (result.url) window.location.href = result.url;
   }
 
   return (
@@ -86,13 +88,8 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogle}
-            type="button"
-          >
-            Continuar con Google
+          <Button variant="outline" className="w-full" asChild>
+            <a href="/api/auth/google">Continuar con Google</a>
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">

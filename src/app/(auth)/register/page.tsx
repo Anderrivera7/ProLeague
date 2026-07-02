@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { signUpWithEmail, signInWithGoogle } from "@/actions/auth-actions";
+import { signUpWithEmail } from "@/actions/auth-actions";
 import { APP_NAME } from "@/constants";
 
 export default function RegisterPage() {
@@ -29,12 +29,6 @@ export default function RegisterPage() {
         router.push("/dashboard");
       }
     });
-  }
-
-  async function handleGoogle() {
-    const result = await signInWithGoogle();
-    if (result.error) toast.error(result.error);
-    if (result.url) window.location.href = result.url;
   }
 
   return (
@@ -109,13 +103,8 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogle}
-            type="button"
-          >
-            Continuar con Google
+          <Button variant="outline" className="w-full" asChild>
+            <a href="/api/auth/google">Continuar con Google</a>
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">

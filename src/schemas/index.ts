@@ -34,21 +34,37 @@ export const profileUpdateSchema = z.object({
 });
 
 export const tournamentCreateSchema = z.object({
-  name: z.string().min(3, "Mínimo 3 caracteres").max(100),
-  description: z.string().max(500).optional(),
-  type: z.enum([
-    "LEAGUE",
-    "KNOCKOUT",
-    "GROUPS",
-    "GROUPS_KNOCKOUT",
-    "TWO_LEGS",
-  ]),
-  maxParticipants: z.coerce.number().min(2).max(128),
-  groupsCount: z.coerce.number().min(1).max(16).optional(),
-  teamsPerGroup: z.coerce.number().min(2).max(8).optional(),
+  name: z.string().min(3, "El nombre debe tener al menos 3 caracteres").max(100),
+  description: z
+    .string()
+    .max(500)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+  type: z.enum(
+    ["LEAGUE", "KNOCKOUT", "GROUPS", "GROUPS_KNOCKOUT", "TWO_LEGS"],
+    { message: "Selecciona un tipo de torneo válido" }
+  ),
+  maxParticipants: z.coerce
+    .number({ message: "Máx. participantes inválido" })
+    .min(2, "Mínimo 2 participantes")
+    .max(128, "Máximo 128 participantes"),
+  groupsCount: z
+    .union([z.coerce.number().min(1).max(16), z.literal(""), z.null(), z.undefined()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? undefined : Number(v))),
+  teamsPerGroup: z
+    .union([z.coerce.number().min(2).max(8), z.literal(""), z.null(), z.undefined()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? undefined : Number(v))),
   twoLegs: z.boolean().default(false),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+  endDate: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
   pointsWin: z.coerce.number().min(1).default(3),
   pointsDraw: z.coerce.number().min(0).default(1),
   pointsLoss: z.coerce.number().min(0).default(0),

@@ -63,17 +63,8 @@ export async function signUpWithEmail(formData: FormData) {
 }
 
 export async function signInWithGoogle() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-    },
-  });
-
-  if (error) return { error: error.message };
-  if (data.url) return { url: data.url };
-  return { error: "No se pudo iniciar sesión con Google" };
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  return { url: `${appUrl}/api/auth/google` };
 }
 
 export async function signOut() {
