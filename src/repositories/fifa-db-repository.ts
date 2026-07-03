@@ -1,42 +1,24 @@
-import { prisma } from "@/lib/prisma";
+import { TeamRepository } from "@/repositories/team-repository";
 
+/** @deprecated Usar TeamRepository / TeamService */
 export class FifaDbRepository {
-  static async getTeams(search?: string, limit = 50) {
-    return prisma.fcTeam.findMany({
-      where: search
-        ? { name: { contains: search, mode: "insensitive" } }
-        : undefined,
-      include: { league: true },
-      orderBy: { overall: "desc" },
-      take: limit,
+  static async getLeagues() {
+    const { prisma } = await import("@/lib/prisma");
+    return prisma.fcLeague.findMany({
+      include: { _count: { select: { teams: true } } },
+      orderBy: { name: "asc" },
     });
   }
 
-  static async getTeamById(id: string) {
-    return prisma.fcTeam.findUnique({
-      where: { id },
-      include: {
-        league: true,
-        players: { orderBy: { overall: "desc" } },
-      },
-    });
+  static async getTeams(search?: string, leagueId?: string, limit = 50) {
+    return TeamRepository.search(search ?? "", leagueId, limit);
   }
 
-  static async getPlayersByTeam(teamId: string) {
-    return prisma.fcPlayer.findMany({
-      where: { teamId },
-      orderBy: { overall: "desc" },
-    });
-  }
+  static getTeamById = TeamRepository.findById;
+  static getPlayersByTeam = async (teamId: string) => {
+    const { PlayerRepository } = await import("@/repositories/player-repository");
+    return PlayerRepository.findByTeamId(teamId);
+  };
 
-  static async searchPlayers(query: string, limit = 30) {
-    return prisma.fcPlayer.findMany({
-      where: {
-        name: { contains: query, mode: "insensitive" },
-      },
-      include: { team: true },
-      orderBy: { overall: "desc" },
-      take: limit,
-    });
-  }
+  static searchPlayers = async () => [] as never[];
 }

@@ -129,6 +129,7 @@ model FcLeague {
   country     String?
   logoUrl     String?
   teams       FcTeam[]
+  tournaments Tournament[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -145,8 +146,13 @@ model FcTeam {
   country     String?
   crestUrl    String?
   overall     Int?
+  attack      Int?
+  midfield    Int?
+  defense     Int?
+  syncedAt    DateTime?
   players     FcPlayer[]
   favoritedBy User[]
+  tournamentParticipants TournamentParticipant[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -161,10 +167,18 @@ model FcPlayer {
   teamId      String?
   team        FcTeam?  @relation(fields: [teamId], references: [id])
   position    String?
+  squadRole   String?
+  jerseyNumber Int?
   overall     Int?
   potential   Int?
   nationality String?
   imageUrl    String?
+  pace        Int?
+  shooting    Int?
+  passing     Int?
+  dribbling   Int?
+  defending   Int?
+  physic      Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -213,6 +227,9 @@ model Tournament {
   endDate         DateTime?
   logoUrl         String?
   rules           String?
+  joinCode        String?          @unique
+  fcLeagueId      String?
+  fcLeague        FcLeague?        @relation(fields: [fcLeagueId], references: [id])
 
   participants    TournamentParticipant[]
   matches         Match[]
@@ -225,6 +242,8 @@ model Tournament {
   @@index([creatorId])
   @@index([status])
   @@index([seasonId])
+  @@index([joinCode])
+  @@index([fcLeagueId])
   @@map("tournaments")
 }
 
@@ -234,6 +253,8 @@ model TournamentParticipant {
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   userId       String
   user         User       @relation(fields: [userId], references: [id])
+  fcTeamId     String?
+  fcTeam       FcTeam?    @relation(fields: [fcTeamId], references: [id])
   seed         Int?
   groupName    String?
   eliminated   Boolean    @default(false)
@@ -248,6 +269,7 @@ model TournamentParticipant {
   @@unique([tournamentId, userId])
   @@index([tournamentId])
   @@index([userId])
+  @@index([fcTeamId])
   @@map("tournament_participants")
 }
 

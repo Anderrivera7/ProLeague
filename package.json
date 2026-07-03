@@ -12,6 +12,9 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "seed:users": "tsx scripts/seed-test-users.ts",
+    "seed:fc-teams": "tsx scripts/seed-fc-teams.ts",
+    "import:fc26-csv": "tsx scripts/import-fc26-csv.ts",
+    "scrape:ea-nations": "tsx scripts/scrape-ea-nations.ts",
     "db:studio": "prisma studio",
     "scrape:fifa-index": "tsx scripts/fifa-index/scrape.ts"
   },

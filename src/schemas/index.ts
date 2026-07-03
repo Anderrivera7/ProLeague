@@ -65,9 +65,22 @@ export const tournamentCreateSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v === "" ? undefined : v)),
+  fcLeagueId: z.string().uuid().optional(),
   pointsWin: z.coerce.number().min(1).default(3),
   pointsDraw: z.coerce.number().min(0).default(1),
   pointsLoss: z.coerce.number().min(0).default(0),
+});
+
+export const joinTournamentSchema = z.object({
+  joinCode: z
+    .string()
+    .min(6, "Código inválido")
+    .transform((v) => v.trim().toUpperCase()),
+});
+
+export const selectTeamSchema = z.object({
+  tournamentId: z.string().uuid(),
+  fcTeamId: z.string().uuid(),
 });
 
 export const matchResultSchema = z.object({

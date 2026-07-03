@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchCard } from "@/features/matches/components/match-card";
+import { JoinCodeCard } from "@/features/tournaments/components/join-code-card";
 import { TournamentRepository } from "@/repositories/tournament-repository";
 import { TOURNAMENT_TYPES } from "@/constants";
 import { GenerateFixtureButton } from "@/features/tournaments/components/generate-fixture-button";
@@ -24,26 +26,72 @@ export default async function TournamentDetailPage({ params }: PageProps) {
   if (!tournament) notFound();
 
   const isCreator = user?.id === tournament.creatorId;
+  const myParticipant = tournament.participants.find((p) => p.userId === user?.id);
+  const needsTeam = myParticipant && !myParticipant.fcTeamId;
   const typeInfo = TOURNAMENT_TYPES[tournament.type];
 
   return (
     <>
       <Header title={tournament.name} subtitle={typeInfo.label} />
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 pb-24">
         <div className="flex flex-wrap items-center gap-3">
           <Badge>{tournament.status}</Badge>
           <Badge variant="outline">{typeInfo.label}</Badge>
+          {tournament.fcLeague && (
+            <Badge variant="secondary">{tournament.fcLeague.name}</Badge>
+          )}
           <span className="text-sm text-muted-foreground">
-            {tournament._count.participants} participantes ·{" "}
-            {tournament._count.matches} partidos
+            {tournament._count.participants}/{tournament.maxParticipants}{" "}
+            participantes · {tournament._count.matches} partidos
           </span>
           {isCreator && tournament._count.matches === 0 && (
             <GenerateFixtureButton tournamentId={tournament.id} />
           )}
-          {isCreator && (
-            <DeleteTournamentButton tournamentId={tournament.id} />
-          )}
+          {isCreator && <DeleteTournamentButton tournamentId={tournament.id} />}
         </div>
+
+        {tournament.joinCode && (
+          <JoinCodeCard
+            joinCode={tournament.joinCode}
+            tournamentName={tournament.name}
+          />
+        )}
+
+        {myParticipant?.fcTeamId && (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium">
+                  Tu equipo: {myParticipant.fcTeam?.name ?? "Selección"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Consulta tu plantilla, formación inicial y stats de jugadores
+                </p>
+              </div>
+              <Button asChild>
+                <Link href={`/tournaments/${id}/my-team`}>Ver plantilla</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {needsTeam && (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium">Aún no has elegido equipo</p>
+                <p className="text-sm text-muted-foreground">
+                  Selecciona tu selección o club para competir
+                </p>
+              </div>
+              <Button asChild>
+                <Link href={`/tournaments/${id}/select-team`}>
+                  Elegir equipo
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {tournament.description && (
           <p className="text-muted-foreground">{tournament.description}</p>
@@ -53,7 +101,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           {tournament.standings.length > 0 && (
             <Card className="glass lg:col-span-1">
               <CardHeader>
-                <CardTitle className="text-base">Tabla de Posiciones</CardTitle>
+                <CardTitle className="text-base">Tabla de posiciones</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">
@@ -113,23 +161,35 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {tournament.participants.map((p) => (
+              {tournament.participants.map((p) => {
+                const isMe = p.userId === user?.id;
+                const href =
+                  isMe && p.fcTeamId
+                    ? `/tournaments/${id}/my-team`
+                    : `/players/${p.user.id}`;
+
+                return (
                 <Link
                   key={p.id}
-                  href={`/players/${p.user.id}`}
-                  className="flex items-center gap-3 rounded-lg p-3 hover:bg-card-hover transition-colors"
+                  href={href}
+                  className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-card-hover transition-colors"
                 >
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
-                    {p.user.nickname.slice(0, 2).toUpperCase()}
+                    {p.fcTeam?.name?.slice(0, 2).toUpperCase() ??
+                      p.user.nickname.slice(0, 2).toUpperCase()}
                   </div>
-                  <div>
-                    <p className="font-medium">{p.user.nickname}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ELO {p.user.elo}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{p.user.nickname}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {p.fcTeam?.name ?? "Sin equipo"} · ELO {p.user.elo}
                     </p>
                   </div>
+                  {isMe && p.fcTeamId && (
+                    <span className="text-xs text-primary shrink-0">Ver plantilla →</span>
+                  )}
                 </Link>
-              ))}
+              );
+              })}
             </div>
           </CardContent>
         </Card>

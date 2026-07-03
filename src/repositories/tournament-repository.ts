@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma, TournamentType } from "@prisma/client";
+import { generateJoinCode } from "@/utils/join-code";
 
 export class TournamentRepository {
   static async findById(id: string) {
@@ -7,22 +8,36 @@ export class TournamentRepository {
       where: { id },
       include: {
         creator: true,
+        fcLeague: true,
         participants: {
-          include: { user: true },
+          include: {
+            user: true,
+            fcTeam: { include: { league: true } },
+          },
           orderBy: { seed: "asc" },
         },
         matches: {
           include: {
-            homeParticipant: { include: { user: true } },
-            awayParticipant: { include: { user: true } },
+            homeParticipant: { include: { user: true, fcTeam: true } },
+            awayParticipant: { include: { user: true, fcTeam: true } },
           },
           orderBy: [{ round: "asc" }, { scheduledAt: "asc" }],
         },
         standings: {
-          include: { participant: { include: { user: true } } },
+          include: { participant: { include: { user: true, fcTeam: true } } },
           orderBy: [{ points: "desc" }, { gd: "desc" }, { gf: "desc" }],
         },
         _count: { select: { participants: true, matches: true } },
+      },
+    });
+  }
+
+  static async findByJoinCode(joinCode: string) {
+    return prisma.tournament.findUnique({
+      where: { joinCode: joinCode.toUpperCase() },
+      include: {
+        fcLeague: true,
+        _count: { select: { participants: true } },
       },
     });
   }
@@ -48,6 +63,17 @@ export class TournamentRepository {
     });
   }
 
+  static async createUniqueJoinCode(): Promise<string> {
+    for (let i = 0; i < 10; i++) {
+      const joinCode = generateJoinCode();
+      const existing = await prisma.tournament.findUnique({
+        where: { joinCode },
+      });
+      if (!existing) return joinCode;
+    }
+    throw new Error("No se pudo generar código único");
+  }
+
   static async create(data: Prisma.TournamentCreateInput) {
     return prisma.tournament.create({ data });
   }
@@ -60,9 +86,33 @@ export class TournamentRepository {
     return prisma.tournament.delete({ where: { id } });
   }
 
-  static async addParticipant(tournamentId: string, userId: string, seed?: number) {
+  static async addParticipant(
+    tournamentId: string,
+    userId: string,
+    seed?: number
+  ) {
     return prisma.tournamentParticipant.create({
       data: { tournamentId, userId, seed },
+      include: { user: true, fcTeam: true },
+    });
+  }
+
+  static async getParticipant(tournamentId: string, userId: string) {
+    return prisma.tournamentParticipant.findUnique({
+      where: { tournamentId_userId: { tournamentId, userId } },
+      include: { fcTeam: true, user: true },
+    });
+  }
+
+  static async setParticipantTeam(
+    tournamentId: string,
+    userId: string,
+    fcTeamId: string
+  ) {
+    return prisma.tournamentParticipant.update({
+      where: { tournamentId_userId: { tournamentId, userId } },
+      data: { fcTeamId },
+      include: { fcTeam: true, user: true },
     });
   }
 

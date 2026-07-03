@@ -8,6 +8,8 @@ import type { TournamentType } from "@prisma/client";
 
 export class TournamentService {
   static async create(input: TournamentCreateInput, creatorId: string) {
+    const joinCode = await TournamentRepository.createUniqueJoinCode();
+
     const tournament = await TournamentRepository.create({
       name: input.name,
       description: input.description,
@@ -21,11 +23,71 @@ export class TournamentService {
       pointsLoss: input.pointsLoss,
       startDate: input.startDate ? new Date(input.startDate) : undefined,
       endDate: input.endDate ? new Date(input.endDate) : undefined,
+      joinCode,
+      ...(input.fcLeagueId && {
+        fcLeague: { connect: { id: input.fcLeagueId } },
+      }),
       creator: { connect: { id: creatorId } },
       status: "REGISTRATION",
     });
 
+    await TournamentRepository.addParticipant(tournament.id, creatorId, 1);
+
     return tournament;
+  }
+
+  static async joinByCode(joinCode: string, userId: string) {
+    const tournament = await TournamentRepository.findByJoinCode(joinCode);
+    if (!tournament) throw new Error("Código de torneo no válido");
+    if (tournament.status !== "REGISTRATION") {
+      throw new Error("Este torneo ya no acepta inscripciones");
+    }
+    if (tournament._count.participants >= tournament.maxParticipants) {
+      throw new Error("El torneo está lleno");
+    }
+
+    const existing = await TournamentRepository.getParticipant(
+      tournament.id,
+      userId
+    );
+    if (existing) return { tournament, alreadyJoined: true };
+
+    await TournamentRepository.addParticipant(tournament.id, userId);
+    return { tournament, alreadyJoined: false };
+  }
+
+  static async selectTeam(
+    tournamentId: string,
+    userId: string,
+    fcTeamId: string
+  ) {
+    const tournament = await TournamentRepository.findById(tournamentId);
+    if (!tournament) throw new Error("Torneo no encontrado");
+
+    const participant = await TournamentRepository.getParticipant(
+      tournamentId,
+      userId
+    );
+    if (!participant) throw new Error("No estás inscrito en este torneo");
+
+    if (tournament.fcLeagueId) {
+      const { prisma } = await import("@/lib/prisma");
+      const team = await prisma.fcTeam.findFirst({
+        where: { id: fcTeamId, leagueId: tournament.fcLeagueId },
+      });
+      if (!team) throw new Error("Este equipo no pertenece a la competición");
+    }
+
+    const taken = tournament.participants.some(
+      (p) => p.fcTeamId === fcTeamId && p.userId !== userId
+    );
+    if (taken) throw new Error("Ese equipo ya fue elegido por otro jugador");
+
+    return TournamentRepository.setParticipantTeam(
+      tournamentId,
+      userId,
+      fcTeamId
+    );
   }
 
   static async generateFixture(tournamentId: string) {

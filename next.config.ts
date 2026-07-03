@@ -8,8 +8,11 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "**.fifaindex.com" },
-      { protocol: "https", hostname: "**.supabase.co" },
+      { protocol: "https", hostname: "cdn.sofifa.net", pathname: "/**" },
+      { protocol: "https", hostname: "ratings-images-prod.pulse.ea.com", pathname: "/**" },
+      { protocol: "https", hostname: "drop-assets.ea.com", pathname: "/**" },
+      { protocol: "https", hostname: "**.fifaindex.com", pathname: "/**" },
+      { protocol: "https", hostname: "**.supabase.co", pathname: "/**" },
     ],
   },
 };

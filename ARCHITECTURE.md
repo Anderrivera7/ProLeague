@@ -42,7 +42,8 @@ src/
 │   ├── matches/
 │   ├── players/
 │   └── stats/
-├── hooks/                  # Custom React hooks
+├── hooks/                  # Custom React hooks (React Query)
+├── server-actions/         # Acciones de sync (equipos FC)
 ├── lib/                    # Prisma, Supabase, utils
 ├── repositories/           # Capa de acceso a datos
 ├── schemas/                # Validación Zod
@@ -77,10 +78,36 @@ prisma/
 - Perfil completo con stats, trofeos, logros, gráfico ELO
 - Head to Head al visitar perfil de otro jugador
 
-### FIFA Database
-- Scripts Puppeteer en `scripts/fifa-index/`
-- Nunca se consulta FIFA Index desde el frontend
-- Datos en tablas `fc_teams`, `fc_players`, `fc_leagues`
+### FIFA Database — Lazy Sync (API oficial EA)
+
+Equipos y jugadores **no se importan en bloque**. Fuente: `drop-api.ea.com` (sin Cloudflare, sin Puppeteer).
+
+```
+Usuario elige selección
+       ↓
+TeamService.getOrSyncByEaId(nationalityId)
+       ↓
+TeamRepository.findByEaId  →  ¿existe con jugadores?
+       ↓ sí                      ↓ no
+   devolver cache          EA Drop API (?nationality=X)
+                                  ↓
+                          TeamRepository.upsertFromSync
+                          PlayerRepository.upsertMany
+                                  ↓
+                          devolver equipo (cache permanente)
+```
+
+| Capa | Archivo | Responsabilidad |
+|------|---------|-----------------|
+| API EA | `lib/fc-data/ea-drop-client.ts` | `fetch` HTTP, filtro por nacionalidad |
+| Catálogo | `lib/fc-data/national-teams.ts` | 59 selecciones Mundial FC26 |
+| Importer | `lib/fc-data/importer.ts` | Orquestación import |
+| Service | `services/team-service.ts` | Lazy loading |
+| Seed | `scripts/seed-fc-teams.ts` | Precarga todas las selecciones |
+
+- `fifaIndexId` = `nationalityId` de EA (ej. `18` = Francia)
+- FIFA Index / SoFIFA / FIFACM descartados (Cloudflare)
+
 
 ## Stack
 

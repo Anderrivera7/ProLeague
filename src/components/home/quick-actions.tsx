@@ -11,7 +11,7 @@ const actions = [
     color: "bg-primary/15 text-primary",
   },
   {
-    href: "/tournaments",
+    href: "/tournaments/join",
     label: "Unirse",
     icon: LogIn,
     color: "bg-secondary/15 text-secondary",
