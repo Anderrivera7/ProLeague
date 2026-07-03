@@ -36,6 +36,16 @@ export class TournamentService {
     return tournament;
   }
 
+  static async ensureCreatorEnrolled(tournamentId: string, creatorId: string) {
+    const existing = await TournamentRepository.getParticipant(
+      tournamentId,
+      creatorId
+    );
+    if (!existing) {
+      await TournamentRepository.addParticipant(tournamentId, creatorId, 1);
+    }
+  }
+
   static async joinByCode(joinCode: string, userId: string) {
     const tournament = await TournamentRepository.findByJoinCode(joinCode);
     if (!tournament) throw new Error("Código de torneo no válido");

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchCard } from "@/features/matches/components/match-card";
 import { JoinCodeCard } from "@/features/tournaments/components/join-code-card";
 import { TournamentRepository } from "@/repositories/tournament-repository";
+import { TournamentService } from "@/services/tournament-service";
 import { TOURNAMENT_TYPES } from "@/constants";
 import { GenerateFixtureButton } from "@/features/tournaments/components/generate-fixture-button";
 import { DeleteTournamentButton } from "@/features/tournaments/components/delete-tournament-button";
@@ -18,14 +19,17 @@ interface PageProps {
 
 export default async function TournamentDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [tournament, user] = await Promise.all([
-    TournamentRepository.findById(id),
-    getCurrentUser(),
-  ]);
+  const user = await getCurrentUser();
+  let tournament = await TournamentRepository.findById(id);
 
   if (!tournament) notFound();
 
   const isCreator = user?.id === tournament.creatorId;
+  if (isCreator && user && !tournament.participants.some((p) => p.userId === user.id)) {
+    await TournamentService.ensureCreatorEnrolled(id, user.id);
+    tournament = await TournamentRepository.findById(id);
+    if (!tournament) notFound();
+  }
   const myParticipant = tournament.participants.find((p) => p.userId === user?.id);
   const needsTeam = myParticipant && !myParticipant.fcTeamId;
   const typeInfo = TOURNAMENT_TYPES[tournament.type];
@@ -41,6 +45,13 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             <Badge variant="secondary">{tournament.fcLeague.name}</Badge>
           )}
           <span className="text-sm text-muted-foreground">
+            Organizado por{" "}
+            <span className="font-medium text-foreground">
+              {tournament.creator.nickname}
+            </span>
+            {isCreator && " (tú)"}
+          </span>
+          <span className="text-sm text-muted-foreground">
             {tournament._count.participants}/{tournament.maxParticipants}{" "}
             participantes · {tournament._count.matches} partidos
           </span>
@@ -55,6 +66,24 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             joinCode={tournament.joinCode}
             tournamentName={tournament.name}
           />
+        )}
+
+        {!myParticipant && tournament.status === "REGISTRATION" && (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium">¿Quieres jugar este torneo?</p>
+                <p className="text-sm text-muted-foreground">
+                  Únete con el código y elige tu selección
+                </p>
+              </div>
+              <Button asChild>
+                <Link href={`/tournaments/join?code=${tournament.joinCode ?? ""}`}>
+                  Unirme al torneo
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {myParticipant?.fcTeamId && (
@@ -140,7 +169,11 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             {tournament.matches.length > 0 ? (
               <div className="space-y-3">
                 {tournament.matches.map((match) => (
-                  <MatchCard key={match.id} match={match as never} />
+                  <MatchCard
+                    key={match.id}
+                    match={match as never}
+                    tournament={{ id: tournament.id, name: tournament.name }}
+                  />
                 ))}
               </div>
             ) : (
@@ -163,10 +196,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {tournament.participants.map((p) => {
                 const isMe = p.userId === user?.id;
-                const href =
-                  isMe && p.fcTeamId
+                const canViewSquad = p.fcTeamId && (isMe || isCreator);
+                const href = canViewSquad
+                  ? isMe
                     ? `/tournaments/${id}/my-team`
-                    : `/players/${p.user.id}`;
+                    : `/tournaments/${id}/squads/${p.fcTeamId}`
+                  : `/players/${p.user.id}`;
 
                 return (
                 <Link
@@ -184,7 +219,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                       {p.fcTeam?.name ?? "Sin equipo"} · ELO {p.user.elo}
                     </p>
                   </div>
-                  {isMe && p.fcTeamId && (
+                  {canViewSquad && (
                     <span className="text-xs text-primary shrink-0">Ver plantilla →</span>
                   )}
                 </Link>

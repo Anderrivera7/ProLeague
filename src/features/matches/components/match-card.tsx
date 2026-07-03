@@ -6,6 +6,8 @@ import type { MatchWithParticipants } from "@/types";
 
 interface MatchCardProps {
   match: MatchWithParticipants;
+  /** Si el torneo no viene en el match (p. ej. vista dentro del torneo) */
+  tournament?: { id: string; name: string };
 }
 
 const statusVariant = {
@@ -24,19 +26,24 @@ const statusLabel = {
   WALKOVER: "Walkover",
 };
 
-export function MatchCard({ match }: MatchCardProps) {
+export function MatchCard({ match, tournament }: MatchCardProps) {
   const isCompleted = match.status === "COMPLETED";
+  const t = tournament ?? match.tournament;
 
   return (
     <Card className="glass hover:border-primary/20 transition-all">
       <CardContent className="p-4">
         <div className="mb-3 flex items-center justify-between">
-          <Link
-            href={`/tournaments/${match.tournament.id}`}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            {match.tournament.name}
-          </Link>
+          {t ? (
+            <Link
+              href={`/tournaments/${t.id}`}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              {t.name}
+            </Link>
+          ) : (
+            <span className="text-xs text-muted-foreground">Partido</span>
+          )}
           <Badge variant={statusVariant[match.status]}>
             {statusLabel[match.status]}
           </Badge>

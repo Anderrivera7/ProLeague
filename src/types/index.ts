@@ -72,7 +72,7 @@ export interface MatchWithParticipants {
   awayParticipant: {
     user: { id: string; nickname: string; avatarUrl: string | null };
   };
-  tournament: { id: string; name: string };
+  tournament: { id: string; name: string } | null;
 }
 
 export interface TournamentWithDetails {

@@ -18,6 +18,7 @@ export class TournamentRepository {
         },
         matches: {
           include: {
+            tournament: { select: { id: true, name: true } },
             homeParticipant: { include: { user: true, fcTeam: true } },
             awayParticipant: { include: { user: true, fcTeam: true } },
           },

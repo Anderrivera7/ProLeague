@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/header";
@@ -14,6 +14,8 @@ import { LogIn } from "lucide-react";
 
 export default function JoinTournamentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefilledCode = searchParams.get("code") ?? "";
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
@@ -48,6 +50,7 @@ export default function JoinTournamentPage() {
                   name="joinCode"
                   placeholder="PL-XXXXXX"
                   className="font-mono uppercase tracking-widest text-center text-lg"
+                  defaultValue={prefilledCode}
                   required
                   minLength={6}
                 />
