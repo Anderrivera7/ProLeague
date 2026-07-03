@@ -71,7 +71,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                 <h2 className="text-2xl font-bold">{player.nickname}</h2>
                 <div className="flex flex-wrap gap-2 mt-1">
                   <Badge variant="outline">Nivel {player.level}</Badge>
-                  <Badge>ELO {player.elo}</Badge>
+                  <Badge>{player.elo} pts</Badge>
                   {player.country && (
                     <Badge variant="secondary">{player.country}</Badge>
                   )}

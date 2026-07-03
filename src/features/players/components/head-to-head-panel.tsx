@@ -19,7 +19,7 @@ export function HeadToHeadPanel({
       <Card className="glass">
         <CardHeader>
           <CardTitle className="text-base">
-            Head to Head vs {opponentNickname}
+            Historial vs {opponentNickname}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">

@@ -1,6 +1,23 @@
 import { prisma } from "@/lib/prisma";
-import { getMatchEloScores } from "@/utils/elo";
+import { getMatchPointUpdates } from "@/utils/points";
 import type { MatchResultInput } from "@/types";
+
+function aggregateUserEvents(
+  playerStats: MatchResultInput["playerStats"],
+  userId: string
+) {
+  return playerStats
+    .filter((p) => p.userId === userId)
+    .reduce(
+      (acc, p) => ({
+        goals: acc.goals + p.goals,
+        yellowCards: acc.yellowCards + p.yellowCards,
+        redCards: acc.redCards + p.redCards,
+        ownGoals: acc.ownGoals + p.ownGoals,
+      }),
+      { goals: 0, yellowCards: 0, redCards: 0, ownGoals: 0 }
+    );
+}
 
 export class MatchService {
   static async recordResult(input: MatchResultInput) {
@@ -18,104 +35,143 @@ export class MatchService {
 
     const homeUser = match.homeParticipant.user;
     const awayUser = match.awayParticipant.user;
-    const { homeNewElo, awayNewElo } = getMatchEloScores(
+    const { homeNewPoints, awayNewPoints } = getMatchPointUpdates(
       homeUser.elo,
       awayUser.elo,
       input.homeScore,
-      input.awayScore
+      input.awayScore,
+      input.mvpUserId,
+      homeUser.id,
+      awayUser.id
     );
 
     const homeWon = input.homeScore > input.awayScore;
     const awayWon = input.awayScore > input.homeScore;
     const isDraw = input.homeScore === input.awayScore;
 
-    await prisma.$transaction(async (tx) => {
-      await tx.match.update({
-        where: { id: input.matchId },
-        data: {
+    const homeEvents = aggregateUserEvents(input.playerStats, homeUser.id);
+    const awayEvents = aggregateUserEvents(input.playerStats, awayUser.id);
+
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.match.update({
+          where: { id: input.matchId },
+          data: {
+            homeScore: input.homeScore,
+            awayScore: input.awayScore,
+            penaltiesHome: input.penaltiesHome,
+            penaltiesAway: input.penaltiesAway,
+            mvpUserId: input.mvpUserId,
+            status: "COMPLETED",
+            playedAt: new Date(),
+          },
+        });
+
+        if (input.playerStats.length > 0) {
+          await tx.matchPlayerStat.createMany({
+            data: input.playerStats.map((p) => ({
+              matchId: input.matchId,
+              fcPlayerId: p.fcPlayerId,
+              userId: p.userId,
+              goals: p.goals,
+              yellowCards: p.yellowCards,
+              redCards: p.redCards,
+              ownGoals: p.ownGoals,
+            })),
+          });
+        }
+
+        await tx.matchEvent.createMany({
+          data: [
+            {
+              matchId: input.matchId,
+              userId: homeUser.id,
+              goals: homeEvents.goals,
+              assists: 0,
+              yellowCards: homeEvents.yellowCards,
+              redCards: homeEvents.redCards,
+              ownGoals: homeEvents.ownGoals,
+              isMvp: input.mvpUserId === homeUser.id,
+            },
+            {
+              matchId: input.matchId,
+              userId: awayUser.id,
+              goals: awayEvents.goals,
+              assists: 0,
+              yellowCards: awayEvents.yellowCards,
+              redCards: awayEvents.redCards,
+              ownGoals: awayEvents.ownGoals,
+              isMvp: input.mvpUserId === awayUser.id,
+            },
+          ],
+        });
+
+        await this.updatePlayerStats(tx, homeUser.id, {
+          won: homeWon,
+          drawn: isDraw,
+          lost: awayWon,
+          gf: input.homeScore,
+          ga: input.awayScore,
+          newPoints: homeNewPoints,
+          mvp: input.mvpUserId === homeUser.id,
+          events: homeEvents,
+        });
+
+        await this.updatePlayerStats(tx, awayUser.id, {
+          won: awayWon,
+          drawn: isDraw,
+          lost: homeWon,
+          gf: input.awayScore,
+          ga: input.homeScore,
+          newPoints: awayNewPoints,
+          mvp: input.mvpUserId === awayUser.id,
+          events: awayEvents,
+        });
+
+        await this.updateHeadToHead(tx, homeUser.id, awayUser.id, {
+          homeWon,
+          awayWon,
+          isDraw,
           homeScore: input.homeScore,
           awayScore: input.awayScore,
-          penaltiesHome: input.penaltiesHome,
-          penaltiesAway: input.penaltiesAway,
-          mvpUserId: input.mvpUserId,
-          status: "COMPLETED",
-          playedAt: new Date(),
-        },
-      });
-
-      if (input.events.length > 0) {
-        await tx.matchEvent.createMany({
-          data: input.events.map((e) => ({
-            matchId: input.matchId,
-            userId: e.userId,
-            goals: e.goals ?? 0,
-            assists: e.assists ?? 0,
-            yellowCards: e.yellowCards ?? 0,
-            redCards: e.redCards ?? 0,
-            ownGoals: e.ownGoals ?? 0,
-            isMvp: e.userId === input.mvpUserId,
-          })),
         });
-      }
 
-      await this.updatePlayerStats(tx, homeUser.id, {
-        won: homeWon,
-        drawn: isDraw,
-        lost: awayWon,
-        gf: input.homeScore,
-        ga: input.awayScore,
-        newElo: homeNewElo,
-        mvp: input.mvpUserId === homeUser.id,
-        events: input.events.find((e) => e.userId === homeUser.id),
-      });
+        await this.updateStandings(
+          tx,
+          match.tournamentId,
+          match.homeParticipantId,
+          match.awayParticipantId,
+          input.homeScore,
+          input.awayScore,
+          match.groupName,
+          match.tournament
+        );
 
-      await this.updatePlayerStats(tx, awayUser.id, {
-        won: awayWon,
-        drawn: isDraw,
-        lost: homeWon,
-        gf: input.awayScore,
-        ga: input.homeScore,
-        newElo: awayNewElo,
-        mvp: input.mvpUserId === awayUser.id,
-        events: input.events.find((e) => e.userId === awayUser.id),
-      });
-
-      await this.updateHeadToHead(tx, homeUser.id, awayUser.id, {
-        homeWon,
-        awayWon,
-        isDraw,
-        homeScore: input.homeScore,
-        awayScore: input.awayScore,
-      });
-
-      await this.updateStandings(
-        tx,
-        match.tournamentId,
-        match.homeParticipantId,
-        match.awayParticipantId,
-        input.homeScore,
-        input.awayScore,
-        match.groupName,
-        match.tournament
-      );
-
-      await tx.activity.createMany({
-        data: [
-          {
-            userId: homeUser.id,
-            type: homeWon ? "MATCH_WON" : isDraw ? "MATCH_DRAWN" : "MATCH_LOST",
-            title: `${homeWon ? "Victoria" : isDraw ? "Empate" : "Derrota"} vs ${awayUser.nickname}`,
-            metadata: { matchId: input.matchId, score: `${input.homeScore}-${input.awayScore}` },
-          },
-          {
-            userId: awayUser.id,
-            type: awayWon ? "MATCH_WON" : isDraw ? "MATCH_DRAWN" : "MATCH_LOST",
-            title: `${awayWon ? "Victoria" : isDraw ? "Empate" : "Derrota"} vs ${homeUser.nickname}`,
-            metadata: { matchId: input.matchId, score: `${input.awayScore}-${input.homeScore}` },
-          },
-        ],
-      });
-    });
+        await tx.activity.createMany({
+          data: [
+            {
+              userId: homeUser.id,
+              type: homeWon ? "MATCH_WON" : isDraw ? "MATCH_DRAWN" : "MATCH_LOST",
+              title: `${homeWon ? "Victoria" : isDraw ? "Empate" : "Derrota"} vs ${awayUser.nickname}`,
+              metadata: {
+                matchId: input.matchId,
+                score: `${input.homeScore}-${input.awayScore}`,
+              },
+            },
+            {
+              userId: awayUser.id,
+              type: awayWon ? "MATCH_WON" : isDraw ? "MATCH_DRAWN" : "MATCH_LOST",
+              title: `${awayWon ? "Victoria" : isDraw ? "Empate" : "Derrota"} vs ${homeUser.nickname}`,
+              metadata: {
+                matchId: input.matchId,
+                score: `${input.awayScore}-${input.homeScore}`,
+              },
+            },
+          ],
+        });
+      },
+      { timeout: 15000 }
+    );
 
     return { success: true };
   }
@@ -129,9 +185,14 @@ export class MatchService {
       lost: boolean;
       gf: number;
       ga: number;
-      newElo: number;
+      newPoints: number;
       mvp: boolean;
-      events?: { goals?: number; assists?: number; yellowCards?: number; redCards?: number; ownGoals?: number };
+      events: {
+        goals: number;
+        yellowCards: number;
+        redCards: number;
+        ownGoals: number;
+      };
     }
   ) {
     const stats = await tx.playerStats.findUnique({ where: { userId } });
@@ -162,21 +223,19 @@ export class MatchService {
         avgGoalsPerGame:
           (stats.goalsFor + data.gf) / (stats.matchesPlayed + 1),
         biggestWin: data.won && margin > stats.biggestWin ? margin : undefined,
-        biggestLoss: data.lost && margin < stats.biggestLoss ? margin : undefined,
+        biggestLoss:
+          data.lost && margin < stats.biggestLoss ? margin : undefined,
         currentStreak: streak,
         bestStreak: Math.max(stats.bestStreak, Math.abs(streak)),
         cleanSheets: data.ga === 0 ? { increment: 1 } : undefined,
-        totalAssists: data.events?.assists
-          ? { increment: data.events.assists }
-          : undefined,
         totalMvp: data.mvp ? { increment: 1 } : undefined,
-        yellowCards: data.events?.yellowCards
+        yellowCards: data.events.yellowCards
           ? { increment: data.events.yellowCards }
           : undefined,
-        redCards: data.events?.redCards
+        redCards: data.events.redCards
           ? { increment: data.events.redCards }
           : undefined,
-        ownGoals: data.events?.ownGoals
+        ownGoals: data.events.ownGoals
           ? { increment: data.events.ownGoals }
           : undefined,
       },
@@ -184,7 +243,10 @@ export class MatchService {
 
     await tx.user.update({
       where: { id: userId },
-      data: { elo: data.newElo, level: Math.floor(data.newElo / 100) + 1 },
+      data: {
+        elo: data.newPoints,
+        level: Math.floor(data.newPoints / 100) + 1,
+      },
     });
   }
 
@@ -247,7 +309,8 @@ export class MatchService {
           losses: lost ? { increment: 1 } : undefined,
           goalsFor: { increment: gf },
           goalsAgainst: { increment: ga },
-          biggestWin: won && margin > (existing?.biggestWin ?? 0) ? margin : undefined,
+          biggestWin:
+            won && margin > (existing?.biggestWin ?? 0) ? margin : undefined,
           currentStreak: streak,
           bestStreak: Math.max(existing?.bestStreak ?? 0, Math.abs(streak)),
         },
@@ -301,11 +364,12 @@ export class MatchService {
       : isDraw
         ? tournament.pointsDraw
         : tournament.pointsLoss;
-    const awayPoints = !homeWon && !isDraw
-      ? tournament.pointsWin
-      : isDraw
-        ? tournament.pointsDraw
-        : tournament.pointsLoss;
+    const awayPoints =
+      !homeWon && !isDraw
+        ? tournament.pointsWin
+        : isDraw
+          ? tournament.pointsDraw
+          : tournament.pointsLoss;
 
     await tx.standing.update({
       where: { id: homeStanding.id },

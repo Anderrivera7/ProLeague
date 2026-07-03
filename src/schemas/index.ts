@@ -90,11 +90,11 @@ export const matchResultSchema = z.object({
   penaltiesHome: z.coerce.number().min(0).optional(),
   penaltiesAway: z.coerce.number().min(0).optional(),
   mvpUserId: z.string().uuid().optional(),
-  events: z.array(
+  playerStats: z.array(
     z.object({
+      fcPlayerId: z.string().uuid(),
       userId: z.string().uuid(),
       goals: z.coerce.number().min(0).default(0),
-      assists: z.coerce.number().min(0).default(0),
       yellowCards: z.coerce.number().min(0).default(0),
       redCards: z.coerce.number().min(0).default(0),
       ownGoals: z.coerce.number().min(0).default(0),

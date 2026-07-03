@@ -168,13 +168,21 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             <h2 className="mb-4 text-lg font-semibold">Partidos</h2>
             {tournament.matches.length > 0 ? (
               <div className="space-y-3">
-                {tournament.matches.map((match) => (
+                {tournament.matches.map((match) => {
+                  const canReportMatch =
+                    isCreator ||
+                    match.homeParticipant.userId === user?.id ||
+                    match.awayParticipant.userId === user?.id;
+
+                  return (
                   <MatchCard
                     key={match.id}
                     match={match as never}
                     tournament={{ id: tournament.id, name: tournament.name }}
+                    canReport={canReportMatch}
                   />
-                ))}
+                );
+                })}
               </div>
             ) : (
               <Card className="glass">
@@ -216,7 +224,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{p.user.nickname}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {p.fcTeam?.name ?? "Sin equipo"} · ELO {p.user.elo}
+                      {p.fcTeam?.name ?? "Sin equipo"} · {p.user.elo} pts
                     </p>
                   </div>
                   {canViewSquad && (

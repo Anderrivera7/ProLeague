@@ -7,9 +7,10 @@ export class MatchRepository {
       where: { id },
       include: {
         tournament: true,
-        homeParticipant: { include: { user: true } },
-        awayParticipant: { include: { user: true } },
+        homeParticipant: { include: { user: true, fcTeam: true } },
+        awayParticipant: { include: { user: true, fcTeam: true } },
         events: { include: { user: true } },
+        playerStats: { include: { fcPlayer: true } },
         mvpUser: true,
       },
     });

@@ -112,12 +112,12 @@ export interface MatchResultInput {
   penaltiesHome?: number;
   penaltiesAway?: number;
   mvpUserId?: string;
-  events: {
+  playerStats: {
+    fcPlayerId: string;
     userId: string;
-    goals?: number;
-    assists?: number;
-    yellowCards?: number;
-    redCards?: number;
-    ownGoals?: number;
+    goals: number;
+    yellowCards: number;
+    redCards: number;
+    ownGoals: number;
   }[];
 }

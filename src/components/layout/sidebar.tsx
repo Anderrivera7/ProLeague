@@ -95,7 +95,7 @@ export function Sidebar({ user }: SidebarProps) {
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium">{user.nickname}</p>
-              <p className="text-xs text-muted-foreground">ELO {user.elo}</p>
+              <p className="text-xs text-muted-foreground">Puntos {user.elo}</p>
             </div>
           </div>
         </div>

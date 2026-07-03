@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { formatDateTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MatchWithParticipants } from "@/types";
+import { ClipboardEdit } from "lucide-react";
 
 interface MatchCardProps {
   match: MatchWithParticipants;
-  /** Si el torneo no viene en el match (p. ej. vista dentro del torneo) */
   tournament?: { id: string; name: string };
+  canReport?: boolean;
 }
 
 const statusVariant = {
@@ -26,9 +28,10 @@ const statusLabel = {
   WALKOVER: "Walkover",
 };
 
-export function MatchCard({ match, tournament }: MatchCardProps) {
+export function MatchCard({ match, tournament, canReport }: MatchCardProps) {
   const isCompleted = match.status === "COMPLETED";
   const t = tournament ?? match.tournament;
+  const showReport = canReport && match.status === "SCHEDULED";
 
   return (
     <Card className="glass hover:border-primary/20 transition-all">
@@ -49,36 +52,49 @@ export function MatchCard({ match, tournament }: MatchCardProps) {
           </Badge>
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 text-right">
-            <p className="font-semibold truncate">
-              {match.homeParticipant.user.nickname}
+        <Link href={`/matches/${match.id}`} className="block">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 text-right">
+              <p className="font-semibold truncate">
+                {match.homeParticipant.user.nickname}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2 font-mono text-lg font-bold">
+              {isCompleted ? (
+                <>
+                  <span>{match.homeScore}</span>
+                  <span className="text-muted-foreground">-</span>
+                  <span>{match.awayScore}</span>
+                </>
+              ) : (
+                <span className="text-sm text-muted-foreground">vs</span>
+              )}
+            </div>
+
+            <div className="flex-1 text-left">
+              <p className="font-semibold truncate">
+                {match.awayParticipant.user.nickname}
+              </p>
+            </div>
+          </div>
+
+          {match.scheduledAt && (
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              {formatDateTime(match.scheduledAt)}
             </p>
-          </div>
+          )}
+        </Link>
 
-          <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2 font-mono text-lg font-bold">
-            {isCompleted ? (
-              <>
-                <span>{match.homeScore}</span>
-                <span className="text-muted-foreground">-</span>
-                <span>{match.awayScore}</span>
-              </>
-            ) : (
-              <span className="text-sm text-muted-foreground">vs</span>
-            )}
+        {showReport && (
+          <div className="mt-3 flex justify-center">
+            <Button size="sm" variant="outline" asChild>
+              <Link href={`/matches/${match.id}?report=1`}>
+                <ClipboardEdit className="mr-1 h-3.5 w-3.5" />
+                Anotar resultado
+              </Link>
+            </Button>
           </div>
-
-          <div className="flex-1 text-left">
-            <p className="font-semibold truncate">
-              {match.awayParticipant.user.nickname}
-            </p>
-          </div>
-        </div>
-
-        {match.scheduledAt && (
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            {formatDateTime(match.scheduledAt)}
-          </p>
         )}
       </CardContent>
     </Card>

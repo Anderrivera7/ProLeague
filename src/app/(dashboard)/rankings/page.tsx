@@ -11,11 +11,11 @@ export default async function RankingsPage() {
 
   return (
     <>
-      <Header title="Rankings" subtitle="Ranking global ELO" />
+      <Header title="Rankings" subtitle="Ranking global por puntos" />
       <div className="flex-1 overflow-y-auto p-4 lg:p-6">
         <Card className="glass max-w-3xl">
           <CardHeader>
-            <CardTitle>Ranking Global ELO</CardTitle>
+            <CardTitle>Ranking global por puntos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {ranking.map((player, i) => (

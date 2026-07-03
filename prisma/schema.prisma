@@ -179,6 +179,7 @@ model FcPlayer {
   dribbling   Int?
   defending   Int?
   physic      Int?
+  matchStats  MatchPlayerStat[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -303,6 +304,7 @@ model Match {
   mvpUser   User?   @relation("MatchMVP", fields: [mvpUserId], references: [id])
 
   events    MatchEvent[]
+  playerStats MatchPlayerStat[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -332,6 +334,23 @@ model MatchEvent {
   @@index([matchId])
   @@index([userId])
   @@map("match_events")
+}
+
+model MatchPlayerStat {
+  id          String   @id @default(uuid())
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  fcPlayerId  String
+  fcPlayer    FcPlayer @relation(fields: [fcPlayerId], references: [id])
+  userId      String
+  goals       Int      @default(0)
+  yellowCards Int      @default(0)
+  redCards    Int      @default(0)
+  ownGoals    Int      @default(0)
+
+  @@unique([matchId, fcPlayerId])
+  @@index([matchId])
+  @@map("match_player_stats")
 }
 
 // ─── Standings ───────────────────────────────────────────────────────────────

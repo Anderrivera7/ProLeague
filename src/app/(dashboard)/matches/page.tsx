@@ -31,7 +31,11 @@ export default async function MatchesPage() {
         {matches.length > 0 ? (
           <div className="space-y-3 max-w-3xl">
             {matches.map((match) => (
-              <MatchCard key={match.id} match={match as never} />
+              <MatchCard
+                key={match.id}
+                match={match as never}
+                canReport={match.status === "SCHEDULED"}
+              />
             ))}
           </div>
         ) : (

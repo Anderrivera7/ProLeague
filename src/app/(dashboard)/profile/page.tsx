@@ -56,7 +56,7 @@ export default async function ProfilePage() {
           </Avatar>
           <h1 className="mt-3 text-xl font-bold">{user.nickname}</h1>
           <p className="text-sm text-muted-foreground">
-            ELO {user.elo} · Nivel {user.level}
+            Puntos {user.elo} · Nivel {user.level}
           </p>
         </div>
 
