@@ -55,7 +55,9 @@ export function MatchEventsSummary({
 
         {mvpNickname && (
           <div className="flex justify-center">
-            <Badge variant="secondary">MVP: {mvpNickname} (+1 pt)</Badge>
+            <Badge variant="secondary">
+              MVP: {mvpNickname} (+1 pt ranking global)
+            </Badge>
           </div>
         )}
 

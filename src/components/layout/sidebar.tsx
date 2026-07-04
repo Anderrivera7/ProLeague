@@ -13,13 +13,13 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
-  Zap,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS, APP_NAME } from "@/constants";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { Button } from "@/components/ui/button";
+import { AppLogo } from "@/components/shared/app-logo";
 
 const iconMap = {
   LayoutDashboard,
@@ -42,9 +42,7 @@ export function Sidebar({ user }: SidebarProps) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-3 border-b border-border px-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 glow-primary">
-          <Zap className="h-5 w-5 text-primary" />
-        </div>
+        <AppLogo size={36} className="shrink-0" />
         <AnimatePresence>
           {!isCollapsed && (
             <motion.div

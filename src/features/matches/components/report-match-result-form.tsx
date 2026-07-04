@@ -321,7 +321,7 @@ export function ReportMatchResultForm({
       <CardHeader>
         <CardTitle className="text-base">Registrar resultado</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Victoria +3 pts · Empate +1 · Derrota 0 · MVP +1 extra
+          Victoria +3 pts · Empate +1 · Derrota 0 · MVP +1 en ranking global
         </p>
       </CardHeader>
       <CardContent>
@@ -385,7 +385,7 @@ export function ReportMatchResultForm({
           </div>
 
           <div className="space-y-2">
-            <Label>MVP del partido (+1 pt extra)</Label>
+            <Label>MVP del partido (+1 pt ranking global)</Label>
             <div className="flex flex-wrap gap-2">
               {players.map((p) => (
                 <Button

@@ -24,6 +24,11 @@ export interface PlayerWithStats {
 interface PlayerStatsRowProps {
   player: PlayerWithStats;
   compact?: boolean;
+  matchStats?: {
+    goals: number;
+    yellowCards: number;
+    redCards: number;
+  };
 }
 
 function StatPill({ label, value }: { label: string; value: number | null }) {
@@ -36,7 +41,7 @@ function StatPill({ label, value }: { label: string; value: number | null }) {
   );
 }
 
-export function PlayerStatsRow({ player, compact }: PlayerStatsRowProps) {
+export function PlayerStatsRow({ player, compact, matchStats }: PlayerStatsRowProps) {
   const isBench =
     player.squadRole === "SUB" || player.squadRole === "RES";
 
@@ -68,6 +73,28 @@ export function PlayerStatsRow({ player, compact }: PlayerStatsRowProps) {
           {player.squadRole ?? player.position ?? "—"}
           {!compact && player.potential != null && ` · POT ${player.potential}`}
         </p>
+        {matchStats &&
+          (matchStats.goals > 0 ||
+            matchStats.yellowCards > 0 ||
+            matchStats.redCards > 0) && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {matchStats.goals > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  ⚽ {matchStats.goals}
+                </Badge>
+              )}
+              {matchStats.yellowCards > 0 && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  🟨 {matchStats.yellowCards}
+                </Badge>
+              )}
+              {matchStats.redCards > 0 && (
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                  🟥 {matchStats.redCards}
+                </Badge>
+              )}
+            </div>
+          )}
       </div>
 
       <Badge className="shrink-0">{player.overall ?? "—"}</Badge>

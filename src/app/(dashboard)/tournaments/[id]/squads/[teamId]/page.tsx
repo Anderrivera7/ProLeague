@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { TeamSquadView } from "@/features/tournaments/components/team-squad-view";
 import { TournamentRepository } from "@/repositories/tournament-repository";
+import { StatsRepository } from "@/repositories/stats-repository";
 import { TeamService } from "@/services/team-service";
 import { getCurrentUser } from "@/actions/auth-actions";
 
@@ -28,6 +29,10 @@ export default async function TournamentSquadPage({ params }: PageProps) {
   if (!isOwnTeam && !isCreator) notFound();
 
   const { team } = await TeamService.getOrSyncById(teamId);
+  const tournamentPlayerStats = await StatsRepository.getTournamentPlayerStats(
+    id,
+    owner.userId
+  );
 
   return (
     <>
@@ -40,6 +45,7 @@ export default async function TournamentSquadPage({ params }: PageProps) {
           team={team}
           backHref={`/tournaments/${id}`}
           subtitle={`${tournament.name} · ${owner.user.nickname} · ${team.name}`}
+          tournamentPlayerStats={tournamentPlayerStats}
         />
       </div>
     </>

@@ -38,6 +38,9 @@ export interface PlayerProfile {
     goalDifference: number;
     avgGoalsPerGame: number;
     biggestWin: number;
+    biggestWinFor: number;
+    biggestWinAgainst: number;
+    currentStreak: number;
     bestStreak: number;
     titlesWon: number;
     seasonsPlayed: number;
@@ -54,6 +57,8 @@ export interface HeadToHeadStats {
   goalsFor: number;
   goalsAgainst: number;
   biggestWin: number;
+  biggestWinFor: number;
+  biggestWinAgainst: number;
   currentStreak: number;
   bestStreak: number;
 }

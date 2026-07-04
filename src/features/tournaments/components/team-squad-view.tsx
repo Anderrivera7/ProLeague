@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { TeamStatsPanel } from "@/features/tournaments/components/team-stats-panel";
 import { SquadFormationPitch } from "@/features/tournaments/components/squad-formation-pitch";
 import { PlayerStatsRow } from "@/features/tournaments/components/player-stats-row";
+import { TournamentSquadStats } from "@/features/tournaments/components/tournament-squad-stats";
+import type { TournamentFcPlayerStats } from "@/types/tournament-stats";
 import { isStarterRole } from "@/lib/fc-data/formation";
 
 interface TeamSquadViewProps {
@@ -38,9 +40,18 @@ interface TeamSquadViewProps {
   };
   backHref: string;
   subtitle?: string;
+  tournamentPlayerStats?: TournamentFcPlayerStats[];
 }
 
-export function TeamSquadView({ team, backHref, subtitle }: TeamSquadViewProps) {
+export function TeamSquadView({
+  team,
+  backHref,
+  subtitle,
+  tournamentPlayerStats,
+}: TeamSquadViewProps) {
+  const statsByPlayer = new Map(
+    (tournamentPlayerStats ?? []).map((s) => [s.fcPlayerId, s])
+  );
   const starters = team.players.filter((p) => isStarterRole(p.squadRole));
   const bench = team.players.filter((p) => !isStarterRole(p.squadRole));
   const playersForUi = team.players.map((p) => ({
@@ -89,6 +100,10 @@ export function TeamSquadView({ team, backHref, subtitle }: TeamSquadViewProps) 
         <SquadFormationPitch players={playersForUi} />
       </div>
 
+      {tournamentPlayerStats !== undefined && (
+        <TournamentSquadStats stats={tournamentPlayerStats} />
+      )}
+
       <Card className="glass">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -97,12 +112,24 @@ export function TeamSquadView({ team, backHref, subtitle }: TeamSquadViewProps) 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {starters.map((player) => (
+          {starters.map((player) => {
+            const ms = statsByPlayer.get(player.id);
+            return (
             <PlayerStatsRow
               key={player.id}
               player={{ ...player, eaId: player.fifaIndexId }}
+              matchStats={
+                ms
+                  ? {
+                      goals: ms.goals,
+                      yellowCards: ms.yellowCards,
+                      redCards: ms.redCards,
+                    }
+                  : undefined
+              }
             />
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -115,13 +142,25 @@ export function TeamSquadView({ team, backHref, subtitle }: TeamSquadViewProps) 
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {bench.map((player) => (
+            {bench.map((player) => {
+              const ms = statsByPlayer.get(player.id);
+              return (
               <PlayerStatsRow
                 key={player.id}
                 player={{ ...player, eaId: player.fifaIndexId }}
                 compact
+                matchStats={
+                  ms
+                    ? {
+                        goals: ms.goals,
+                        yellowCards: ms.yellowCards,
+                        redCards: ms.redCards,
+                      }
+                    : undefined
+                }
               />
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}

@@ -1,8 +1,9 @@
 "use client";
 
-import { Menu, Bell, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { useSidebarStore } from "@/stores/sidebar-store";
 
 interface HeaderProps {
@@ -39,10 +40,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         />
       </div>
 
-      <Button variant="ghost" size="icon" className="relative">
-        <Bell className="h-5 w-5" />
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-      </Button>
+      <NotificationsBell />
     </header>
   );
 }

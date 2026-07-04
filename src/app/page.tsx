@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Zap, Trophy, BarChart3, Users, ArrowRight } from "lucide-react";
+import { Trophy, BarChart3, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/constants";
+import { AppLogo } from "@/components/shared/app-logo";
 
 const features = [
   {
@@ -29,9 +30,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background bg-grid">
       <nav className="flex items-center justify-between border-b border-border px-6 py-4 glass">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 glow-primary">
-            <Zap className="h-5 w-5 text-primary" />
-          </div>
+          <AppLogo size={36} className="shrink-0" />
           <span className="text-lg font-bold text-gradient">{APP_NAME}</span>
         </div>
         <div className="flex items-center gap-3">
@@ -47,7 +46,7 @@ export default function LandingPage() {
       <main className="mx-auto max-w-6xl px-6">
         <section className="py-24 text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm text-primary">
-            <Zap className="h-4 w-4" />
+            <AppLogo size={20} />
             Plataforma eSports Profesional
           </div>
           <h1 className="mb-6 text-5xl font-bold tracking-tight md:text-7xl">

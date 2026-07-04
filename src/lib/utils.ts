@@ -34,3 +34,23 @@ export function getInitials(name: string): string {
     .toUpperCase()
     .slice(0, 2);
 }
+
+export function formatLastActive(date: Date | string | null | undefined): string {
+  if (!date) return "Sin actividad";
+
+  const then = new Date(date).getTime();
+  const diffMs = Date.now() - then;
+  const diffMin = Math.floor(diffMs / 60_000);
+
+  if (diffMin < 1) return "Activo ahora";
+  if (diffMin < 60) return `Activo hace ${diffMin} min`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `Activo hace ${diffHours} h`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return "Activo ayer";
+  if (diffDays < 7) return `Activo hace ${diffDays} días`;
+
+  return formatDate(date);
+}

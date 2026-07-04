@@ -17,6 +17,25 @@ export class UserRepository {
     });
   }
 
+  static async findProfileById(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      include: {
+        favoriteTeam: true,
+        stats: {
+          include: {
+            biggestWinOpponent: { select: { nickname: true } },
+          },
+        },
+        trophies: { orderBy: { wonAt: "desc" }, take: 10 },
+        achievements: {
+          include: { achievement: true },
+          orderBy: { unlockedAt: "desc" },
+        },
+      },
+    });
+  }
+
   static async findByNickname(nickname: string) {
     return prisma.user.findUnique({
       where: { nickname },

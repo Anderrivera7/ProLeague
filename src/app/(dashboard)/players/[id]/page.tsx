@@ -10,6 +10,7 @@ import { UserRepository } from "@/repositories/user-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { getCurrentUser } from "@/actions/auth-actions";
 import { getInitials } from "@/lib/utils";
+import { positiveStreak } from "@/utils/match-stats";
 import {
   Swords,
   Trophy,
@@ -25,7 +26,7 @@ interface PageProps {
 export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const [player, currentUser] = await Promise.all([
-    UserRepository.findById(id),
+    UserRepository.findProfileById(id),
     getCurrentUser(),
   ]);
 
@@ -114,7 +115,11 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           <StatCard
             title="Racha"
             value={player.stats?.bestStreak ?? 0}
-            subtitle={`Actual: ${player.stats?.currentStreak ?? 0}`}
+            subtitle={
+              positiveStreak(player.stats?.currentStreak ?? 0) > 0
+                ? `Actual: +${positiveStreak(player.stats?.currentStreak ?? 0)}`
+                : "Sin racha activa"
+            }
             icon={TrendingUp}
           />
         </div>
@@ -160,10 +165,31 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           </Card>
           <Card className="glass">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">
-                {player.stats?.biggestWin ?? 0}
-              </p>
-              <p className="text-xs text-muted-foreground">Mayor Goleada</p>
+              {player.stats?.biggestWinFor ? (
+                <>
+                  <p className="text-2xl font-bold text-primary">
+                    {player.stats.biggestWinFor}-{player.stats.biggestWinAgainst}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Mayor Goleada
+                    {player.stats.biggestWinOpponent?.nickname
+                      ? ` vs ${player.stats.biggestWinOpponent.nickname}`
+                      : ""}
+                  </p>
+                </>
+              ) : player.stats?.biggestWin ? (
+                <>
+                  <p className="text-2xl font-bold text-primary">
+                    +{player.stats.biggestWin}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Mayor Goleada</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-primary">—</p>
+                  <p className="text-xs text-muted-foreground">Mayor Goleada</p>
+                </>
+              )}
             </CardContent>
           </Card>
           <Card className="glass">

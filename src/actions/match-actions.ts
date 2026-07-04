@@ -53,6 +53,8 @@ export async function recordMatchResult(formData: FormData) {
     revalidatePath("/stats");
     revalidatePath(`/players/${match.homeParticipant.userId}`);
     revalidatePath(`/players/${match.awayParticipant.userId}`);
+    revalidatePath("/chat");
+    revalidatePath(`/chat/${match.tournamentId}`);
     return { success: true, matchId: parsed.data.matchId };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Error al registrar resultado" };

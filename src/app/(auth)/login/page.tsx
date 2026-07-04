@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { signInWithEmail } from "@/actions/auth-actions";
 import { APP_NAME } from "@/constants";
+import { AppLogo } from "@/components/shared/app-logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,8 +43,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background bg-grid p-4">
       <Card className="w-full max-w-md glass glow-primary">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Zap className="h-6 w-6 text-primary" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center">
+            <AppLogo size={48} />
           </div>
           <CardTitle className="text-2xl text-gradient">{APP_NAME}</CardTitle>
           <CardDescription>Inicia sesión en tu cuenta</CardDescription>

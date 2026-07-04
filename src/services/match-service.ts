@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getMatchPointUpdates } from "@/utils/points";
+import { isBetterWin } from "@/utils/match-stats";
+import { buildMatchResultMessage } from "@/utils/match-result-message";
 import type { MatchResultInput } from "@/types";
 
 function aggregateUserEvents(
@@ -25,8 +27,8 @@ export class MatchService {
       where: { id: input.matchId },
       include: {
         tournament: true,
-        homeParticipant: { include: { user: true } },
-        awayParticipant: { include: { user: true } },
+        homeParticipant: { include: { user: true, fcTeam: true } },
+        awayParticipant: { include: { user: true, fcTeam: true } },
       },
     });
 
@@ -114,6 +116,7 @@ export class MatchService {
           ga: input.awayScore,
           newPoints: homeNewPoints,
           mvp: input.mvpUserId === homeUser.id,
+          opponentId: awayUser.id,
           events: homeEvents,
         });
 
@@ -125,6 +128,7 @@ export class MatchService {
           ga: input.homeScore,
           newPoints: awayNewPoints,
           mvp: input.mvpUserId === awayUser.id,
+          opponentId: homeUser.id,
           events: awayEvents,
         });
 
@@ -169,6 +173,26 @@ export class MatchService {
             },
           ],
         });
+
+        if (match.tournamentId) {
+          const chatContent = buildMatchResultMessage({
+            homeScore: input.homeScore,
+            awayScore: input.awayScore,
+            homeParticipant: match.homeParticipant,
+            awayParticipant: match.awayParticipant,
+          });
+
+          if (chatContent) {
+            await tx.tournamentMessage.create({
+              data: {
+                tournamentId: match.tournamentId,
+                type: "MATCH_RESULT",
+                content: chatContent,
+                matchId: input.matchId,
+              },
+            });
+          }
+        }
       },
       { timeout: 15000 }
     );
@@ -187,6 +211,7 @@ export class MatchService {
       ga: number;
       newPoints: number;
       mvp: boolean;
+      opponentId: string;
       events: {
         goals: number;
         yellowCards: number;
@@ -198,17 +223,12 @@ export class MatchService {
     const stats = await tx.playerStats.findUnique({ where: { userId } });
     if (!stats) return;
 
-    const streak = data.won
-      ? stats.currentStreak >= 0
-        ? stats.currentStreak + 1
-        : 1
-      : data.lost
-        ? stats.currentStreak <= 0
-          ? stats.currentStreak - 1
-          : -1
-        : 0;
+    const streak = data.won ? stats.currentStreak + 1 : 0;
 
     const margin = data.gf - data.ga;
+    const isNewBestWin =
+      data.won &&
+      isBetterWin(margin, data.gf, stats.biggestWin, stats.biggestWinFor);
 
     await tx.playerStats.update({
       where: { userId },
@@ -222,11 +242,14 @@ export class MatchService {
         goalDifference: { increment: margin },
         avgGoalsPerGame:
           (stats.goalsFor + data.gf) / (stats.matchesPlayed + 1),
-        biggestWin: data.won && margin > stats.biggestWin ? margin : undefined,
+        biggestWin: isNewBestWin ? margin : undefined,
+        biggestWinFor: isNewBestWin ? data.gf : undefined,
+        biggestWinAgainst: isNewBestWin ? data.ga : undefined,
+        biggestWinOpponentId: isNewBestWin ? data.opponentId : undefined,
         biggestLoss:
           data.lost && margin < stats.biggestLoss ? margin : undefined,
         currentStreak: streak,
-        bestStreak: Math.max(stats.bestStreak, Math.abs(streak)),
+        bestStreak: Math.max(stats.bestStreak, streak),
         cleanSheets: data.ga === 0 ? { increment: 1 } : undefined,
         totalMvp: data.mvp ? { increment: 1 } : undefined,
         yellowCards: data.events.yellowCards
@@ -275,17 +298,12 @@ export class MatchService {
         where: { userId_opponentId: { userId: uid, opponentId: oid } },
       });
 
-      const streak = won
-        ? (existing?.currentStreak ?? 0) >= 0
-          ? (existing?.currentStreak ?? 0) + 1
-          : 1
-        : lost
-          ? (existing?.currentStreak ?? 0) <= 0
-            ? (existing?.currentStreak ?? 0) - 1
-            : -1
-          : 0;
+      const streak = won ? (existing?.currentStreak ?? 0) + 1 : 0;
 
       const margin = gf - ga;
+      const oldMargin = existing?.biggestWin ?? 0;
+      const oldGf = existing?.biggestWinFor ?? 0;
+      const isNewBestWin = won && isBetterWin(margin, gf, oldMargin, oldGf);
 
       await tx.headToHead.upsert({
         where: { userId_opponentId: { userId: uid, opponentId: oid } },
@@ -299,8 +317,10 @@ export class MatchService {
           goalsFor: gf,
           goalsAgainst: ga,
           biggestWin: won ? margin : 0,
+          biggestWinFor: won ? gf : 0,
+          biggestWinAgainst: won ? ga : 0,
           currentStreak: streak,
-          bestStreak: Math.abs(streak),
+          bestStreak: streak,
         },
         update: {
           matchesPlayed: { increment: 1 },
@@ -309,10 +329,11 @@ export class MatchService {
           losses: lost ? { increment: 1 } : undefined,
           goalsFor: { increment: gf },
           goalsAgainst: { increment: ga },
-          biggestWin:
-            won && margin > (existing?.biggestWin ?? 0) ? margin : undefined,
+          biggestWin: isNewBestWin ? margin : undefined,
+          biggestWinFor: isNewBestWin ? gf : undefined,
+          biggestWinAgainst: isNewBestWin ? ga : undefined,
           currentStreak: streak,
-          bestStreak: Math.max(existing?.bestStreak ?? 0, Math.abs(streak)),
+          bestStreak: Math.max(existing?.bestStreak ?? 0, streak),
         },
       });
     };

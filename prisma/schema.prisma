@@ -57,6 +57,12 @@ enum ActivityType {
   ASSIST_MADE
 }
 
+enum ChatMessageType {
+  USER
+  MATCH_RESULT
+  SYSTEM
+}
+
 // ─── Auth & Profile ──────────────────────────────────────────────────────────
 
 model User {
@@ -67,6 +73,7 @@ model User {
   country       String?
   level         Int      @default(1)
   elo           Int      @default(1000)
+  lastActiveAt  DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -85,6 +92,8 @@ model User {
 
   headToHeadAsUser     HeadToHead[] @relation("H2HUser")
   headToHeadAsOpponent HeadToHead[] @relation("H2HOpponent")
+  biggestWinsAgainst   PlayerStats[] @relation("BiggestWinOpponent")
+  tournamentMessages   TournamentMessage[]
 
   @@map("users")
 }
@@ -103,6 +112,10 @@ model PlayerStats {
   goalDifference  Int    @default(0)
   avgGoalsPerGame Float  @default(0)
   biggestWin      Int    @default(0)
+  biggestWinFor   Int    @default(0)
+  biggestWinAgainst Int  @default(0)
+  biggestWinOpponentId String?
+  biggestWinOpponent   User? @relation("BiggestWinOpponent", fields: [biggestWinOpponentId], references: [id])
   biggestLoss     Int    @default(0)
   currentStreak   Int    @default(0)
   bestStreak      Int    @default(0)
@@ -236,6 +249,7 @@ model Tournament {
   matches         Match[]
   standings       Standing[]
   trophies        Trophy[]
+  messages        TournamentMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -394,7 +408,9 @@ model HeadToHead {
   losses        Int @default(0)
   goalsFor      Int @default(0)
   goalsAgainst  Int @default(0)
-  biggestWin    Int @default(0)
+  biggestWin      Int @default(0)
+  biggestWinFor   Int @default(0)
+  biggestWinAgainst Int @default(0)
   currentStreak Int @default(0)
   bestStreak    Int @default(0)
 
@@ -457,4 +473,21 @@ model Activity {
 
   @@index([userId, createdAt])
   @@map("activities")
+}
+
+// ─── Tournament Chat ─────────────────────────────────────────────────────────
+
+model TournamentMessage {
+  id           String          @id @default(uuid())
+  tournamentId String
+  tournament   Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  matchId      String?         @unique
+  type         ChatMessageType @default(USER)
+  content      String
+  createdAt    DateTime        @default(now())
+
+  @@index([tournamentId, createdAt])
+  @@map("tournament_messages")
 }

@@ -1,14 +1,27 @@
-import { Bell } from "lucide-react";
+"use client";
+
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationsBell } from "@/components/layout/notifications-bell";
+import { useSidebarStore } from "@/stores/sidebar-store";
 
 interface MobileHeaderProps {
   nickname: string;
 }
 
 export function MobileHeader({ nickname }: MobileHeaderProps) {
+  const { setMobileOpen } = useSidebarStore();
+
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between bg-background/90 px-4 py-4 backdrop-blur-md">
-      <div>
+    <header className="sticky top-0 z-30 flex items-center justify-between bg-background/90 px-4 py-4 backdrop-blur-md lg:hidden">
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
         <h1 className="text-xl font-bold">
           ¡Hola, {nickname}!{" "}
           <span className="inline-block" aria-hidden>
@@ -16,10 +29,7 @@ export function MobileHeader({ nickname }: MobileHeaderProps) {
           </span>
         </h1>
       </div>
-      <Button variant="ghost" size="icon" className="relative rounded-full">
-        <Bell className="h-5 w-5" />
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-      </Button>
+      <NotificationsBell />
     </header>
   );
 }

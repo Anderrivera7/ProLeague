@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchCard } from "@/features/matches/components/match-card";
 import { JoinCodeCard } from "@/features/tournaments/components/join-code-card";
+import { TournamentStatsPanel } from "@/features/tournaments/components/tournament-stats-panel";
 import { TournamentRepository } from "@/repositories/tournament-repository";
+import { StatsRepository } from "@/repositories/stats-repository";
 import { TournamentService } from "@/services/tournament-service";
 import { TOURNAMENT_TYPES } from "@/constants";
 import { GenerateFixtureButton } from "@/features/tournaments/components/generate-fixture-button";
@@ -33,6 +35,27 @@ export default async function TournamentDetailPage({ params }: PageProps) {
   const myParticipant = tournament.participants.find((p) => p.userId === user?.id);
   const needsTeam = myParticipant && !myParticipant.fcTeamId;
   const typeInfo = TOURNAMENT_TYPES[tournament.type];
+
+  const [scorers, cards] = await Promise.all([
+    StatsRepository.getTournamentScorerRanking(id),
+    StatsRepository.getTournamentCardRanking(id),
+  ]);
+
+  const standingsRows = tournament.standings.map((s) => ({
+    id: s.id,
+    played: s.played,
+    won: s.won,
+    drawn: s.drawn,
+    lost: s.lost,
+    points: s.points,
+    nickname: s.participant.user.nickname,
+  }));
+
+  const showStatsPanel =
+    standingsRows.length > 0 ||
+    scorers.length > 0 ||
+    cards.length > 0 ||
+    tournament.matches.some((m) => m.status === "COMPLETED");
 
   return (
     <>
@@ -127,44 +150,15 @@ export default async function TournamentDetailPage({ params }: PageProps) {
         )}
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {tournament.standings.length > 0 && (
-            <Card className="glass lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="text-base">Tabla de posiciones</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="grid grid-cols-8 gap-1 text-xs text-muted-foreground font-medium pb-2 border-b border-border">
-                    <span className="col-span-3">Jugador</span>
-                    <span className="text-center">PJ</span>
-                    <span className="text-center">G</span>
-                    <span className="text-center">E</span>
-                    <span className="text-center">P</span>
-                    <span className="text-center">Pts</span>
-                  </div>
-                  {tournament.standings.map((s, i) => (
-                    <div
-                      key={s.id}
-                      className="grid grid-cols-8 gap-1 items-center py-1"
-                    >
-                      <span className="col-span-3 truncate font-medium">
-                        {i + 1}. {s.participant.user.nickname}
-                      </span>
-                      <span className="text-center">{s.played}</span>
-                      <span className="text-center">{s.won}</span>
-                      <span className="text-center">{s.drawn}</span>
-                      <span className="text-center">{s.lost}</span>
-                      <span className="text-center font-bold text-primary">
-                        {s.points}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          {showStatsPanel && (
+            <TournamentStatsPanel
+              standings={standingsRows}
+              scorers={scorers}
+              cards={cards}
+            />
           )}
 
-          <div className={tournament.standings.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}>
+          <div className={showStatsPanel ? "lg:col-span-2" : "lg:col-span-3"}>
             <h2 className="mb-4 text-lg font-semibold">Partidos</h2>
             {tournament.matches.length > 0 ? (
               <div className="space-y-3">

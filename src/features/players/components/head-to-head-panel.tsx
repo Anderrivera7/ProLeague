@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MatchCard } from "@/features/matches/components/match-card";
+import { formatBiggestWin, positiveStreak } from "@/utils/match-stats";
 import type { HeadToHeadStats } from "@/types";
 
 interface Props {
@@ -30,6 +31,17 @@ export function HeadToHeadPanel({
   }
 
   const winRate = ((stats.wins / stats.matchesPlayed) * 100).toFixed(0);
+  const streak = positiveStreak(stats.currentStreak);
+  const biggestWinLabel =
+    stats.biggestWinFor > 0
+      ? formatBiggestWin(
+          stats.biggestWinFor,
+          stats.biggestWinAgainst,
+          opponentNickname
+        )
+      : stats.biggestWin > 0
+        ? `+${stats.biggestWin} vs ${opponentNickname}`
+        : null;
 
   return (
     <Card className="glass border-primary/20">
@@ -62,13 +74,12 @@ export function HeadToHeadPanel({
           <Badge variant="outline">
             {stats.goalsFor}-{stats.goalsAgainst} goles
           </Badge>
-          <Badge variant="outline">
-            Mayor goleada: +{stats.biggestWin}
-          </Badge>
-          <Badge variant="outline">
-            Racha: {stats.currentStreak > 0 ? "+" : ""}
-            {stats.currentStreak}
-          </Badge>
+          {biggestWinLabel && (
+            <Badge variant="outline">Mayor goleada: {biggestWinLabel}</Badge>
+          )}
+          {streak > 0 && (
+            <Badge variant="outline">Racha: +{streak}</Badge>
+          )}
         </div>
 
         {recentMatches.length > 0 && (
