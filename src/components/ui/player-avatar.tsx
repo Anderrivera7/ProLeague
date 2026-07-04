@@ -26,15 +26,18 @@ export function PlayerAvatar({
     !imageUrl ||
     imageUrl.includes("sofifa.net") ||
     imageUrl.includes("fifaindex.com");
-  const initial = preferEa ? eaUrl : imageUrl;
-  const [src, setSrc] = useState(initial);
+  const primarySrc = preferEa ? eaUrl : imageUrl;
+  const [src, setSrc] = useState(primarySrc);
+  const [failed, setFailed] = useState(false);
+
+  const showImage = src && !failed;
 
   return (
     <div
       className={`relative overflow-hidden rounded-full bg-muted ${className}`}
       style={{ width: size, height: size }}
     >
-      {src ? (
+      {showImage ? (
         <Image
           src={src}
           alt={name}
@@ -43,8 +46,11 @@ export function PlayerAvatar({
           unoptimized
           referrerPolicy="no-referrer"
           onError={() => {
-            if (src !== eaUrl) setSrc(eaUrl);
-            else setSrc("");
+            if (src !== eaUrl) {
+              setSrc(eaUrl);
+            } else {
+              setFailed(true);
+            }
           }}
         />
       ) : (

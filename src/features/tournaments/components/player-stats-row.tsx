@@ -2,6 +2,11 @@
 
 import { PlayerAvatar } from "@/components/ui/player-avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  GoalStat,
+  RedCardStat,
+  YellowCardStat,
+} from "@/components/shared/match-stat-icons";
 
 export interface PlayerWithStats {
   id: string;
@@ -77,20 +82,20 @@ export function PlayerStatsRow({ player, compact, matchStats }: PlayerStatsRowPr
           (matchStats.goals > 0 ||
             matchStats.yellowCards > 0 ||
             matchStats.redCards > 0) && (
-            <div className="mt-1 flex flex-wrap gap-1">
+            <div className="mt-1 flex flex-wrap gap-2">
               {matchStats.goals > 0 && (
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  ⚽ {matchStats.goals}
+                  <GoalStat count={matchStats.goals} />
                 </Badge>
               )}
               {matchStats.yellowCards > 0 && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                  🟨 {matchStats.yellowCards}
+                  <YellowCardStat count={matchStats.yellowCards} />
                 </Badge>
               )}
               {matchStats.redCards > 0 && (
                 <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                  🟥 {matchStats.redCards}
+                  <RedCardStat count={matchStats.redCards} />
                 </Badge>
               )}
             </div>

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { GiSoccerBall } from "react-icons/gi";
 import { Card, CardContent } from "@/components/ui/card";
+import { TeamCrest } from "@/components/shared/team-crest";
+import { PlayerLeaderRow } from "@/components/shared/player-leader-row";
 import { cn } from "@/lib/utils";
 
 type Tab = "standings" | "scorers" | "cards";
@@ -14,6 +17,9 @@ interface StandingRow {
   lost: number;
   points: number;
   nickname: string;
+  teamName?: string | null;
+  teamCrestUrl?: string | null;
+  teamFifaIndexId?: string | null;
 }
 
 interface ScorerRow {
@@ -21,6 +27,11 @@ interface ScorerRow {
   playerName: string;
   nickname: string;
   goals: number;
+  playerImageUrl?: string | null;
+  playerEaId?: string | null;
+  teamName?: string | null;
+  teamCrestUrl?: string | null;
+  teamFifaIndexId?: string | null;
 }
 
 interface CardRow {
@@ -29,6 +40,11 @@ interface CardRow {
   nickname: string;
   yellowCards: number;
   redCards: number;
+  playerImageUrl?: string | null;
+  playerEaId?: string | null;
+  teamName?: string | null;
+  teamCrestUrl?: string | null;
+  teamFifaIndexId?: string | null;
 }
 
 interface TournamentStatsPanelProps {
@@ -42,6 +58,44 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "scorers", label: "Goleadores" },
   { id: "cards", label: "Tarjetas" },
 ];
+
+function TeamGamertagCell({
+  teamName,
+  teamCrestUrl,
+  teamFifaIndexId,
+  nickname,
+  compact,
+}: {
+  teamName?: string | null;
+  teamCrestUrl?: string | null;
+  teamFifaIndexId?: string | null;
+  nickname: string;
+  compact?: boolean;
+}) {
+  const label = teamName ?? "Sin equipo";
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center gap-1.5">
+        <TeamCrest
+          name={label}
+          crestUrl={teamCrestUrl}
+          fifaIndexId={teamFifaIndexId ?? undefined}
+          size={compact ? 18 : 22}
+          className="shrink-0"
+        />
+        <p
+          className={cn(
+            "truncate font-semibold text-foreground",
+            compact ? "text-xs" : "text-sm"
+          )}
+        >
+          {label}
+        </p>
+      </div>
+      <p className="truncate text-[11px] text-muted-foreground">@{nickname}</p>
+    </div>
+  );
+}
 
 export function TournamentStatsPanel({
   standings,
@@ -60,7 +114,7 @@ export function TournamentStatsPanel({
               type="button"
               onClick={() => setActive(tab.id)}
               className={cn(
-                "px-3 py-4 text-[11px] font-medium leading-tight transition-colors writing-mode-vertical",
+                "px-3 py-4 text-[11px] font-medium leading-tight transition-colors",
                 "border-l-2 border-transparent hover:bg-muted/40",
                 active === tab.id &&
                   "border-l-primary bg-primary/10 text-primary"
@@ -78,8 +132,8 @@ export function TournamentStatsPanel({
               <p className="text-base font-semibold mb-3">Tabla de posiciones</p>
               {standings.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-8 gap-1 text-xs text-muted-foreground font-medium pb-2 border-b border-border">
-                    <span className="col-span-3">Jugador</span>
+                  <div className="grid grid-cols-[minmax(0,1fr)_repeat(5,2rem)] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground font-medium pb-2 border-b border-border">
+                    <span>Equipo</span>
                     <span className="text-center">PJ</span>
                     <span className="text-center">G</span>
                     <span className="text-center">E</span>
@@ -89,16 +143,28 @@ export function TournamentStatsPanel({
                   {standings.map((s, i) => (
                     <div
                       key={s.id}
-                      className="grid grid-cols-8 gap-1 items-center py-1"
+                      className={cn(
+                        "grid grid-cols-[minmax(0,1fr)_repeat(5,2rem)] gap-1 items-center rounded-lg py-2 px-1",
+                        i === 0 && "bg-primary/5 border border-primary/20"
+                      )}
                     >
-                      <span className="col-span-3 truncate font-medium">
-                        {i + 1}. {s.nickname}
-                      </span>
-                      <span className="text-center">{s.played}</span>
-                      <span className="text-center">{s.won}</span>
-                      <span className="text-center">{s.drawn}</span>
-                      <span className="text-center">{s.lost}</span>
-                      <span className="text-center font-bold text-primary">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-4 shrink-0 text-xs font-bold text-muted-foreground">
+                          {i + 1}
+                        </span>
+                        <TeamGamertagCell
+                          teamName={s.teamName}
+                          teamCrestUrl={s.teamCrestUrl}
+                          teamFifaIndexId={s.teamFifaIndexId}
+                          nickname={s.nickname}
+                          compact
+                        />
+                      </div>
+                      <span className="text-center text-xs">{s.played}</span>
+                      <span className="text-center text-xs">{s.won}</span>
+                      <span className="text-center text-xs">{s.drawn}</span>
+                      <span className="text-center text-xs">{s.lost}</span>
+                      <span className="text-center text-sm font-bold text-primary">
                         {s.points}
                       </span>
                     </div>
@@ -113,27 +179,47 @@ export function TournamentStatsPanel({
           )}
 
           {active === "scorers" && (
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2">
               <p className="text-base font-semibold mb-3">Goleadores</p>
               {scorers.length > 0 ? (
-                scorers.map((s) => (
-                  <div
-                    key={`${s.rank}-${s.playerName}`}
-                    className="flex items-center justify-between gap-2 py-1.5 border-b border-border/50 last:border-0"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {s.rank}. {s.playerName}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {s.nickname}
-                      </p>
-                    </div>
-                    <span className="shrink-0 font-bold text-primary">
-                      ⚽ {s.goals}
-                    </span>
-                  </div>
-                ))
+                <div className="space-y-2">
+                  {scorers.map((s) => (
+                    <PlayerLeaderRow
+                      key={`${s.rank}-${s.playerName}-${s.nickname}`}
+                      rank={s.rank}
+                      playerName={s.playerName}
+                      playerImageUrl={s.playerImageUrl}
+                      playerEaId={s.playerEaId}
+                      teamName={s.teamName}
+                      teamCrestUrl={s.teamCrestUrl}
+                      teamFifaIndexId={s.teamFifaIndexId}
+                      nickname={s.nickname}
+                      stat={
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center gap-1">
+                            <GiSoccerBall
+                              className={cn(
+                                "h-4 w-4",
+                                s.rank === 1 ? "text-primary" : "text-muted-foreground"
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "text-xl font-black tabular-nums",
+                                s.rank === 1 ? "text-primary" : "text-foreground"
+                              )}
+                            >
+                              {s.goals}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Goles
+                          </span>
+                        </div>
+                      }
+                    />
+                  ))}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Aún no hay goles registrados
@@ -143,28 +229,43 @@ export function TournamentStatsPanel({
           )}
 
           {active === "cards" && (
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2">
               <p className="text-base font-semibold mb-3">Tarjetas</p>
               {cards.length > 0 ? (
-                cards.map((c) => (
-                  <div
-                    key={`${c.rank}-${c.playerName}`}
-                    className="flex items-center justify-between gap-2 py-1.5 border-b border-border/50 last:border-0"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {c.rank}. {c.playerName}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {c.nickname}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 gap-2 text-xs font-bold">
-                      {c.yellowCards > 0 && <span>🟨 {c.yellowCards}</span>}
-                      {c.redCards > 0 && <span>🟥 {c.redCards}</span>}
-                    </div>
-                  </div>
-                ))
+                <div className="space-y-2">
+                  {cards.map((c) => (
+                    <PlayerLeaderRow
+                      key={`${c.rank}-${c.playerName}-${c.nickname}`}
+                      rank={c.rank}
+                      playerName={c.playerName}
+                      playerImageUrl={c.playerImageUrl}
+                      playerEaId={c.playerEaId}
+                      teamName={c.teamName}
+                      teamCrestUrl={c.teamCrestUrl}
+                      teamFifaIndexId={c.teamFifaIndexId}
+                      nickname={c.nickname}
+                      stat={
+                        <div className="flex flex-col items-end gap-1">
+                          {c.yellowCards > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="h-4 w-3 rounded-sm bg-yellow-400 shadow-sm" />
+                              <span className="text-sm font-bold">{c.yellowCards}</span>
+                            </div>
+                          )}
+                          {c.redCards > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="h-4 w-3 rounded-sm bg-red-600 shadow-sm" />
+                              <span className="text-sm font-bold">{c.redCards}</span>
+                            </div>
+                          )}
+                          <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Tarjetas
+                          </span>
+                        </div>
+                      }
+                    />
+                  ))}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Aún no hay tarjetas registradas

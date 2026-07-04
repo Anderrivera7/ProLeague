@@ -26,7 +26,10 @@ export default async function TournamentSquadPage({ params }: PageProps) {
   if (!owner?.fcTeamId) notFound();
 
   const isOwnTeam = owner.userId === user.id;
-  if (!isOwnTeam && !isCreator) notFound();
+  const viewerInTournament = tournament.participants.some(
+    (p) => p.userId === user.id
+  );
+  if (!isOwnTeam && !isCreator && !viewerInTournament) notFound();
 
   const { team } = await TeamService.getOrSyncById(teamId);
   const tournamentPlayerStats = await StatsRepository.getTournamentPlayerStats(
@@ -45,6 +48,7 @@ export default async function TournamentSquadPage({ params }: PageProps) {
           team={team}
           backHref={`/tournaments/${id}`}
           subtitle={`${tournament.name} · ${owner.user.nickname} · ${team.name}`}
+          compactHeader
           tournamentPlayerStats={tournamentPlayerStats}
         />
       </div>

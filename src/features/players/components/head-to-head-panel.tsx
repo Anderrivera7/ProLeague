@@ -1,13 +1,60 @@
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MatchCard } from "@/features/matches/components/match-card";
 import { formatBiggestWin, positiveStreak } from "@/utils/match-stats";
+import { formatDateTime } from "@/lib/utils";
 import type { HeadToHeadStats } from "@/types";
+
+interface H2HMatch {
+  id: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  status: string;
+  playedAt?: Date | null;
+  scheduledAt?: Date | null;
+  homeParticipant: { user: { nickname: string } };
+  awayParticipant: { user: { nickname: string } };
+}
 
 interface Props {
   opponentNickname: string;
   stats: HeadToHeadStats | null;
-  recentMatches: Parameters<typeof MatchCard>[0]["match"][];
+  recentMatches: H2HMatch[];
+}
+
+function H2HMatchRow({ match }: { match: H2HMatch }) {
+  const isCompleted = match.status === "COMPLETED";
+  const date = match.playedAt ?? match.scheduledAt;
+
+  return (
+    <Link
+      href={`/matches/${match.id}`}
+      className="block rounded-lg border border-border px-3 py-2 transition-colors hover:bg-muted/40"
+    >
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className="truncate font-medium">
+          {match.homeParticipant.user.nickname}
+        </span>
+        <span className="shrink-0 rounded-md bg-muted px-3 py-1 font-mono font-bold">
+          {isCompleted ? (
+            <>
+              {match.homeScore} — {match.awayScore}
+            </>
+          ) : (
+            "vs"
+          )}
+        </span>
+        <span className="truncate text-right font-medium">
+          {match.awayParticipant.user.nickname}
+        </span>
+      </div>
+      {date && (
+        <p className="mt-1 text-center text-xs text-muted-foreground">
+          {formatDateTime(date)}
+        </p>
+      )}
+    </Link>
+  );
 }
 
 export function HeadToHeadPanel({
@@ -86,7 +133,7 @@ export function HeadToHeadPanel({
           <div className="space-y-2">
             <p className="text-sm font-medium">Últimos enfrentamientos</p>
             {recentMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
+              <H2HMatchRow key={match.id} match={match} />
             ))}
           </div>
         )}

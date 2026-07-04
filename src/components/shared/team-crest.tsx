@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { resolveTeamCrestUrl } from "@/lib/fc-data/club-ids";
 import { cn } from "@/lib/utils";
+import { Shield } from "lucide-react";
 
 interface TeamCrestProps {
   name: string;
@@ -25,11 +26,14 @@ export function TeamCrest({
   if (!src || failed) {
     return (
       <span
-        className={cn("flex items-center justify-center text-lg", className)}
+        className={cn(
+          "flex items-center justify-center text-muted-foreground",
+          className
+        )}
         style={{ width: size, height: size }}
         aria-hidden
       >
-        ⚽
+        <Shield style={{ width: size * 0.55, height: size * 0.55 }} />
       </span>
     );
   }

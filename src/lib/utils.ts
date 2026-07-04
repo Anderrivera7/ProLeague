@@ -35,6 +35,24 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+export function formatTimeAgo(date: Date | string | null | undefined): string {
+  if (!date) return "";
+
+  const then = new Date(date).getTime();
+  const diffMs = Date.now() - then;
+  const diffMin = Math.floor(diffMs / 60_000);
+
+  if (diffMin < 1) return "Hace un momento";
+  if (diffMin < 60) return `Hace ${diffMin} min`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `Hace ${diffHours} h`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return "Hace 1 día";
+  return `Hace ${diffDays} días`;
+}
+
 export function formatLastActive(date: Date | string | null | undefined): string {
   if (!date) return "Sin actividad";
 

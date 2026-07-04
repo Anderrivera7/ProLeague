@@ -2,7 +2,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { PlayerAvatar } from "@/components/ui/player-avatar";
-import { getFormationSlot, inferFormationLabel, isStarterRole } from "@/lib/fc-data/formation";
+import {
+  getFormationSlot,
+  inferFormationLabel,
+  isStarterRole,
+  layoutStarterPositions,
+  shortPlayerName,
+} from "@/lib/fc-data/formation";
 
 export interface SquadPlayer {
   id: string;
@@ -23,6 +29,7 @@ export function SquadFormationPitch({ players }: SquadFormationPitchProps) {
   const formation = inferFormationLabel(
     starters.map((p) => p.squadRole?.toUpperCase() ?? "CM")
   );
+  const positions = layoutStarterPositions(starters);
 
   return (
     <div className="space-y-3">
@@ -35,16 +42,15 @@ export function SquadFormationPitch({ players }: SquadFormationPitchProps) {
         <div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
         <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
 
-        {starters.map((player) => {
-          const slot = getFormationSlot(player.squadRole);
-          const top = `${(slot.row / 4) * 82 + 6}%`;
-          const left = `${(slot.col / 4) * 88 + 6}%`;
+        {starters.map((player, index) => {
+          const pos = positions[index];
+          const role = player.squadRole?.toUpperCase() ?? "—";
 
           return (
             <div
               key={player.id}
-              className="absolute flex w-[18%] min-w-[52px] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
-              style={{ top, left }}
+              className="absolute z-10 flex w-[20%] min-w-[56px] max-w-[72px] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
+              style={{ top: pos.top, left: pos.left }}
             >
               <PlayerAvatar
                 eaId={player.eaId ?? player.id}
@@ -54,12 +60,12 @@ export function SquadFormationPitch({ players }: SquadFormationPitchProps) {
                 className="border-2 border-primary/60 shadow-lg"
                 fallback={player.jerseyNumber ?? "—"}
               />
-              <div className="rounded-md bg-black/60 px-1.5 py-0.5 text-center backdrop-blur-sm">
-                <p className="max-w-[72px] truncate text-[9px] font-semibold text-white">
-                  {player.name}
+              <div className="w-full rounded-md bg-black/70 px-1 py-0.5 text-center backdrop-blur-sm">
+                <p className="truncate text-[9px] font-semibold leading-tight text-white">
+                  {shortPlayerName(player.name)}
                 </p>
-                <p className="text-[9px] text-primary">
-                  {player.overall ?? "—"} · {player.squadRole}
+                <p className="text-[8px] leading-tight text-primary">
+                  {player.overall ?? "—"} · {role}
                 </p>
               </div>
             </div>

@@ -15,12 +15,38 @@ export class PlayerRepository {
   }
 
   static async deleteByTeamId(teamId: string) {
-    return prisma.fcPlayer.deleteMany({ where: { teamId } });
+    const removable = await prisma.fcPlayer.findMany({
+      where: { teamId, matchStats: { none: {} } },
+      select: { id: true },
+    });
+    if (removable.length === 0) return { count: 0 };
+    return prisma.fcPlayer.deleteMany({
+      where: { id: { in: removable.map((p) => p.id) } },
+    });
   }
 
   static async replaceSquad(teamId: string, players: ScrapedPlayerData[]) {
-    await prisma.fcPlayer.deleteMany({ where: { teamId } });
-    return this.upsertMany(teamId, players);
+    const upserted = await this.upsertMany(teamId, players);
+    const keepEaIds = new Set(players.map((p) => p.eaId));
+
+    const current = await prisma.fcPlayer.findMany({
+      where: { teamId },
+      select: {
+        id: true,
+        fifaIndexId: true,
+        _count: { select: { matchStats: true } },
+      },
+    });
+
+    const staleIds = current
+      .filter((p) => !keepEaIds.has(p.fifaIndexId) && p._count.matchStats === 0)
+      .map((p) => p.id);
+
+    if (staleIds.length > 0) {
+      await prisma.fcPlayer.deleteMany({ where: { id: { in: staleIds } } });
+    }
+
+    return upserted;
   }
 
   static async upsertMany(teamId: string, players: ScrapedPlayerData[]) {

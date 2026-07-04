@@ -34,7 +34,21 @@ export function NotificationsBell() {
   }
 
   useEffect(() => {
-    load().then((data) => {
+    let active = true;
+
+    async function fetchNotifications() {
+      try {
+        const data = await getMatchNotifications();
+        if (!active) return data as Notification[];
+        setNotifications(data as Notification[]);
+        return data as Notification[];
+      } catch {
+        return [];
+      }
+    }
+
+    fetchNotifications().then((data) => {
+      if (!active) return;
       const latest = data[0];
       if (!latest || toastedRef.current.has(latest.id)) return;
       const seen = sessionStorage.getItem(`notif-seen-${latest.id}`);
@@ -52,8 +66,14 @@ export function NotificationsBell() {
       });
     });
 
-    const interval = setInterval(load, 30_000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      void fetchNotifications();
+    }, 30_000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [router]);
 
   return (

@@ -9,6 +9,7 @@ export interface TournamentFcPlayerStats {
     name: string;
     imageUrl: string | null;
     jerseyNumber: number | null;
+    fifaIndexId?: string | null;
   } | null;
 }
 

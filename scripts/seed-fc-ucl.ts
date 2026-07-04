@@ -63,7 +63,6 @@ async function main() {
         },
         update: {
           name: entry.name,
-          leagueId: league.id,
           crestUrl: getSofifaTeamCrestUrl(entry.clubTeamId),
         },
       });
@@ -106,13 +105,13 @@ async function main() {
         attack: stats.attack,
         midfield: stats.midfield,
         defense: stats.defense,
-        leagueId: league.id,
       },
     });
 
     console.log(`✓ ${displayName} — OVR ${stats.overall}`);
   }
 
+  // Solo limpia equipos huérfanos creados solo para UCL (sin liga doméstica)
   await prisma.fcTeam.deleteMany({
     where: {
       leagueId: league.id,

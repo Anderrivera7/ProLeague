@@ -55,14 +55,67 @@ export function getFormationSlot(role: string | null | undefined): FormationSlot
 }
 
 export function inferFormationLabel(roles: string[]) {
+  const withoutGk = roles.filter((r) => r !== "GK");
   const counts = {
-    def: roles.filter((r) => ["LB", "LCB", "CB", "RCB", "RB", "LWB", "RWB"].includes(r)).length,
-    mid: roles.filter((r) =>
+    def: withoutGk.filter((r) =>
+      ["LB", "LCB", "CB", "RCB", "RB", "LWB", "RWB"].includes(r)
+    ).length,
+    mid: withoutGk.filter((r) =>
       ["LDM", "CDM", "RDM", "LCM", "CM", "RCM", "LM", "RM", "LAM", "CAM", "RAM"].includes(r)
     ).length,
-    att: roles.filter((r) =>
+    att: withoutGk.filter((r) =>
       ["LW", "RW", "LF", "CF", "RF", "ST", "LS", "RS"].includes(r)
     ).length,
   };
   return `${counts.def}-${counts.mid}-${counts.att}`;
+}
+
+export interface PitchPosition {
+  top: string;
+  left: string;
+}
+
+/** Reparte jugadores en cada línea para evitar solapamientos en el campo */
+export function layoutStarterPositions(
+  starters: { squadRole: string | null }[]
+): PitchPosition[] {
+  const rowGroups = new Map<number, { index: number; col: number }[]>();
+
+  starters.forEach((player, index) => {
+    const slot = getFormationSlot(player.squadRole);
+    const group = rowGroups.get(slot.row) ?? [];
+    group.push({ index, col: slot.col });
+    rowGroups.set(slot.row, group);
+  });
+
+  const positions: PitchPosition[] = Array.from({ length: starters.length }, () => ({
+    top: "50%",
+    left: "50%",
+  }));
+
+  for (const [row, group] of rowGroups) {
+    const sorted = [...group].sort((a, b) => a.col - b.col);
+    sorted.forEach((entry, posInRow) => {
+      const count = sorted.length;
+      const col =
+        count === 1
+          ? entry.col
+          : (posInRow / Math.max(count - 1, 1)) * 4;
+
+      positions[entry.index] = {
+        top: `${(row / 4) * 82 + 6}%`,
+        left: `${(col / 4) * 88 + 6}%`,
+      };
+    });
+  }
+
+  return positions;
+}
+
+export function shortPlayerName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 1) return name;
+  const last = parts[parts.length - 1];
+  if (last.length <= 12) return last;
+  return `${last.slice(0, 10)}…`;
 }

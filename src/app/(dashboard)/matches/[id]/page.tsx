@@ -4,8 +4,9 @@ import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MatchEventsSummary } from "@/features/matches/components/match-events-summary";
-import { ReportMatchResultForm } from "@/features/matches/components/report-match-result-form";
+import type { EnrichedPlayerStat } from "@/types/match-stats";
+import { MatchEventsSummaryLoader } from "@/features/matches/components/match-events-summary-loader";
+import { ReportMatchResultFormLoader } from "@/features/matches/components/report-match-result-form-loader";
 import { HeadToHeadPanel } from "@/features/players/components/head-to-head-panel";
 import { MatchRepository } from "@/repositories/match-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
@@ -71,6 +72,30 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
   const isCompleted = match.status === "COMPLETED";
   const homeTeamName = homeTeam?.name ?? homeUser.nickname;
   const awayTeamName = awayTeam?.name ?? awayUser.nickname;
+
+  const enrichedPlayerStats: EnrichedPlayerStat[] = match.playerStats.map(
+    (stat) => {
+      const isHome = stat.userId === match.homeParticipant.userId;
+      const participant = isHome
+        ? match.homeParticipant
+        : match.awayParticipant;
+      const fcTeam = participant.fcTeam;
+
+      return {
+        goals: stat.goals,
+        yellowCards: stat.yellowCards,
+        redCards: stat.redCards,
+        ownGoals: stat.ownGoals,
+        playerName: stat.fcPlayer.name,
+        playerImageUrl: stat.fcPlayer.imageUrl,
+        playerEaId: stat.fcPlayer.fifaIndexId,
+        nickname: participant.user.nickname,
+        teamName: fcTeam?.name ?? participant.user.nickname,
+        teamCrestUrl: fcTeam?.crestUrl,
+        teamFifaIndexId: fcTeam?.fifaIndexId,
+      };
+    }
+  );
 
   return (
     <>
@@ -159,11 +184,11 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
         <HeadToHeadPanel
           opponentNickname={h2hOpponentLabel}
           stats={h2hStats}
-          recentMatches={h2hMatches as never[]}
+          recentMatches={h2hMatches}
         />
 
         {showForm && (
-          <ReportMatchResultForm
+          <ReportMatchResultFormLoader
             matchId={match.id}
             players={[
               {
@@ -187,8 +212,8 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
         )}
 
         {isCompleted && (
-          <MatchEventsSummary
-            playerStats={match.playerStats}
+          <MatchEventsSummaryLoader
+            playerStats={enrichedPlayerStats}
             mvpNickname={match.mvpUser?.nickname}
             penaltiesHome={match.penaltiesHome}
             penaltiesAway={match.penaltiesAway}

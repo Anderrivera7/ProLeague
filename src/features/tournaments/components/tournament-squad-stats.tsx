@@ -1,45 +1,81 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  GoalStat,
+  RedCardStat,
+  YellowCardStat,
+} from "@/components/shared/match-stat-icons";
+import { resolvePlayerImageUrl } from "@/lib/fc-data/player-image";
+import { cn } from "@/lib/utils";
 import type { TournamentFcPlayerStats } from "@/types/tournament-stats";
 
 interface TournamentSquadStatsProps {
   stats: TournamentFcPlayerStats[];
 }
 
-function RankingList({
+function StatRankingRow({
+  rank,
+  name,
+  imageUrl,
+  eaId,
+  stat,
+}: {
+  rank: number;
+  name: string;
+  imageUrl?: string | null;
+  eaId?: string | null;
+  stat: React.ReactNode;
+}) {
+  const portrait =
+    eaId != null ? resolvePlayerImageUrl(eaId, imageUrl) : null;
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-3 py-2.5">
+      <span className="w-5 shrink-0 text-xs font-bold text-muted-foreground">
+        {rank}
+      </span>
+      <Avatar className="h-10 w-10 border border-border">
+        {portrait ? (
+          <AvatarImage src={portrait} alt={name} referrerPolicy="no-referrer" />
+        ) : null}
+        <AvatarFallback className="text-xs">
+          {name.slice(0, 2).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <p className="min-w-0 flex-1 truncate text-sm font-semibold">{name}</p>
+      <div className="shrink-0">{stat}</div>
+    </div>
+  );
+}
+
+function RankingSection({
   title,
   items,
-  valueKey,
-  emoji,
+  renderStat,
 }: {
   title: string;
   items: TournamentFcPlayerStats[];
-  valueKey: "goals" | "yellowCards" | "redCards";
-  emoji: string;
+  renderStat: (item: TournamentFcPlayerStats) => React.ReactNode;
 }) {
-  const ranked = items
-    .filter((s) => s[valueKey] > 0)
-    .sort((a, b) => b[valueKey] - a[valueKey]);
-
-  if (ranked.length === 0) return null;
+  if (items.length === 0) return null;
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">{title}</p>
-      {ranked.map((s, i) => (
-        <div
-          key={s.fcPlayerId}
-          className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
-        >
-          <span className="truncate">
-            <span className="text-muted-foreground mr-2">{i + 1}.</span>
-            {s.fcPlayer?.name ?? "Jugador"}
-          </span>
-          <Badge variant="outline">
-            {emoji} {s[valueKey]}
-          </Badge>
-        </div>
-      ))}
+      <p className="text-sm font-semibold">{title}</p>
+      <div className="space-y-2">
+        {items.map((item, index) => (
+          <StatRankingRow
+            key={item.fcPlayerId}
+            rank={index + 1}
+            name={item.fcPlayer?.name ?? "Jugador"}
+            imageUrl={item.fcPlayer?.imageUrl}
+            eaId={item.fcPlayer?.fifaIndexId}
+            stat={renderStat(item)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -62,7 +98,15 @@ export function TournamentSquadStats({ stats }: TournamentSquadStatsProps) {
     );
   }
 
-  const carded = stats.filter((s) => s.yellowCards > 0 || s.redCards > 0);
+  const scorers = [...stats]
+    .filter((s) => s.goals > 0)
+    .sort((a, b) => b.goals - a.goals);
+  const yellows = [...stats]
+    .filter((s) => s.yellowCards > 0)
+    .sort((a, b) => b.yellowCards - a.yellowCards);
+  const reds = [...stats]
+    .filter((s) => s.redCards > 0)
+    .sort((a, b) => b.redCards - a.redCards);
 
   return (
     <Card className="glass border-primary/20">
@@ -70,25 +114,47 @@ export function TournamentSquadStats({ stats }: TournamentSquadStatsProps) {
         <CardTitle className="text-base">Estadísticas del torneo</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-6 sm:grid-cols-2">
-        <RankingList
+        <RankingSection
           title="Goleadores"
-          items={stats}
-          valueKey="goals"
-          emoji="⚽"
+          items={scorers}
+          renderStat={(s) => (
+            <div className="flex flex-col items-end">
+              <GoalStat count={s.goals} />
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Goles
+              </span>
+            </div>
+          )}
         />
-        {carded.length > 0 && (
+        {(yellows.length > 0 || reds.length > 0) && (
           <div className="space-y-4">
-            <RankingList
+            <RankingSection
               title="Tarjetas amarillas"
-              items={stats}
-              valueKey="yellowCards"
-              emoji="🟨"
+              items={yellows}
+              renderStat={(s) => (
+                <div className="flex flex-col items-end">
+                  <YellowCardStat count={s.yellowCards} />
+                  <span
+                    className={cn(
+                      "text-[9px] font-semibold uppercase tracking-wider text-muted-foreground"
+                    )}
+                  >
+                    Amarillas
+                  </span>
+                </div>
+              )}
             />
-            <RankingList
+            <RankingSection
               title="Tarjetas rojas"
-              items={stats}
-              valueKey="redCards"
-              emoji="🟥"
+              items={reds}
+              renderStat={(s) => (
+                <div className="flex flex-col items-end">
+                  <RedCardStat count={s.redCards} />
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Rojas
+                  </span>
+                </div>
+              )}
             />
           </div>
         )}

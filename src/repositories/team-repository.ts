@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { resolveTeamCrestUrl } from "@/lib/fc-data/club-ids";
+import {
+  getUclTeamEaIds,
+  isUclLeagueFifaId,
+} from "@/lib/fc-data/ucl-teams";
 export type TeamWithRelations = Prisma.FcTeamGetPayload<{
   include: { league: true; players: true };
 }>;
@@ -35,8 +39,22 @@ export class TeamRepository {
   }
 
   static async search(query: string, leagueId?: string, limit = 50) {
-    const teams = await prisma.fcTeam.findMany({      where: {
-        ...(leagueId && { leagueId }),
+    let leagueFilter: Prisma.FcTeamWhereInput = {};
+    if (leagueId) {
+      const league = await prisma.fcLeague.findUnique({
+        where: { id: leagueId },
+        select: { fifaIndexId: true },
+      });
+      if (league && isUclLeagueFifaId(league.fifaIndexId)) {
+        leagueFilter = { fifaIndexId: { in: getUclTeamEaIds() } };
+      } else {
+        leagueFilter = { leagueId };
+      }
+    }
+
+    const teams = await prisma.fcTeam.findMany({
+      where: {
+        ...leagueFilter,
         ...(query && {
           OR: [
             { name: { contains: query, mode: "insensitive" } },

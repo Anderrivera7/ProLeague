@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { formatTimeAgo } from "@/lib/utils";
 
 export class StatsRepository {
   static async getTopScorers(limit = 10) {
@@ -114,6 +115,7 @@ export class StatsRepository {
         name: true,
         imageUrl: true,
         jerseyNumber: true,
+        fifaIndexId: true,
       },
     });
 
@@ -146,7 +148,20 @@ export class StatsRepository {
     const [players, users] = await Promise.all([
       prisma.fcPlayer.findMany({
         where: { id: { in: sorted.map((s) => s.fcPlayerId) } },
-        select: { id: true, name: true },
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          fifaIndexId: true,
+          team: {
+            select: {
+              name: true,
+              crestUrl: true,
+              fifaIndexId: true,
+              country: true,
+            },
+          },
+        },
       }),
       prisma.user.findMany({
         where: { id: { in: sorted.map((s) => s.userId) } },
@@ -154,12 +169,20 @@ export class StatsRepository {
       }),
     ]);
 
-    return sorted.map((s, i) => ({
-      rank: i + 1,
-      goals: s._sum.goals ?? 0,
-      playerName: players.find((p) => p.id === s.fcPlayerId)?.name ?? "—",
-      nickname: users.find((u) => u.id === s.userId)?.nickname ?? "",
-    }));
+    return sorted.map((s, i) => {
+      const player = players.find((p) => p.id === s.fcPlayerId);
+      return {
+        rank: i + 1,
+        goals: s._sum.goals ?? 0,
+        playerName: player?.name ?? "—",
+        playerImageUrl: player?.imageUrl ?? null,
+        playerEaId: player?.fifaIndexId ?? null,
+        teamName: player?.team?.name ?? player?.team?.country ?? null,
+        teamCrestUrl: player?.team?.crestUrl ?? null,
+        teamFifaIndexId: player?.team?.fifaIndexId ?? null,
+        nickname: users.find((u) => u.id === s.userId)?.nickname ?? "",
+      };
+    });
   }
 
   static async getTournamentCardRanking(tournamentId: string) {
@@ -183,7 +206,20 @@ export class StatsRepository {
     const [players, users] = await Promise.all([
       prisma.fcPlayer.findMany({
         where: { id: { in: sorted.map((s) => s.fcPlayerId) } },
-        select: { id: true, name: true },
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          fifaIndexId: true,
+          team: {
+            select: {
+              name: true,
+              crestUrl: true,
+              fifaIndexId: true,
+              country: true,
+            },
+          },
+        },
       }),
       prisma.user.findMany({
         where: { id: { in: sorted.map((s) => s.userId) } },
@@ -191,12 +227,119 @@ export class StatsRepository {
       }),
     ]);
 
-    return sorted.map((s, i) => ({
-      rank: i + 1,
-      yellowCards: s._sum.yellowCards ?? 0,
-      redCards: s._sum.redCards ?? 0,
-      playerName: players.find((p) => p.id === s.fcPlayerId)?.name ?? "—",
-      nickname: users.find((u) => u.id === s.userId)?.nickname ?? "",
-    }));
+    return sorted.map((s, i) => {
+      const player = players.find((p) => p.id === s.fcPlayerId);
+      return {
+        rank: i + 1,
+        yellowCards: s._sum.yellowCards ?? 0,
+        redCards: s._sum.redCards ?? 0,
+        playerName: player?.name ?? "—",
+        playerImageUrl: player?.imageUrl ?? null,
+        playerEaId: player?.fifaIndexId ?? null,
+        teamName: player?.team?.name ?? player?.team?.country ?? null,
+        teamCrestUrl: player?.team?.crestUrl ?? null,
+        teamFifaIndexId: player?.team?.fifaIndexId ?? null,
+        nickname: users.find((u) => u.id === s.userId)?.nickname ?? "",
+      };
+    });
+  }
+
+  static async getTournamentAlerts(tournamentId: string) {
+    const [recentReds, yellowTotals, tournament] = await Promise.all([
+      prisma.matchPlayerStat.findMany({
+        where: {
+          redCards: { gt: 0 },
+          match: { tournamentId, status: "COMPLETED" },
+        },
+        include: {
+          fcPlayer: { select: { name: true } },
+          match: { select: { playedAt: true } },
+        },
+        orderBy: { match: { playedAt: "desc" } },
+        take: 10,
+      }),
+      prisma.matchPlayerStat.groupBy({
+        by: ["fcPlayerId"],
+        where: {
+          yellowCards: { gt: 0 },
+          match: { tournamentId, status: "COMPLETED" },
+        },
+        _sum: { yellowCards: true },
+      }),
+      prisma.tournament.findUnique({
+        where: { id: tournamentId },
+        select: {
+          type: true,
+          matches: {
+            where: { groupName: { not: null } },
+            select: { status: true },
+          },
+        },
+      }),
+    ]);
+
+    const alerts: {
+      id: string;
+      type: "red" | "yellow" | "info";
+      title: string;
+      description: string;
+      timeAgo?: string;
+    }[] = [];
+
+    for (const stat of recentReds) {
+      alerts.push({
+        id: `red-${stat.id}`,
+        type: "red",
+        title: stat.fcPlayer.name,
+        description: "Se pierde el próximo partido",
+        timeAgo: formatTimeAgo(stat.match.playedAt),
+      });
+    }
+
+    if (yellowTotals.length > 0) {
+      const playerIds = yellowTotals.map((y) => y.fcPlayerId);
+      const players = await prisma.fcPlayer.findMany({
+        where: { id: { in: playerIds } },
+        select: { id: true, name: true },
+      });
+
+      for (const row of yellowTotals) {
+        const total = row._sum.yellowCards ?? 0;
+        if (total < 3) continue;
+
+        const player = players.find((p) => p.id === row.fcPlayerId);
+        if (!player) continue;
+
+        alerts.push({
+          id: `yellow-${row.fcPlayerId}`,
+          type: "yellow",
+          title: player.name,
+          description:
+            total >= 4
+              ? "Acumulación de amarillas: se pierde el próximo partido"
+              : "Si recibe otra, se perderá el próximo partido",
+          timeAgo: `${total} tarjetas amarillas`,
+        });
+      }
+    }
+
+    if (tournament?.type === "GROUPS_KNOCKOUT") {
+      const groupMatches = tournament.matches;
+      const allDone =
+        groupMatches.length > 0 &&
+        groupMatches.every((m) => m.status === "COMPLETED");
+
+      if (!allDone) {
+        alerts.push({
+          id: "info-knockout",
+          type: "info",
+          title: "Próximo partido",
+          description:
+            "Las semifinales se jugarán cuando todos los jugadores estén listos",
+        });
+      }
+    }
+
+    return alerts.slice(0, 8);
   }
 }

@@ -41,6 +41,7 @@ export default async function MyTeamPage({ params }: PageProps) {
           team={team}
           backHref={`/tournaments/${id}`}
           subtitle={`${tournament.name} · ${user.nickname}`}
+          compactHeader
           tournamentPlayerStats={tournamentPlayerStats}
         />
       </div>

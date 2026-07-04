@@ -45,6 +45,7 @@ interface TeamSquadViewProps {
   };
   backHref: string;
   subtitle?: string;
+  compactHeader?: boolean;
   tournamentPlayerStats?: TournamentFcPlayerStats[];
 }
 
@@ -52,6 +53,7 @@ export function TeamSquadView({
   team,
   backHref,
   subtitle,
+  compactHeader = false,
   tournamentPlayerStats,
 }: TeamSquadViewProps) {
   const statsByPlayer = new Map(
@@ -77,7 +79,9 @@ export function TeamSquadView({
           />
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{team.name}</h1>
+          {!compactHeader && (
+            <h1 className="text-2xl font-bold">{team.name}</h1>
+          )}
           <p className="text-sm text-muted-foreground">
             {subtitle ?? team.league?.name ?? "EA SPORTS FC 26"} ·{" "}
             {team.players.length} jugadores

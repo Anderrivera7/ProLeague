@@ -46,6 +46,14 @@ export const UCL_2026_27_TEAMS = [
 
 export const UCL_LEAGUE_DISPLAY_NAME = "UEFA Champions League 2026/27";
 
+export function isUclLeagueFifaId(fifaIndexId?: string | null) {
+  return fifaIndexId === "ucl" || fifaIndexId === "223";
+}
+
+export function getUclTeamEaIds() {
+  return UCL_2026_27_TEAMS.map((t) => `club:${t.clubTeamId}`);
+}
+
 export function isUclClubTeamId(clubTeamId: number) {
   return UCL_2026_27_TEAMS.some((t) => t.clubTeamId === clubTeamId);
 }

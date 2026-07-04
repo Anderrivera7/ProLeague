@@ -3,6 +3,10 @@ import {
   resolveLeagueLogoUrl,
   sortLeaguesByPriority,
 } from "@/lib/fc-data/club-ids";
+import {
+  UCL_2026_27_TEAMS,
+  isUclLeagueFifaId,
+} from "@/lib/fc-data/ucl-teams";
 
 /** @deprecated Usar TeamRepository / TeamService */
 export class FifaDbRepository {
@@ -18,6 +22,11 @@ export class FifaDbRepository {
         league.fifaIndexId,
         league.name
       ),
+      _count: {
+        teams: isUclLeagueFifaId(league.fifaIndexId)
+          ? UCL_2026_27_TEAMS.length
+          : league._count.teams,
+      },
     }));
   }
 

@@ -71,11 +71,24 @@ export interface MatchWithParticipants {
   awayScore: number | null;
   status: MatchStatus;
   scheduledAt: Date | null;
+  playedAt?: Date | null;
   homeParticipant: {
     user: { id: string; nickname: string; avatarUrl: string | null };
+    fcTeam?: {
+      name: string;
+      crestUrl?: string | null;
+      fifaIndexId?: string | null;
+      country?: string | null;
+    } | null;
   };
   awayParticipant: {
     user: { id: string; nickname: string; avatarUrl: string | null };
+    fcTeam?: {
+      name: string;
+      crestUrl?: string | null;
+      fifaIndexId?: string | null;
+      country?: string | null;
+    } | null;
   };
   tournament: { id: string; name: string } | null;
 }
