@@ -1,17 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { TeamCrest } from "@/components/shared/team-crest";
 import { Button } from "@/components/ui/button";
 import { selectTournamentTeam } from "@/actions/tournament-actions";
 import { TeamStatsPanel } from "@/features/tournaments/components/team-stats-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SquadCountBadges } from "@/components/shared/squad-count-badges";
 import { useSyncTeamById } from "@/hooks/use-teams";
+import {
+  isReserveRole,
+  isStarterRole,
+  isSubstituteRole,
+} from "@/lib/fc-data/formation";
 
 interface SelectTeamViewProps {
   tournamentId: string;
@@ -32,6 +38,48 @@ export function SelectTeamView({
 
   const team = data?.team;
   const source = data?.source;
+  const starters = team?.players.filter((p) => isStarterRole(p.squadRole)) ?? [];
+  const substitutes =
+    team?.players.filter((p) => isSubstituteRole(p.squadRole)) ?? [];
+  const reserves = team?.players.filter((p) => isReserveRole(p.squadRole)) ?? [];
+
+  function renderPlayerList(
+    players: NonNullable<typeof team>["players"],
+    title: string
+  ) {
+    if (players.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {title} ({players.length})
+        </p>
+        {players.map((player) => (
+          <div
+            key={player.id}
+            className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">
+                {player.jerseyNumber ?? player.position?.slice(0, 2) ?? "—"}
+              </div>
+              <div className="min-w-0">
+                <span className="block truncate text-sm font-medium">
+                  {player.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {player.squadRole ?? player.position}
+                  {player.pace != null && ` · PAC ${player.pace}`}
+                </span>
+              </div>
+            </div>
+            {player.overall != null && (
+              <Badge variant="outline">{player.overall}</Badge>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   function handleSelect() {
     if (!team) return;
@@ -85,24 +133,30 @@ export function SelectTeamView({
 
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-border bg-card">
-          {team.crestUrl ? (
-            <Image
-              src={team.crestUrl}
-              alt={team.name}
-              width={72}
-              height={72}
-              className="object-contain"
-              unoptimized
-            />
-          ) : (
-            <span className="text-4xl">⚽</span>
-          )}
+          <TeamCrest
+            name={team.name}
+            crestUrl={team.crestUrl}
+            fifaIndexId={team.fifaIndexId}
+            size={72}
+          />
         </div>
         <div>
           <h1 className="text-2xl font-bold">{team.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {team.league?.name ?? "EA SPORTS FC"} · {team.players.length} jugadores
+          <p className="mt-1 text-sm text-muted-foreground">
+            {team.league?.name ?? "EA SPORTS FC"}
           </p>
+          {starters.length + substitutes.length + reserves.length > 0 && (
+            <div className="mt-2 flex justify-center">
+              <SquadCountBadges
+                counts={{
+                  total: team.players.length,
+                  starters: starters.length,
+                  substitutes: substitutes.length,
+                  reserves: reserves.length,
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -118,31 +172,14 @@ export function SelectTeamView({
       {team.players.length > 0 && (
         <Card className="glass">
           <CardHeader>
-            <CardTitle className="text-base">Plantilla ({team.players.length})</CardTitle>
+            <CardTitle className="text-base">
+              Plantilla ({team.players.length})
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-            {team.players.map((player) => (
-              <div
-                key={player.id}
-                className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">
-                    {player.jerseyNumber ?? player.position?.slice(0, 2) ?? "—"}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium truncate block">{player.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {player.squadRole ?? player.position}
-                      {player.pace != null && ` · PAC ${player.pace}`}
-                    </span>
-                  </div>
-                </div>
-                {player.overall != null && (
-                  <Badge variant="outline">{player.overall}</Badge>
-                )}
-              </div>
-            ))}
+          <CardContent className="max-h-96 space-y-4 overflow-y-auto">
+            {renderPlayerList(starters, "Titulares")}
+            {renderPlayerList(substitutes, "Suplentes")}
+            {renderPlayerList(reserves, "Reservas")}
           </CardContent>
         </Card>
       )}

@@ -4,6 +4,14 @@ export function isStarterRole(role: string | null | undefined) {
   return !!role && !BENCH_ROLES.has(role);
 }
 
+export function isSubstituteRole(role: string | null | undefined) {
+  return role === "SUB";
+}
+
+export function isReserveRole(role: string | null | undefined) {
+  return role === "RES";
+}
+
 export interface FormationSlot {
   role: string;
   row: number;

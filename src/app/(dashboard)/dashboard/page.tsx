@@ -7,6 +7,7 @@ import { ActivityItem } from "@/components/home/activity-item";
 import { TournamentRepository } from "@/repositories/tournament-repository";
 import { prisma } from "@/lib/prisma";
 import { ChevronRight } from "lucide-react";
+import { getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
 import type { TournamentType } from "@prisma/client";
 
 export default async function DashboardPage() {
@@ -23,6 +24,7 @@ export default async function DashboardPage() {
         status: { in: ["ACTIVE", "REGISTRATION"] },
       },
       include: {
+        fcLeague: true,
         _count: { select: { participants: true, matches: true } },
         matches: {
           where: { status: "COMPLETED" },
@@ -64,7 +66,31 @@ export default async function DashboardPage() {
     status: "ACTIVE" | "REGISTRATION";
     variant: "active" | "upcoming";
     roundLabel?: string;
+    coverUrl?: string | null;
+    leagueName?: string;
   }> = [];
+
+  function slideFromTournament(
+    t: (typeof myTournaments)[number] | (typeof fallbackActive)[number],
+    variant: "active" | "upcoming",
+    status: "ACTIVE" | "REGISTRATION",
+    roundLabel?: string
+  ) {
+    return {
+      id: t.id,
+      name: t.name,
+      type: t.type,
+      participants: t._count.participants,
+      maxParticipants: t.maxParticipants,
+      status,
+      variant,
+      roundLabel,
+      coverUrl: t.fcLeague
+        ? getLeagueCoverUrl(t.fcLeague.fifaIndexId, t.fcLeague.name)
+        : null,
+      leagueName: t.fcLeague?.name,
+    };
+  }
 
   const active =
     activeTournaments[0] ?? fallbackActive[0];
@@ -73,30 +99,15 @@ export default async function DashboardPage() {
       "matches" in active && active.matches[0]?.round
         ? active.matches[0].round
         : 1;
-    slides.push({
-      id: active.id,
-      name: active.name,
-      type: active.type,
-      participants: active._count.participants,
-      maxParticipants: active.maxParticipants,
-      status: "ACTIVE",
-      variant: "active",
-      roundLabel: `Jornada ${currentRound}`,
-    });
+    slides.push(
+      slideFromTournament(active, "active", "ACTIVE", `Jornada ${currentRound}`)
+    );
   }
 
   const upcoming =
     upcomingTournaments[0] ?? fallbackUpcoming[0];
   if (upcoming && upcoming.id !== active?.id) {
-    slides.push({
-      id: upcoming.id,
-      name: upcoming.name,
-      type: upcoming.type,
-      participants: upcoming._count.participants,
-      maxParticipants: upcoming.maxParticipants,
-      status: "REGISTRATION",
-      variant: "upcoming",
-    });
+    slides.push(slideFromTournament(upcoming, "upcoming", "REGISTRATION"));
   }
 
   return (

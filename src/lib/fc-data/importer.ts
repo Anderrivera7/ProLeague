@@ -1,8 +1,10 @@
 import { importNationalTeamFromCsv } from "./csv-importer";
+import { importClubFromCsv } from "./csv-club-importer";
 import {
   computeTeamStats,
   fetchNationalTeamSquad,
 } from "./ea-drop-client";
+import { isClubEaId } from "./club-ids";
 import { getNationalSquadTemplate } from "./squad-rosters";
 import {
   eaIdFromNationality,
@@ -59,6 +61,10 @@ export async function importNationalTeam(
 }
 
 export async function importTeamByEaId(eaId: string): Promise<TeamWithPlayersResult> {
+  if (isClubEaId(eaId)) {
+    return importClubFromCsv(eaId);
+  }
+
   const normalizedEaId = normalizeEaTeamId(eaId);
   const nationalityId = parseInt(normalizedEaId, 10);
   if (Number.isNaN(nationalityId)) {

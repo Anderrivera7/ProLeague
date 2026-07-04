@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { TeamPicker } from "@/features/tournaments/components/team-picker";
+import { INTL_LEAGUE_EA_ID, getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
+import { getExpectedSquadCounts } from "@/lib/fc-data/squad-counts-server";
 import { isLicensedEaId } from "@/lib/fc-data/national-teams";
 import { TournamentRepository } from "@/repositories/tournament-repository";
 import { TeamRepository } from "@/repositories/team-repository";
@@ -28,11 +30,12 @@ export default async function SelectTeamPage({ params }: PageProps) {
     redirect(`/tournaments/${id}`);
   }
 
-  const teams = (await TeamRepository.search(
-    "",
-    tournament.fcLeagueId ?? undefined,
-    100
-  )).filter((team) => isLicensedEaId(team.fifaIndexId));
+  const isNationalLeague =
+    tournament.fcLeague?.fifaIndexId === INTL_LEAGUE_EA_ID;
+
+  const teams = (
+    await TeamRepository.search("", tournament.fcLeagueId ?? undefined, 200)
+  ).filter((team) => !isNationalLeague || isLicensedEaId(team.fifaIndexId));
 
   const takenTeamIds = new Set(
     tournament.participants
@@ -40,32 +43,47 @@ export default async function SelectTeamPage({ params }: PageProps) {
       .map((p) => p.fcTeamId as string)
   );
 
+  const coverUrl = tournament.fcLeague
+    ? getLeagueCoverUrl(tournament.fcLeague.fifaIndexId, tournament.fcLeague.name)
+    : null;
+
   return (
     <>
       <Header
         title="Elige tu equipo"
-        subtitle={`${tournament.name} · Lazy sync activo`}
+        subtitle={`${tournament.name} · ${tournament.fcLeague?.name ?? "Competición"}`}
       />
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-24 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-24">
         <TeamPicker
           tournamentId={id}
+          tournamentName={tournament.name}
           leagueId={tournament.fcLeagueId ?? undefined}
+          leagueName={tournament.fcLeague?.name}
+          leagueFifaIndexId={tournament.fcLeague?.fifaIndexId}
+          coverUrl={coverUrl}
           takenTeamIds={[...takenTeamIds]}
-          initialTeams={teams.map((t) => ({
-            id: t.id,
-            name: t.name,
-            crestUrl: t.crestUrl,
-            overall: t.overall,
-            attack: t.attack,
-            midfield: t.midfield,
-            defense: t.defense,
-            taken: takenTeamIds.has(t.id),
-            playerCount: t._count.players,
-          }))}
+          initialTeams={teams.map((t) => {
+            const squadCounts = getExpectedSquadCounts(t.fifaIndexId);
+            return {
+              id: t.id,
+              name: t.name,
+              crestUrl: t.crestUrl,
+              fifaIndexId: t.fifaIndexId,
+              overall: t.overall,
+              attack: t.attack,
+              midfield: t.midfield,
+              defense: t.defense,
+              taken: takenTeamIds.has(t.id),
+              playerCount: squadCounts?.total ?? t._count.players,
+              squadCounts,
+            };
+          })}
         />
-        <Button variant="outline" asChild>
-          <Link href={`/tournaments/${id}`}>Volver al torneo</Link>
-        </Button>
+        <div className="mx-auto mt-6 max-w-3xl">
+          <Button variant="outline" asChild>
+            <Link href={`/tournaments/${id}`}>Volver al torneo</Link>
+          </Button>
+        </div>
       </div>
     </>
   );

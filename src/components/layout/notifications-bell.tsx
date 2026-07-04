@@ -24,9 +24,13 @@ export function NotificationsBell() {
   const toastedRef = useRef<Set<string>>(new Set());
 
   async function load() {
-    const data = await getMatchNotifications();
-    setNotifications(data as Notification[]);
-    return data as Notification[];
+    try {
+      const data = await getMatchNotifications();
+      setNotifications(data as Notification[]);
+      return data as Notification[];
+    } catch {
+      return [];
+    }
   }
 
   useEffect(() => {

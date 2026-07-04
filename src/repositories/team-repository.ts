@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
-
+import { resolveTeamCrestUrl } from "@/lib/fc-data/club-ids";
 export type TeamWithRelations = Prisma.FcTeamGetPayload<{
   include: { league: true; players: true };
 }>;
@@ -35,8 +35,7 @@ export class TeamRepository {
   }
 
   static async search(query: string, leagueId?: string, limit = 50) {
-    return prisma.fcTeam.findMany({
-      where: {
+    const teams = await prisma.fcTeam.findMany({      where: {
         ...(leagueId && { leagueId }),
         ...(query && {
           OR: [
@@ -52,6 +51,11 @@ export class TeamRepository {
       orderBy: { overall: "desc" },
       take: limit,
     });
+
+    return teams.map((team) => ({
+      ...team,
+      crestUrl: resolveTeamCrestUrl(team.crestUrl, team.fifaIndexId),
+    }));
   }
 
   static async upsertFromSync(data: {

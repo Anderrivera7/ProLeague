@@ -12,6 +12,8 @@ interface PageProps {
   params: Promise<{ tournamentId: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function TournamentChatPage({ params }: PageProps) {
   const { tournamentId } = await params;
   const user = await getCurrentUser();

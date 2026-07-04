@@ -2,6 +2,7 @@
 
 import { TeamService } from "@/services/team-service";
 import { PlayerService } from "@/services/player-service";
+import { resolveTeamCrestUrl } from "@/lib/fc-data/club-ids";
 
 export async function syncTeamAction(eaId: string) {
   try {
@@ -102,18 +103,27 @@ function serializeTeam(team: {
     fifaIndexId: string;
     name: string;
     position: string | null;
+    squadRole: string | null;
+    jerseyNumber: number | null;
     overall: number | null;
     potential: number | null;
     imageUrl: string | null;
+    pace: number | null;
+    shooting: number | null;
+    passing: number | null;
+    dribbling: number | null;
+    defending: number | null;
+    physic: number | null;
   }>;
 }) {
   return {
     id: team.id,
     eaId: team.fifaIndexId,
+    fifaIndexId: team.fifaIndexId,
     name: team.name,
     shortName: team.shortName,
     country: team.country,
-    crestUrl: team.crestUrl,
+    crestUrl: resolveTeamCrestUrl(team.crestUrl, team.fifaIndexId),
     overall: team.overall,
     attack: team.attack,
     midfield: team.midfield,
@@ -129,17 +139,34 @@ function serializePlayer(p: {
   fifaIndexId: string;
   name: string;
   position: string | null;
+  squadRole: string | null;
+  jerseyNumber: number | null;
   overall: number | null;
   potential: number | null;
   imageUrl: string | null;
+  pace: number | null;
+  shooting: number | null;
+  passing: number | null;
+  dribbling: number | null;
+  defending: number | null;
+  physic: number | null;
 }) {
   return {
     id: p.id,
     eaId: p.fifaIndexId,
+    fifaIndexId: p.fifaIndexId,
     name: p.name,
     position: p.position,
+    squadRole: p.squadRole,
+    jerseyNumber: p.jerseyNumber,
     overall: p.overall,
     potential: p.potential,
     imageUrl: p.imageUrl,
+    pace: p.pace,
+    shooting: p.shooting,
+    passing: p.passing,
+    dribbling: p.dribbling,
+    defending: p.defending,
+    physic: p.physic,
   };
 }

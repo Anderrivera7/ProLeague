@@ -41,17 +41,59 @@ interface TournamentChatRoomProps {
   participants: Participant[];
 }
 
+function normalizeMessage(msg: {
+  id: string;
+  type: "USER" | "MATCH_RESULT" | "SYSTEM";
+  content: string;
+  createdAt: Date | string;
+  user: ChatMessage["user"];
+}): ChatMessage {
+  return {
+    ...msg,
+    createdAt:
+      msg.createdAt instanceof Date ? msg.createdAt : new Date(msg.createdAt),
+    user: msg.user
+      ? {
+          ...msg.user,
+          lastActiveAt: msg.user.lastActiveAt
+            ? msg.user.lastActiveAt instanceof Date
+              ? msg.user.lastActiveAt
+              : new Date(msg.user.lastActiveAt)
+            : null,
+        }
+      : null,
+  };
+}
+
+function mergeMessages(
+  server: ChatMessage[],
+  local: ChatMessage[]
+): ChatMessage[] {
+  const byId = new Map<string, ChatMessage>();
+  for (const msg of server) byId.set(msg.id, msg);
+  for (const msg of local) byId.set(msg.id, msg);
+  return Array.from(byId.values()).sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  );
+}
+
 export function TournamentChatRoom({
   tournamentId,
   tournamentName,
   currentUserId,
-  messages,
+  messages: serverMessages,
   participants,
 }: TournamentChatRoomProps) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const messages = mergeMessages(
+    serverMessages.map(normalizeMessage),
+    localMessages
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,21 +107,28 @@ export function TournamentChatRoom({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const content = text.trim();
-    if (!content) return;
+    if (!content || isPending) return;
 
     startTransition(async () => {
       const result = await sendChatMessage(tournamentId, content);
       if (result.error) {
         toast.error(result.error);
-      } else {
-        setText("");
-        router.refresh();
+        return;
       }
+
+      setText("");
+      if (result.message) {
+        setLocalMessages((prev) => [
+          ...prev,
+          normalizeMessage(result.message!),
+        ]);
+      }
+      router.refresh();
     });
   }
 
   return (
-    <div className="flex min-h-full flex-col pb-20 lg:pb-4">
+    <div className="flex min-h-full flex-col">
       <div className="border-b border-border px-4 py-3">
         <h2 className="font-semibold">{tournamentName}</h2>
         <p className="text-xs text-muted-foreground">
@@ -89,7 +138,7 @@ export function TournamentChatRoom({
 
       <div className="flex flex-1 flex-col gap-4 overflow-hidden lg:flex-row">
         <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-28 lg:pb-4">
             {messages.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground py-8">
                 Sé el primero en escribir. Los resultados de partidos aparecerán
@@ -103,10 +152,7 @@ export function TournamentChatRoom({
 
                 if (isSystem) {
                   return (
-                    <div
-                      key={msg.id}
-                      className="flex justify-center"
-                    >
+                    <div key={msg.id} className="flex justify-center">
                       <Badge
                         variant="secondary"
                         className="max-w-[90%] whitespace-normal text-center text-xs font-normal leading-relaxed"
@@ -148,7 +194,9 @@ export function TournamentChatRoom({
                       <p
                         className={cn(
                           "mt-1 text-[10px]",
-                          isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
+                          isOwn
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground"
                         )}
                       >
                         {formatDateTime(msg.createdAt)}
@@ -163,7 +211,7 @@ export function TournamentChatRoom({
 
           <form
             onSubmit={handleSubmit}
-            className="flex gap-2 border-t border-border p-4"
+            className="sticky bottom-16 z-40 flex gap-2 border-t border-border bg-background p-4 lg:static lg:bottom-auto lg:z-auto"
           >
             <Input
               value={text}
@@ -172,7 +220,11 @@ export function TournamentChatRoom({
               maxLength={500}
               disabled={isPending}
             />
-            <Button type="submit" size="icon" disabled={isPending || !text.trim()}>
+            <Button
+              type="submit"
+              size="icon"
+              disabled={isPending || !text.trim()}
+            >
               <Send className="h-4 w-4" />
             </Button>
           </form>
@@ -208,7 +260,7 @@ export function TournamentChatRoom({
         </aside>
       </div>
 
-      <div className="border-t border-border px-4 py-3 lg:hidden">
+      <div className="border-t border-border px-4 py-3 pb-20 lg:hidden">
         <p className="mb-2 text-xs font-semibold text-muted-foreground">
           Participantes
         </p>

@@ -11,9 +11,12 @@ import { TournamentRepository } from "@/repositories/tournament-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { TournamentService } from "@/services/tournament-service";
 import { TOURNAMENT_TYPES } from "@/constants";
+import { Shield } from "lucide-react";
 import { GenerateFixtureButton } from "@/features/tournaments/components/generate-fixture-button";
 import { DeleteTournamentButton } from "@/features/tournaments/components/delete-tournament-button";
 import { getCurrentUser } from "@/actions/auth-actions";
+import { LeagueCover } from "@/components/shared/league-cover";
+import { getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -57,10 +60,71 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     cards.length > 0 ||
     tournament.matches.some((m) => m.status === "COMPLETED");
 
+  const coverUrl = tournament.fcLeague
+    ? getLeagueCoverUrl(tournament.fcLeague.fifaIndexId, tournament.fcLeague.name)
+    : null;
+
+  const statusLabel: Record<string, string> = {
+    DRAFT: "Borrador",
+    REGISTRATION: "Inscripción abierta",
+    ACTIVE: "En curso",
+    COMPLETED: "Finalizado",
+    CANCELLED: "Cancelado",
+  };
+
   return (
     <>
-      <Header title={tournament.name} subtitle={typeInfo.label} />
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 pb-24">
+      {!coverUrl && (
+        <Header title={tournament.name} subtitle={typeInfo.label} />
+      )}
+      <div className="flex-1 overflow-y-auto pb-24">
+        {coverUrl && tournament.fcLeague ? (
+          <div className="relative h-44 sm:h-52 overflow-hidden border-b border-border">
+            <LeagueCover
+              coverUrl={coverUrl}
+              alt={tournament.fcLeague.name}
+              overlayClassName="from-background via-background/60 to-background/20"
+            />
+            <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge className="text-[10px] uppercase tracking-wider">
+                  {statusLabel[tournament.status] ?? tournament.status}
+                </Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  {typeInfo.label}
+                </Badge>
+              </div>
+              <h1 className="text-2xl font-bold sm:text-3xl">{tournament.name}</h1>
+              <p className="text-sm text-muted-foreground">
+                {tournament.fcLeague.name} ·{" "}
+                {tournament._count.participants}/{tournament.maxParticipants}{" "}
+                participantes
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="space-y-6 p-4 lg:p-6">
+        {coverUrl && (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              Organizado por{" "}
+              <span className="font-medium text-foreground">
+                {tournament.creator.nickname}
+              </span>
+              {isCreator && " (tú)"}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {tournament._count.matches} partidos
+            </span>
+            {isCreator && tournament._count.matches === 0 && (
+              <GenerateFixtureButton tournamentId={tournament.id} />
+            )}
+            {isCreator && <DeleteTournamentButton tournamentId={tournament.id} />}
+          </div>
+        )}
+
+        {!coverUrl && (
         <div className="flex flex-wrap items-center gap-3">
           <Badge>{tournament.status}</Badge>
           <Badge variant="outline">{typeInfo.label}</Badge>
@@ -83,6 +147,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           )}
           {isCreator && <DeleteTournamentButton tournamentId={tournament.id} />}
         </div>
+        )}
 
         {tournament.joinCode && (
           <JoinCodeCard
@@ -128,20 +193,28 @@ export default async function TournamentDetailPage({ params }: PageProps) {
         )}
 
         {needsTeam && (
-          <Card className="border-primary/40 bg-primary/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium">Aún no has elegido equipo</p>
-                <p className="text-sm text-muted-foreground">
-                  Selecciona tu selección o club para competir
-                </p>
-              </div>
-              <Button asChild>
-                <Link href={`/tournaments/${id}/select-team`}>
-                  Elegir equipo
-                </Link>
-              </Button>
-            </CardContent>
+          <Card className="overflow-hidden border-primary/40">
+            <div className="bg-gradient-to-r from-primary/15 via-primary/5 to-transparent px-4 py-3 sm:px-6">
+              <CardContent className="flex flex-col gap-4 p-0 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20">
+                    <Shield className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Aún no has elegido equipo</p>
+                    <p className="text-sm text-muted-foreground">
+                      Elige un club con plantilla completa: titulares, suplentes
+                      y reservas
+                    </p>
+                  </div>
+                </div>
+                <Button asChild className="shrink-0">
+                  <Link href={`/tournaments/${id}/select-team`}>
+                    Elegir equipo
+                  </Link>
+                </Button>
+              </CardContent>
+            </div>
           </Card>
         )}
 
@@ -230,6 +303,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </>
   );

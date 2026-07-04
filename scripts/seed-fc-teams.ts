@@ -17,8 +17,12 @@ async function main() {
       fifaIndexId: "intl",
       name: "Selecciones Nacionales FC26",
       country: "Internacional",
+      logoUrl: "/leagues/intl-icon.png",
     },
-    update: { name: "Selecciones Nacionales FC26" },
+    update: {
+      name: "Selecciones Nacionales FC26",
+      logoUrl: "/leagues/intl-icon.png",
+    },
   });
 
   console.log(`Importando ${FC26_WORLD_CUP_NATIONS.length} selecciones licenciadas de FC26 desde API EA...\n`);

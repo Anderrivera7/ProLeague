@@ -92,6 +92,7 @@ export interface TournamentWithDetails {
   twoLegs: boolean;
   _count: { participants: number; matches: number };
   creator: { id: string; nickname: string; avatarUrl: string | null };
+  fcLeague?: { id: string; name: string; fifaIndexId: string } | null;
 }
 
 export interface LeaderboardEntry {

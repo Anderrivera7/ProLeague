@@ -28,34 +28,59 @@ export async function sendChatMessage(tournamentId: string, content: string) {
     return { error: "No participas en este torneo" };
   }
 
-  await ChatRepository.createUserMessage(
-    tournamentId,
-    user.id,
-    parsed.data.content
-  );
+  try {
+    const message = await ChatRepository.createUserMessage(
+      tournamentId,
+      user.id,
+      parsed.data.content
+    );
 
-  revalidatePath(`/chat/${tournamentId}`);
-  return { success: true };
+    revalidatePath(`/chat/${tournamentId}`);
+    revalidatePath("/chat");
+
+    return {
+      success: true,
+      message: {
+        id: message.id,
+        type: message.type,
+        content: message.content,
+        createdAt: message.createdAt.toISOString(),
+        user: message.user,
+      },
+    };
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "No se pudo enviar el mensaje",
+    };
+  }
 }
 
 export async function touchLastActive() {
-  const user = await getCurrentUser();
-  if (!user) return;
+  try {
+    const user = await getCurrentUser();
+    if (!user) return;
 
-  const now = new Date();
-  const last = user.lastActiveAt ? new Date(user.lastActiveAt) : null;
-  if (last && now.getTime() - last.getTime() < 60_000) return;
+    const now = new Date();
+    const last = user.lastActiveAt ? new Date(user.lastActiveAt) : null;
+    if (last && now.getTime() - last.getTime() < 60_000) return;
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastActiveAt: now },
-  });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastActiveAt: now },
+    });
+  } catch {
+    // Sin conexión a BD o sesión inválida — ignorar
+  }
 }
 
 export async function getMatchNotifications() {
-  const user = await getCurrentUser();
-  if (!user) return [];
+  try {
+    const user = await getCurrentUser();
+    if (!user) return [];
 
-  await ChatRepository.syncAllForUser(user.id);
-  return ChatRepository.getMatchResultNotifications(user.id);
+    await ChatRepository.syncAllForUser(user.id);
+    return ChatRepository.getMatchResultNotifications(user.id);
+  } catch {
+    return [];
+  }
 }

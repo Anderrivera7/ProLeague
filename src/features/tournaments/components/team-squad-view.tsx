@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { TeamCrest } from "@/components/shared/team-crest";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TeamStatsPanel } from "@/features/tournaments/components/team-stats-panel";
@@ -8,13 +8,18 @@ import { SquadFormationPitch } from "@/features/tournaments/components/squad-for
 import { PlayerStatsRow } from "@/features/tournaments/components/player-stats-row";
 import { TournamentSquadStats } from "@/features/tournaments/components/tournament-squad-stats";
 import type { TournamentFcPlayerStats } from "@/types/tournament-stats";
-import { isStarterRole } from "@/lib/fc-data/formation";
+import {
+  isReserveRole,
+  isStarterRole,
+  isSubstituteRole,
+} from "@/lib/fc-data/formation";
 
 interface TeamSquadViewProps {
   team: {
     id: string;
     name: string;
     crestUrl: string | null;
+    fifaIndexId?: string;
     overall: number | null;
     attack: number | null;
     midfield: number | null;
@@ -53,7 +58,8 @@ export function TeamSquadView({
     (tournamentPlayerStats ?? []).map((s) => [s.fcPlayerId, s])
   );
   const starters = team.players.filter((p) => isStarterRole(p.squadRole));
-  const bench = team.players.filter((p) => !isStarterRole(p.squadRole));
+  const substitutes = team.players.filter((p) => isSubstituteRole(p.squadRole));
+  const reserves = team.players.filter((p) => isReserveRole(p.squadRole));
   const playersForUi = team.players.map((p) => ({
     ...p,
     eaId: p.fifaIndexId,
@@ -63,18 +69,12 @@ export function TeamSquadView({
     <div className="mx-auto max-w-4xl space-y-6 pb-24">
       <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-border bg-card">
-          {team.crestUrl ? (
-            <Image
-              src={team.crestUrl}
-              alt={team.name}
-              width={56}
-              height={56}
-              className="object-contain"
-              unoptimized
-            />
-          ) : (
-            <span className="text-3xl">⚽</span>
-          )}
+          <TeamCrest
+            name={team.name}
+            crestUrl={team.crestUrl}
+            fifaIndexId={team.fifaIndexId}
+            size={56}
+          />
         </div>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{team.name}</h1>
@@ -133,32 +133,64 @@ export function TeamSquadView({
         </CardContent>
       </Card>
 
-      {bench.length > 0 && (
+      {substitutes.length > 0 && (
         <Card className="glass">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              Suplentes y reservas
-              <Badge variant="outline">{bench.length}</Badge>
+              Suplentes
+              <Badge variant="outline">{substitutes.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {bench.map((player) => {
+            {substitutes.map((player) => {
               const ms = statsByPlayer.get(player.id);
               return (
-              <PlayerStatsRow
-                key={player.id}
-                player={{ ...player, eaId: player.fifaIndexId }}
-                compact
-                matchStats={
-                  ms
-                    ? {
-                        goals: ms.goals,
-                        yellowCards: ms.yellowCards,
-                        redCards: ms.redCards,
-                      }
-                    : undefined
-                }
-              />
+                <PlayerStatsRow
+                  key={player.id}
+                  player={{ ...player, eaId: player.fifaIndexId }}
+                  compact
+                  matchStats={
+                    ms
+                      ? {
+                          goals: ms.goals,
+                          yellowCards: ms.yellowCards,
+                          redCards: ms.redCards,
+                        }
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {reserves.length > 0 && (
+        <Card className="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              Reservas
+              <Badge variant="outline">{reserves.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {reserves.map((player) => {
+              const ms = statsByPlayer.get(player.id);
+              return (
+                <PlayerStatsRow
+                  key={player.id}
+                  player={{ ...player, eaId: player.fifaIndexId }}
+                  compact
+                  matchStats={
+                    ms
+                      ? {
+                          goals: ms.goals,
+                          yellowCards: ms.yellowCards,
+                          redCards: ms.redCards,
+                        }
+                      : undefined
+                  }
+                />
               );
             })}
           </CardContent>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { LeagueCover } from "@/components/shared/league-cover";
 import { TOURNAMENT_TYPES } from "@/constants";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,8 @@ interface TournamentSlideProps {
   status: "ACTIVE" | "REGISTRATION" | "DRAFT" | "COMPLETED" | "CANCELLED";
   roundLabel?: string;
   variant?: "active" | "upcoming";
+  coverUrl?: string | null;
+  leagueName?: string;
 }
 
 export function TournamentSlide({
@@ -23,19 +26,25 @@ export function TournamentSlide({
   status,
   roundLabel,
   variant = "active",
+  coverUrl,
+  leagueName,
 }: TournamentSlideProps) {
   const typeLabel = TOURNAMENT_TYPES[type]?.label ?? "Torneo";
   const isActive = variant === "active" || status === "ACTIVE";
+  const hasCover = !!coverUrl;
 
   return (
     <Link
       href={`/tournaments/${id}`}
       className={cn(
         "relative flex h-40 min-w-[280px] shrink-0 flex-col justify-end overflow-hidden rounded-2xl border border-border p-4 transition-transform active:scale-[0.98]",
-        isActive ? "tournament-card-active" : "tournament-card-upcoming"
+        !hasCover && (isActive ? "tournament-card-active" : "tournament-card-upcoming")
       )}
     >
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+      <LeagueCover coverUrl={coverUrl ?? null} alt={leagueName ?? name} />
+      {!hasCover && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+      )}
       <div className="relative z-10 space-y-2">
         <Badge
           variant={isActive ? "default" : "outline"}

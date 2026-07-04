@@ -1,9 +1,10 @@
 import { TeamRepository } from "@/repositories/team-repository";
-import { PlayerService, needsCsvRefresh } from "@/services/player-service";
+import { PlayerService, needsSquadRefresh } from "@/services/player-service";
 import {
   importTeamByEaId,
   searchRemoteNationalTeams,
 } from "@/lib/fc-data/importer";
+import { getExpectedSquadCounts } from "@/lib/fc-data/squad-counts-server";
 
 export type SyncSource = "cache" | "csv" | "ea-api";
 
@@ -24,7 +25,13 @@ export class TeamService {
     const cached = await TeamRepository.findByEaId(eaId);
 
     if (cached && cached.players.length > 0) {
-      return { team: cached, source: "cache", playersSynced: cached.players.length };
+      if (!needsSquadRefresh(eaId, cached.players)) {
+        return { team: cached, source: "cache", playersSynced: cached.players.length };
+      }
+      const players = await PlayerService.syncByTeamEaId(cached.id, eaId);
+      const team = await TeamRepository.findByEaId(eaId);
+      if (!team) throw new Error("Error al recargar equipo");
+      return { team, source: "csv", playersSynced: players.length };
     }
 
     if (cached && cached.players.length === 0) {
@@ -43,7 +50,7 @@ export class TeamService {
 
     const needsRefresh =
       cached.players.length === 0 ||
-      needsCsvRefresh(parseInt(cached.fifaIndexId, 10), cached.players);
+      needsSquadRefresh(cached.fifaIndexId, cached.players);
 
     if (cached.players.length > 0 && !needsRefresh) {
       return {
@@ -111,19 +118,23 @@ export class TeamService {
     const limit = options?.limit ?? 30;
     const local = await TeamRepository.search(query, options?.leagueId, limit);
 
-    const localResults = local.map((t) => ({
-      id: t.id,
-      eaId: t.fifaIndexId,
-      name: t.name,
-      crestUrl: t.crestUrl,
-      overall: t.overall,
-      attack: t.attack,
-      midfield: t.midfield,
-      defense: t.defense,
-      league: t.league,
-      playerCount: t._count.players,
-      source: "cache" as const,
-    }));
+    const localResults = local.map((t) => {
+      const squad = getExpectedSquadCounts(t.fifaIndexId);
+      return {
+        id: t.id,
+        eaId: t.fifaIndexId,
+        name: t.name,
+        crestUrl: t.crestUrl,
+        overall: t.overall,
+        attack: t.attack,
+        midfield: t.midfield,
+        defense: t.defense,
+        league: t.league,
+        playerCount: squad?.total ?? t._count.players,
+        squadCounts: squad,
+        source: "cache" as const,
+      };
+    });
 
     if (local.length >= 5 || !options?.fetchRemote || query.length < 2) {
       return { teams: localResults, remote: [] };

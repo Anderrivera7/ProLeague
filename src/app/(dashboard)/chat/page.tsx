@@ -4,6 +4,8 @@ import { ChatRepository } from "@/repositories/chat-repository";
 import { getCurrentUser } from "@/actions/auth-actions";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function ChatPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

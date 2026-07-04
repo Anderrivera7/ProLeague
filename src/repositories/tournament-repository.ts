@@ -57,6 +57,7 @@ export class TournamentRepository {
       },
       include: {
         creator: true,
+        fcLeague: true,
         _count: { select: { participants: true, matches: true } },
       },
       orderBy: { createdAt: "desc" },

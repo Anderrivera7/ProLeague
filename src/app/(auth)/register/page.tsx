@@ -35,8 +35,8 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background bg-grid p-4">
       <Card className="w-full max-w-md glass glow-primary">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center">
-            <AppLogo size={48} />
+          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center">
+            <AppLogo size={88} />
           </div>
           <CardTitle className="text-2xl text-gradient">{APP_NAME}</CardTitle>
           <CardDescription>Crea tu cuenta de jugador</CardDescription>
