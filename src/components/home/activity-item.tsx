@@ -36,7 +36,7 @@ export function ActivityItem({ type, title, createdAt }: ActivityItemProps) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium leading-snug">{title}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="mt-0.5 text-xs text-muted-foreground" suppressHydrationWarning>
           {formatDateTime(createdAt)}
         </p>
       </div>

@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -92,7 +93,22 @@ export async function signOut() {
   redirect("/login");
 }
 
-export async function getCurrentUser() {
+export const getSessionUser = cache(async () => {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return null;
+
+    return UserRepository.findSessionById(user.id);
+  } catch {
+    return null;
+  }
+});
+
+export const getCurrentUser = cache(async () => {
   try {
     const supabase = await createClient();
     const {
@@ -105,4 +121,4 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
-}
+});

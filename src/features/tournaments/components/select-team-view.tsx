@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { SquadCountBadges } from "@/components/shared/squad-count-badges";
 import { useSyncTeamById } from "@/hooks/use-teams";
 import {
-  isReserveRole,
   isStarterRole,
   isSubstituteRole,
 } from "@/lib/fc-data/formation";
@@ -41,7 +40,6 @@ export function SelectTeamView({
   const starters = team?.players.filter((p) => isStarterRole(p.squadRole)) ?? [];
   const substitutes =
     team?.players.filter((p) => isSubstituteRole(p.squadRole)) ?? [];
-  const reserves = team?.players.filter((p) => isReserveRole(p.squadRole)) ?? [];
 
   function renderPlayerList(
     players: NonNullable<typeof team>["players"],
@@ -120,14 +118,9 @@ export function SelectTeamView({
 
   return (
     <div className="space-y-6 pb-20">
-      { source === "csv" && (
+      {(source === "csv" || source === "cache") && (
         <p className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-center text-xs text-primary">
-          Plantilla importada desde datos SoFIFA FC26 · cache permanente activado
-        </p>
-      )}
-      {source === "ea-api" && (
-        <p className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-center text-xs text-primary">
-          Plantilla importada desde API oficial EA · cache permanente activado
+          Plantilla FC26 desde CSV (formaciones nation_position) · cache permanente
         </p>
       )}
 
@@ -145,14 +138,14 @@ export function SelectTeamView({
           <p className="mt-1 text-sm text-muted-foreground">
             {team.league?.name ?? "EA SPORTS FC"}
           </p>
-          {starters.length + substitutes.length + reserves.length > 0 && (
+          {starters.length + substitutes.length > 0 && (
             <div className="mt-2 flex justify-center">
               <SquadCountBadges
                 counts={{
                   total: team.players.length,
                   starters: starters.length,
                   substitutes: substitutes.length,
-                  reserves: reserves.length,
+                  reserves: 0,
                 }}
               />
             </div>
@@ -179,7 +172,6 @@ export function SelectTeamView({
           <CardContent className="max-h-96 space-y-4 overflow-y-auto">
             {renderPlayerList(starters, "Titulares")}
             {renderPlayerList(substitutes, "Suplentes")}
-            {renderPlayerList(reserves, "Reservas")}
           </CardContent>
         </Card>
       )}

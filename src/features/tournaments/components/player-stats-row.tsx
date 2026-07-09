@@ -70,12 +70,12 @@ export function PlayerStatsRow({ player, compact, matchStats }: PlayerStatsRowPr
           <p className="truncate text-sm font-semibold">{player.name}</p>
           {isBench && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-              {player.squadRole}
+              SUB
             </Badge>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          {player.squadRole ?? player.position ?? "—"}
+          {isBench ? "Suplente" : (player.squadRole ?? player.position ?? "—")}
           {!compact && player.potential != null && ` · POT ${player.potential}`}
         </p>
         {matchStats &&

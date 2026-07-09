@@ -33,15 +33,38 @@ enum MatchStatus {
 }
 
 enum AchievementType {
+  FIRST_MATCH
   FIRST_WIN
+  FIRST_GOAL
   HAT_TRICK
+  GOAL_MACHINE
+  CLEAN_SHEET
   CLEAN_SHEET_STREAK
-  TOURNAMENT_WINNER
+  WIN_STREAK_3
+  WIN_STREAK_5
+  UNBEATEN_5
   UNBEATEN_RUN
-  TOP_SCORER
-  MVP_MASTER
   COMEBACK_KING
+  MATCHES_10
+  MATCHES_25
+  MATCHES_50
+  WINS_5
+  WINS_10
+  WINS_25
+  SCORER_10
+  SCORER_25
+  SCORER_50
+  CLEAN_SHEETS_10
+  MVP_FIRST
+  MVP_MASTER
+  POINTS_100
+  POINTS_500
+  POINTS_1000
   LEGEND
+  TOURNAMENT_WINNER
+  TOURNAMENT_FINALIST
+  TOP_SCORER
+  RIVAL_BEATER
 }
 
 enum ActivityType {
@@ -72,7 +95,7 @@ model User {
   avatarUrl     String?
   country       String?
   level         Int      @default(1)
-  elo           Int      @default(1000)
+  elo           Int      @default(0)
   lastActiveAt  DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

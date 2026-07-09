@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, CloudDownload, Loader2, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,14 +55,19 @@ export function TeamPicker({
 }: TeamPickerProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search.trim());
   const syncRemote = useSyncTeamByEaId();
 
-  const { data, isFetching } = useSearchTeams(search, leagueId, search.length >= 2);
+  const { data, isFetching } = useSearchTeams(
+    deferredSearch,
+    leagueId,
+    deferredSearch.length >= 2
+  );
 
   const takenSet = useMemo(() => new Set(takenTeamIds), [takenTeamIds]);
 
   const cachedTeams = useMemo(() => {
-    if (search.length >= 2 && data?.teams) {
+    if (deferredSearch.length >= 2 && data?.teams) {
       return data.teams.map((t) => ({
         id: t.id,
         eaId: t.eaId,
@@ -91,16 +96,16 @@ export function TeamPicker({
         taken: takenSet.has(t.id) || Boolean(t.taken),
         source: "cache" as const,
       }));
-  }, [search, data, initialTeams, takenSet]);
+  }, [deferredSearch, data, initialTeams, takenSet, search]);
 
-  const remoteTeams = search.length >= 2 ? (data?.remote ?? []) : [];
+  const remoteTeams = deferredSearch.length >= 2 ? (data?.remote ?? []) : [];
   const isClubLeague =
     leagueFifaIndexId &&
     leagueFifaIndexId !== INTL_LEAGUE_EA_ID;
 
   async function handleRemoteTeam(eaId: string, name: string) {
     try {
-      toast.loading(`Importando ${name} desde EA FC...`, { id: "sync" });
+      toast.loading(`Importando ${name} desde CSV FC26...`, { id: "sync" });
       const result = await syncRemote.mutateAsync(eaId);
       toast.success(
         `${name} importado (${result.playersSynced} jugadores)`,
@@ -132,8 +137,7 @@ export function TeamPicker({
                 {leagueName ?? "Elige tu equipo"}
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                {cachedTeams.length} equipos · plantilla completa (titulares,
-                suplentes y reservas)
+                {cachedTeams.length} equipos · plantilla completa (titulares y suplentes)
               </p>
             </div>
           </div>
@@ -155,8 +159,8 @@ export function TeamPicker({
 
       {!isClubLeague && (
         <p className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-          Selecciones del Mundial FC26. Si eliges una sin plantilla en cache, se
-          importará desde la API de EA (solo una vez).
+          Selecciones del Mundial FC26. Si eliges una sin plantilla en caché, se
+          importará desde el CSV FC26 (solo una vez).
         </p>
       )}
 

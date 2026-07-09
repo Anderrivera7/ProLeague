@@ -6,7 +6,7 @@ import {
 } from "@/lib/fc-data/importer";
 import { getExpectedSquadCounts } from "@/lib/fc-data/squad-counts-server";
 
-export type SyncSource = "cache" | "csv" | "ea-api";
+export type SyncSource = "cache" | "csv";
 
 export interface SyncTeamResult {
   team: NonNullable<Awaited<ReturnType<typeof TeamRepository.findByEaId>>>;
@@ -38,7 +38,7 @@ export class TeamService {
       const players = await PlayerService.syncByTeamEaId(cached.id, eaId);
       const team = await TeamRepository.findByEaId(eaId);
       if (!team) throw new Error("Error al recargar equipo");
-      return { team, source: "ea-api", playersSynced: players.length };
+      return { team, source: "csv", playersSynced: players.length };
     }
 
     return this.importFromEaApi(eaId);
@@ -148,7 +148,7 @@ export class TeamService {
         name: r.name,
         crestUrl: r.crestUrl,
         overall: r.overall,
-        source: "ea-api" as const,
+        source: "csv" as const,
       }));
 
     return { teams: localResults, remote };

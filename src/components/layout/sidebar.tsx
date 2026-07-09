@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -15,7 +16,7 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import { NAV_ITEMS, APP_NAME } from "@/constants";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { Button } from "@/components/ui/button";
@@ -38,15 +39,22 @@ interface SidebarProps {
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const { isCollapsed, isMobileOpen, toggle, setMobileOpen } = useSidebarStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const collapsed = mounted ? isCollapsed : false;
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-3 border-b border-border px-4">
         <AppLogo size={36} className="shrink-0" />
-        <AnimatePresence>
-          {!isCollapsed && (
+        <AnimatePresence initial={false}>
+          {!collapsed && (
             <motion.div
-              initial={{ opacity: 0, width: 0 }}
+              initial={false}
               animate={{ opacity: 1, width: "auto" }}
               exit={{ opacity: 0, width: 0 }}
               className="overflow-hidden"
@@ -79,17 +87,17 @@ export function Sidebar({ user }: SidebarProps) {
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
-              {!isCollapsed && <span>{item.label}</span>}
+              {!collapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {user && !isCollapsed && (
+      {user && !collapsed && (
         <div className="border-t border-border p-4">
           <div className="flex items-center gap-3 rounded-lg bg-card-hover p-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
-              {user.nickname.slice(0, 2).toUpperCase()}
+              {getInitials(user.nickname)}
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium">{user.nickname}</p>
@@ -106,7 +114,7 @@ export function Sidebar({ user }: SidebarProps) {
           onClick={toggle}
           className="w-full justify-center"
         >
-          {isCollapsed ? (
+          {collapsed ? (
             <ChevronRight className="h-4 w-4" />
           ) : (
             <>
@@ -123,7 +131,8 @@ export function Sidebar({ user }: SidebarProps) {
     <>
       {/* Desktop sidebar */}
       <motion.aside
-        animate={{ width: isCollapsed ? 72 : 256 }}
+        initial={false}
+        animate={{ width: collapsed ? 72 : 256 }}
         transition={{ duration: 0.2 }}
         className="hidden lg:flex h-screen flex-col border-r border-border bg-card glass shrink-0"
       >
@@ -131,18 +140,18 @@ export function Sidebar({ user }: SidebarProps) {
       </motion.aside>
 
       {/* Mobile overlay */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isMobileOpen && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
+              initial={false}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-40 bg-black/60 lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.aside
-              initial={{ x: -280 }}
+              initial={false}
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25 }}

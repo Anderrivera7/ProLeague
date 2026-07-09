@@ -14,9 +14,9 @@ export const COLORS = {
 } as const;
 
 export const ELO = {
-  DEFAULT: 1000,
+  DEFAULT: 0,
   K_FACTOR: 32,
-  MIN: 100,
+  MIN: 0,
   MAX: 3000,
 } as const;
 

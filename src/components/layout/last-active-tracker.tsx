@@ -6,7 +6,7 @@ import { touchLastActive } from "@/actions/chat-actions";
 export function LastActiveTracker() {
   useEffect(() => {
     touchLastActive();
-    const interval = setInterval(touchLastActive, 60_000);
+    const interval = setInterval(touchLastActive, 5 * 60_000);
     return () => clearInterval(interval);
   }, []);
 

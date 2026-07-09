@@ -9,7 +9,6 @@ import { PlayerStatsRow } from "@/features/tournaments/components/player-stats-r
 import { TournamentSquadStats } from "@/features/tournaments/components/tournament-squad-stats";
 import type { TournamentFcPlayerStats } from "@/types/tournament-stats";
 import {
-  isReserveRole,
   isStarterRole,
   isSubstituteRole,
 } from "@/lib/fc-data/formation";
@@ -61,7 +60,6 @@ export function TeamSquadView({
   );
   const starters = team.players.filter((p) => isStarterRole(p.squadRole));
   const substitutes = team.players.filter((p) => isSubstituteRole(p.squadRole));
-  const reserves = team.players.filter((p) => isReserveRole(p.squadRole));
   const playersForUi = team.players.map((p) => ({
     ...p,
     eaId: p.fifaIndexId,
@@ -147,38 +145,6 @@ export function TeamSquadView({
           </CardHeader>
           <CardContent className="space-y-2">
             {substitutes.map((player) => {
-              const ms = statsByPlayer.get(player.id);
-              return (
-                <PlayerStatsRow
-                  key={player.id}
-                  player={{ ...player, eaId: player.fifaIndexId }}
-                  compact
-                  matchStats={
-                    ms
-                      ? {
-                          goals: ms.goals,
-                          yellowCards: ms.yellowCards,
-                          redCards: ms.redCards,
-                        }
-                      : undefined
-                  }
-                />
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {reserves.length > 0 && (
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              Reservas
-              <Badge variant="outline">{reserves.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {reserves.map((player) => {
               const ms = statsByPlayer.get(player.id);
               return (
                 <PlayerStatsRow

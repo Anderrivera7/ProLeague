@@ -5,11 +5,16 @@ export function isStarterRole(role: string | null | undefined) {
 }
 
 export function isSubstituteRole(role: string | null | undefined) {
-  return role === "SUB";
+  return role === "SUB" || role === "RES";
 }
 
 export function isReserveRole(role: string | null | undefined) {
   return role === "RES";
+}
+
+/** Titulares + banquillo (suplentes y reservas) */
+export function isBenchRole(role: string | null | undefined) {
+  return isSubstituteRole(role);
 }
 
 export interface FormationSlot {

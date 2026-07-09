@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getMatchPointUpdates } from "@/utils/points";
 import { isBetterWin } from "@/utils/match-stats";
 import { buildMatchResultMessage } from "@/utils/match-result-message";
+import { AchievementService } from "@/services/achievement-service";
 import type { MatchResultInput } from "@/types";
 
 function aggregateUserEvents(
@@ -196,6 +197,9 @@ export class MatchService {
       },
       { timeout: 15000 }
     );
+
+    await AchievementService.syncForUser(homeUser.id, prisma);
+    await AchievementService.syncForUser(awayUser.id, prisma);
 
     return { success: true };
   }

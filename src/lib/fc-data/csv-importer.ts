@@ -1,7 +1,7 @@
 import { getEaPlayerPortraitUrl } from "./player-image";
 import { loadFc26CsvRows } from "./csv-store";
 import { getNationalSquadFromCsv } from "./csv-parser";
-import { enrichCsvSquadWithCurated } from "./squad-enricher";
+import { computeTeamStats } from "./ea-drop-client";
 import {
   eaIdFromNationality,
   getCatalogNation,
@@ -51,8 +51,7 @@ export function importNationalTeamFromCsv(
     throw new Error(`Sin plantilla en CSV para ${catalog.nameEs} (ID ${nationalityId})`);
   }
 
-  const squad = enrichCsvSquadWithCurated(nationalityId, baseSquad, rows);
-  const players = squad.map(csvPlayerToScraped);
+  const players = baseSquad.map(csvPlayerToScraped);
   const stats = computeTeamStats(players);
 
   return {
@@ -75,6 +74,5 @@ export function importNationalTeamFromCsv(
 
 export function getCsvSquadForNationality(nationalityId: number) {
   const rows = loadFc26CsvRows();
-  const base = getNationalSquadFromCsv(rows, nationalityId);
-  return enrichCsvSquadWithCurated(nationalityId, base, rows);
+  return getNationalSquadFromCsv(rows, nationalityId);
 }

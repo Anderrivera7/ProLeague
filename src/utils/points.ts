@@ -41,3 +41,18 @@ export function getMatchPointUpdates(
 export function calculateLevel(points: number): number {
   return Math.floor(points / 100) + 1;
 }
+
+export function getLevelProgress(points: number) {
+  const level = calculateLevel(points);
+  const xpInLevel = points - (level - 1) * 100;
+  const xpForNextLevel = 100;
+  const percent = Math.min(100, Math.round((xpInLevel / xpForNextLevel) * 100));
+
+  return {
+    level,
+    xpInLevel,
+    xpForNextLevel,
+    xpRemaining: xpForNextLevel - xpInLevel,
+    percent,
+  };
+}

@@ -14,6 +14,7 @@ export function formatDate(date: Date | string): string {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "America/Bogota",
   }).format(new Date(date));
 }
 
@@ -23,6 +24,7 @@ export function formatDateTime(date: Date | string): string {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "America/Bogota",
   }).format(new Date(date));
 }
 

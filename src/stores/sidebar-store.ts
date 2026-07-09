@@ -20,6 +20,9 @@ export const useSidebarStore = create<SidebarState>()(
       setCollapsed: (collapsed) => set({ isCollapsed: collapsed }),
       setMobileOpen: (open) => set({ isMobileOpen: open }),
     }),
-    { name: "proleague-sidebar" }
+    {
+      name: "proleague-sidebar",
+      partialize: (state) => ({ isCollapsed: state.isCollapsed }),
+    }
   )
 );

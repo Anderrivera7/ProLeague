@@ -27,8 +27,8 @@ export function useSearchTeams(
       if (!result.success) throw new Error(result.error);
       return result;
     },
-    enabled: enabled && query.length >= 0,
-    staleTime: 5 * 60 * 1000,
+    enabled: enabled && query.trim().length >= 2,
+    staleTime: 10 * 60 * 1000,
   });
 }
 
