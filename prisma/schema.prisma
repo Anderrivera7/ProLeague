@@ -33,38 +33,90 @@ enum MatchStatus {
 }
 
 enum AchievementType {
+  // ── Primeros pasos ──
   FIRST_MATCH
   FIRST_WIN
   FIRST_GOAL
+  FIRST_DRAW
+  FIRST_CLEAN_SHEET
+
+  // ── Goles en un partido ──
   HAT_TRICK
   GOAL_MACHINE
+  DOUBLE_DIGITS
+
+  // ── Porterías a cero ──
   CLEAN_SHEET
   CLEAN_SHEET_STREAK
+  CLEAN_SHEETS_10
+  CLEAN_SHEETS_25
+
+  // ── Rachas de victorias ──
   WIN_STREAK_3
   WIN_STREAK_5
+  WIN_STREAK_10
+
+  // ── Invicto ──
   UNBEATEN_5
   UNBEATEN_RUN
+  UNBEATEN_20
+
+  // ── Remontadas ──
   COMEBACK_KING
+  COMEBACK_3_DOWN
+
+  // ── Partidos jugados ──
   MATCHES_10
   MATCHES_25
   MATCHES_50
+  MATCHES_100
+  MATCHES_200
+
+  // ── Victorias totales ──
   WINS_5
   WINS_10
   WINS_25
+  WINS_50
+  WINS_100
+
+  // ── Goles totales ──
   SCORER_10
   SCORER_25
   SCORER_50
-  CLEAN_SHEETS_10
+  SCORER_100
+  SCORER_200
+
+  // ── MVP ──
   MVP_FIRST
   MVP_MASTER
+  MVP_LEGEND
+
+  // ── Puntos / ELO ──
   POINTS_100
   POINTS_500
   POINTS_1000
+  POINTS_2500
+  POINTS_5000
   LEGEND
+
+  // ── Torneos ──
   TOURNAMENT_WINNER
   TOURNAMENT_FINALIST
+  TOURNAMENT_BACK_TO_BACK
+  TOURNAMENT_3_WINS
+
+  // ── Goleadores y rivales ──
   TOP_SCORER
   RIVAL_BEATER
+  RIVAL_DOMINATOR
+
+  // ── Temporadas ──
+  SEASON_COMPLETE
+  SEASONS_3
+
+  // ── Empates y derrotas ──
+  DRAW_SPECIALIST
+  BOUNCE_BACK
 }
 
 enum ActivityType {
