@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser, getSessionUserId } from "@/lib/auth/session";
 import { ChatRepository } from "@/repositories/chat-repository";
 import { prisma } from "@/lib/prisma";
 
@@ -57,16 +57,16 @@ export async function sendChatMessage(tournamentId: string, content: string) {
 
 export async function touchLastActive() {
   try {
-    const user = await getCurrentUser();
-    if (!user) return;
+    const userId = await getSessionUserId();
+    if (!userId) return;
 
-    const now = new Date();
-    const last = user.lastActiveAt ? new Date(user.lastActiveAt) : null;
-    if (last && now.getTime() - last.getTime() < 60_000) return;
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastActiveAt: now },
+    const cutoff = new Date(Date.now() - 60_000);
+    await prisma.user.updateMany({
+      where: {
+        id: userId,
+        OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: cutoff } }],
+      },
+      data: { lastActiveAt: new Date() },
     });
   } catch {
     // Sin conexión a BD o sesión inválida — ignorar
@@ -75,11 +75,10 @@ export async function touchLastActive() {
 
 export async function getMatchNotifications() {
   try {
-    const user = await getCurrentUser();
-    if (!user) return [];
+    const userId = await getSessionUserId();
+    if (!userId) return [];
 
-    await ChatRepository.syncAllForUser(user.id);
-    return ChatRepository.getMatchResultNotifications(user.id);
+    return ChatRepository.getMatchResultNotifications(userId);
   } catch {
     return [];
   }

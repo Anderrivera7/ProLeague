@@ -13,6 +13,7 @@ export class FifaDbRepository {
   static async getLeagues() {
     const { prisma } = await import("@/lib/prisma");
     const leagues = await prisma.fcLeague.findMany({
+      where: { teams: { some: {} } },
       include: { _count: { select: { teams: true } } },
     });
     return sortLeaguesByPriority(leagues).map((league) => ({

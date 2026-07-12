@@ -85,6 +85,8 @@ export async function searchTeamsAction(
   }
 }
 
+export type SerializedTeam = ReturnType<typeof serializeTeam>;
+
 function serializeTeam(team: {
   id: string;
   fifaIndexId: string;

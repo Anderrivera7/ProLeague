@@ -1,5 +1,22 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
+import { Prisma as PrismaNamespace } from "@prisma/client";
+
+const userProfileInclude = {
+  favoriteTeam: true,
+  stats: true,
+  trophies: { orderBy: { wonAt: "desc" as const }, take: 10 },
+  achievements: {
+    include: { achievement: true },
+    orderBy: { unlockedAt: "desc" as const },
+  },
+} satisfies Prisma.UserInclude;
+
+/** Consulta ligera para sesión / layout (sin trofeos ni logros). */
+const sessionUserInclude = {
+  favoriteTeam: true,
+  stats: true,
+} satisfies Prisma.UserInclude;
 
 export class UserRepository {
   static async findSessionById(id: string) {
@@ -43,15 +60,14 @@ export class UserRepository {
   static async findById(id: string) {
     return prisma.user.findUnique({
       where: { id },
-      include: {
-        favoriteTeam: true,
-        stats: true,
-        trophies: { orderBy: { wonAt: "desc" }, take: 10 },
-        achievements: {
-          include: { achievement: true },
-          orderBy: { unlockedAt: "desc" },
-        },
-      },
+      include: userProfileInclude,
+    });
+  }
+
+  static async findByIdForSession(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      include: sessionUserInclude,
     });
   }
 
@@ -77,7 +93,7 @@ export class UserRepository {
   static async findByNickname(nickname: string) {
     return prisma.user.findUnique({
       where: { nickname },
-      include: { stats: true, favoriteTeam: true },
+      select: { id: true, nickname: true },
     });
   }
 
@@ -107,6 +123,54 @@ export class UserRepository {
       },
       include: { stats: true },
     });
+  }
+
+  /** Crea perfil si no existe; tolera requests paralelos (layout + página). */
+  static async findOrCreateFromAuth(data: {
+    id: string;
+    email: string;
+    nickname: string;
+    avatarUrl?: string | null;
+    country?: string | null;
+  }) {
+    const existing = await this.findByIdForSession(data.id);
+    if (existing) return existing;
+
+    try {
+      return await prisma.user.upsert({
+        where: { id: data.id },
+        create: {
+          id: data.id,
+          email: data.email,
+          nickname: data.nickname,
+          avatarUrl: data.avatarUrl ?? null,
+          country: data.country ?? null,
+          stats: { create: {} },
+        },
+        update: {},
+        include: sessionUserInclude,
+      });
+    } catch (error) {
+      if (
+        error instanceof PrismaNamespace.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        const profile = await this.findByIdForSession(data.id);
+        if (profile) return profile;
+
+        const field = Array.isArray(error.meta?.target)
+          ? error.meta.target[0]
+          : error.meta?.target;
+
+        if (field === "nickname") {
+          return this.findOrCreateFromAuth({
+            ...data,
+            nickname: `${data.nickname}_${data.id.slice(0, 4)}`.slice(0, 20),
+          });
+        }
+      }
+      throw error;
+    }
   }
 
   static async updateElo(userId: string, newElo: number) {

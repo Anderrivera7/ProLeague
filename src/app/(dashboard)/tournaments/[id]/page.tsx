@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MatchCard } from "@/features/matches/components/match-card";
 import { JoinCodeCard } from "@/features/tournaments/components/join-code-card";
 import { TournamentStatsPanel } from "@/features/tournaments/components/tournament-stats-panel";
-import { TournamentBracketLoader } from "@/features/tournaments/components/tournament-bracket-loader";
+import { TournamentBracketPanel } from "@/features/tournaments/components/tournament-bracket-panel";
 import { TournamentAlertsPanel } from "@/features/tournaments/components/tournament-alerts-panel";
 import { TournamentParticipantsPanel } from "@/features/tournaments/components/tournament-participants-panel";
 import { TournamentMyTeamCard } from "@/features/tournaments/components/tournament-my-team-card";
@@ -18,7 +18,7 @@ import { TOURNAMENT_TYPES } from "@/constants";
 import { Shield, Trophy, UserPlus } from "lucide-react";
 import { GenerateFixtureButton } from "@/features/tournaments/components/generate-fixture-button";
 import { DeleteTournamentButton } from "@/features/tournaments/components/delete-tournament-button";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { LeagueCover } from "@/components/shared/league-cover";
 import { getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
 import {
@@ -32,15 +32,18 @@ interface PageProps {
 
 export default async function TournamentDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  let tournament = await TournamentRepository.findById(id);
+  const [user, initialTournament] = await Promise.all([
+    getCurrentUser(),
+    TournamentRepository.findByIdForDetail(id),
+  ]);
 
+  let tournament = initialTournament;
   if (!tournament) notFound();
 
   const isCreator = user?.id === tournament.creatorId;
   if (isCreator && user && !tournament.participants.some((p) => p.userId === user.id)) {
     await TournamentService.ensureCreatorEnrolled(id, user.id);
-    tournament = await TournamentRepository.findById(id);
+    tournament = await TournamentRepository.findByIdForDetail(id);
     if (!tournament) notFound();
   }
   const myParticipant = tournament.participants.find((p) => p.userId === user?.id);
@@ -343,7 +346,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           </div>
 
           {bracket && bracket.rounds.length > 0 && (
-            <TournamentBracketLoader
+            <TournamentBracketPanel
               rounds={bracket.rounds}
               champion={bracket.champion}
             />

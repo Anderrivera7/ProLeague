@@ -2,30 +2,129 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma, TournamentType } from "@prisma/client";
 import { generateJoinCode } from "@/utils/join-code";
 
+const participantUserTeamInclude = {
+  user: { select: { id: true, nickname: true, elo: true } },
+  fcTeam: {
+    select: {
+      id: true,
+      name: true,
+      country: true,
+      crestUrl: true,
+      fifaIndexId: true,
+      league: { select: { id: true, name: true } },
+    },
+  },
+} as const;
+
+const matchParticipantInclude = {
+  user: { select: { id: true, nickname: true } },
+  fcTeam: {
+    select: {
+      id: true,
+      name: true,
+      country: true,
+      crestUrl: true,
+      fifaIndexId: true,
+    },
+  },
+} as const;
+
 export class TournamentRepository {
   static async findById(id: string) {
+    return this.findByIdForDetail(id);
+  }
+
+  static async findByIdMeta(id: string) {
+    return prisma.tournament.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        creatorId: true,
+        joinCode: true,
+        status: true,
+        maxParticipants: true,
+      },
+    });
+  }
+
+  static async findByIdForSelectTeam(id: string) {
+    return prisma.tournament.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        fcLeagueId: true,
+        fcLeague: {
+          select: { id: true, name: true, fifaIndexId: true },
+        },
+        participants: {
+          select: { userId: true, fcTeamId: true },
+        },
+      },
+    });
+  }
+
+  static async isTeamTaken(
+    tournamentId: string,
+    fcTeamId: string,
+    excludeUserId: string
+  ) {
+    const row = await prisma.tournamentParticipant.findFirst({
+      where: {
+        tournamentId,
+        fcTeamId,
+        userId: { not: excludeUserId },
+      },
+      select: { id: true },
+    });
+    return Boolean(row);
+  }
+
+  static async findByIdForDetail(id: string) {
     return prisma.tournament.findUnique({
       where: { id },
       include: {
-        creator: true,
+        creator: { select: { id: true, nickname: true } },
         fcLeague: true,
         participants: {
-          include: {
-            user: true,
-            fcTeam: { include: { league: true } },
-          },
+          include: participantUserTeamInclude,
           orderBy: { seed: "asc" },
         },
         matches: {
-          include: {
-            tournament: { select: { id: true, name: true } },
-            homeParticipant: { include: { user: true, fcTeam: true } },
-            awayParticipant: { include: { user: true, fcTeam: true } },
+          select: {
+            id: true,
+            round: true,
+            groupName: true,
+            bracketPosition: true,
+            leg: true,
+            status: true,
+            homeScore: true,
+            awayScore: true,
+            scheduledAt: true,
+            homeParticipantId: true,
+            awayParticipantId: true,
+            homeParticipant: {
+              select: {
+                id: true,
+                seed: true,
+                userId: true,
+                ...matchParticipantInclude,
+              },
+            },
+            awayParticipant: {
+              select: {
+                id: true,
+                seed: true,
+                userId: true,
+                ...matchParticipantInclude,
+              },
+            },
           },
           orderBy: [{ round: "asc" }, { scheduledAt: "asc" }],
         },
         standings: {
-          include: { participant: { include: { user: true, fcTeam: true } } },
+          include: { participant: { include: participantUserTeamInclude } },
           orderBy: [{ points: "desc" }, { gd: "desc" }, { gf: "desc" }],
         },
         _count: { select: { participants: true, matches: true } },

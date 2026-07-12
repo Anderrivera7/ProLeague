@@ -100,11 +100,10 @@ export function CreateTournamentForm({ leagues }: CreateTournamentFormProps) {
           </div>
         )}
         {leagues.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Sin ligas — ejecuta{" "}
-            <code className="rounded bg-muted px-1">npm run seed:fc-teams</code>,{" "}
-            <code className="rounded bg-muted px-1">npm run seed:fc-clubs</code> o{" "}
-            <code className="rounded bg-muted px-1">npm run seed:fc-ucl</code>
+          <p className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+            No hay competiciones disponibles en este momento. Si acabas de
+            desplegar la app, espera unos minutos a que termine la carga de
+            datos o contacta al administrador.
           </p>
         ) : (
           <>

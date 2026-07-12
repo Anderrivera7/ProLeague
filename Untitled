@@ -1,0 +1,1 @@
+git commit -m "fix(torneos): plantillas del organizador y crash en MatchCard" -m "Auto-inscribe al creador si falta, permite ver plantillas de participantes, muestra quién organiza el torneo y corrige el error cuando match.tournament venía undefined al generar el fixture."

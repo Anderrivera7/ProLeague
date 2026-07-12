@@ -257,8 +257,8 @@ export function TeamPicker({
 
       {cachedTeams.length === 0 && remoteTeams.length === 0 && !isFetching && (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          No hay equipos. Prueba otra búsqueda o ejecuta{" "}
-          <code className="text-primary">npm run seed:fc-clubs</code>
+          No hay equipos disponibles para esta competición. Prueba otra búsqueda
+          o vuelve más tarde.
         </p>
       )}
     </div>

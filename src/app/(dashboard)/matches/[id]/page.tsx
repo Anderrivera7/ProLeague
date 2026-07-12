@@ -9,9 +9,9 @@ import { MatchEventsSummaryLoader } from "@/features/matches/components/match-ev
 import { ReportMatchResultFormLoader } from "@/features/matches/components/report-match-result-form-loader";
 import { HeadToHeadPanel } from "@/features/players/components/head-to-head-panel";
 import { MatchRepository } from "@/repositories/match-repository";
+import { PlayerRepository } from "@/repositories/player-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
-import { TeamService } from "@/services/team-service";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/utils";
 import { ArrowLeft, ClipboardEdit } from "lucide-react";
 
@@ -61,12 +61,8 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
   const [h2hStats, h2hMatches, homeSquad, awaySquad] = await Promise.all([
     StatsRepository.getHeadToHead(h2hPerspectiveId, h2hOpponentId),
     StatsRepository.getHeadToHeadMatches(h2hPerspectiveId, h2hOpponentId, 5),
-    homeTeam?.id
-      ? TeamService.getOrSyncById(homeTeam.id).then((r) => r.team.players)
-      : Promise.resolve([]),
-    awayTeam?.id
-      ? TeamService.getOrSyncById(awayTeam.id).then((r) => r.team.players)
-      : Promise.resolve([]),
+    homeTeam?.id ? PlayerRepository.findByTeamId(homeTeam.id) : Promise.resolve([]),
+    awayTeam?.id ? PlayerRepository.findByTeamId(awayTeam.id) : Promise.resolve([]),
   ]);
 
   const isCompleted = match.status === "COMPLETED";

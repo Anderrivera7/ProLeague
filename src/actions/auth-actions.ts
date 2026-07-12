@@ -62,7 +62,7 @@ export async function signUpWithEmail(formData: FormData) {
     if (error) return { error: error.message };
 
     if (data.user) {
-      await UserRepository.create({
+      await UserRepository.findOrCreateFromAuth({
         id: data.user.id,
         email: parsed.data.email,
         nickname: parsed.data.nickname,

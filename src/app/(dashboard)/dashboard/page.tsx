@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { TournamentSlide } from "@/components/home/tournament-slide";
 import { QuickActions } from "@/components/home/quick-actions";
@@ -14,7 +14,8 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [myTournaments, activities] = await Promise.all([
+  const [myTournaments, activities, fallbackActive, fallbackUpcoming] =
+    await Promise.all([
     prisma.tournament.findMany({
       where: {
         OR: [
@@ -41,21 +42,14 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 6,
     }),
+    TournamentRepository.findAll({ status: "ACTIVE", limit: 1 }),
+    TournamentRepository.findAll({ status: "REGISTRATION", limit: 1 }),
   ]);
 
   const activeTournaments = myTournaments.filter((t) => t.status === "ACTIVE");
   const upcomingTournaments = myTournaments.filter(
     (t) => t.status === "REGISTRATION"
   );
-
-  const fallbackActive = await TournamentRepository.findAll({
-    status: "ACTIVE",
-    limit: 1,
-  });
-  const fallbackUpcoming = await TournamentRepository.findAll({
-    status: "REGISTRATION",
-    limit: 1,
-  });
 
   const slides: Array<{
     id: string;

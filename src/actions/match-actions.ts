@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { MatchService } from "@/services/match-service";
 import { MatchRepository } from "@/repositories/match-repository";
 import { matchResultSchema } from "@/schemas";

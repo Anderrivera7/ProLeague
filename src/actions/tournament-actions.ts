@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { TournamentService } from "@/services/tournament-service";
 import { FifaDbRepository } from "@/repositories/fifa-db-repository";
 import {

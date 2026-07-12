@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { resolveTeamCrestUrl } from "@/lib/fc-data/club-ids";
 import { cn } from "@/lib/utils";
 import { Shield } from "lucide-react";
@@ -13,7 +13,7 @@ interface TeamCrestProps {
   className?: string;
 }
 
-export function TeamCrest({
+function TeamCrestInner({
   name,
   crestUrl,
   fifaIndexId,
@@ -45,9 +45,13 @@ export function TeamCrest({
       alt={name}
       width={size}
       height={size}
+      loading="lazy"
+      decoding="async"
       className={cn("object-contain", className)}
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
     />
   );
 }
+
+export const TeamCrest = memo(TeamCrestInner);

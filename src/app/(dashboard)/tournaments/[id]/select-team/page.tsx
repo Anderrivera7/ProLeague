@@ -4,11 +4,10 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { TeamPicker } from "@/features/tournaments/components/team-picker";
 import { INTL_LEAGUE_EA_ID, getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
-import { getExpectedSquadCounts } from "@/lib/fc-data/squad-counts-server";
 import { isLicensedEaId } from "@/lib/fc-data/national-teams";
 import { TournamentRepository } from "@/repositories/tournament-repository";
 import { TeamRepository } from "@/repositories/team-repository";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -17,7 +16,7 @@ interface PageProps {
 export default async function SelectTeamPage({ params }: PageProps) {
   const { id } = await params;
   const [tournament, user] = await Promise.all([
-    TournamentRepository.findById(id),
+    TournamentRepository.findByIdForSelectTeam(id),
     getCurrentUser(),
   ]);
 
@@ -62,22 +61,18 @@ export default async function SelectTeamPage({ params }: PageProps) {
           leagueFifaIndexId={tournament.fcLeague?.fifaIndexId}
           coverUrl={coverUrl}
           takenTeamIds={[...takenTeamIds]}
-          initialTeams={teams.map((t) => {
-            const squadCounts = getExpectedSquadCounts(t.fifaIndexId);
-            return {
-              id: t.id,
-              name: t.name,
-              crestUrl: t.crestUrl,
-              fifaIndexId: t.fifaIndexId,
-              overall: t.overall,
-              attack: t.attack,
-              midfield: t.midfield,
-              defense: t.defense,
-              taken: takenTeamIds.has(t.id),
-              playerCount: squadCounts?.total ?? t._count.players,
-              squadCounts,
-            };
-          })}
+          initialTeams={teams.map((t) => ({
+            id: t.id,
+            name: t.name,
+            crestUrl: t.crestUrl,
+            fifaIndexId: t.fifaIndexId,
+            overall: t.overall,
+            attack: t.attack,
+            midfield: t.midfield,
+            defense: t.defense,
+            taken: takenTeamIds.has(t.id),
+            playerCount: t._count.players,
+          }))}
         />
         <div className="mx-auto mt-6 max-w-3xl">
           <Button variant="outline" asChild>

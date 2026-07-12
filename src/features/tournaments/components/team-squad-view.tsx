@@ -1,17 +1,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { TeamCrest } from "@/components/shared/team-crest";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { TeamStatsPanel } from "@/features/tournaments/components/team-stats-panel";
-import { SquadFormationPitch } from "@/features/tournaments/components/squad-formation-pitch";
-import { PlayerStatsRow } from "@/features/tournaments/components/player-stats-row";
+import { SquadRosterPanel } from "@/features/tournaments/components/squad-roster-panel";
 import { TournamentSquadStats } from "@/features/tournaments/components/tournament-squad-stats";
+import { filterActiveSquad } from "@/lib/fc-data/excluded-players";
 import type { TournamentFcPlayerStats } from "@/types/tournament-stats";
-import {
-  isStarterRole,
-  isSubstituteRole,
-} from "@/lib/fc-data/formation";
 
 interface TeamSquadViewProps {
   team: {
@@ -55,15 +49,12 @@ export function TeamSquadView({
   compactHeader = false,
   tournamentPlayerStats,
 }: TeamSquadViewProps) {
-  const statsByPlayer = new Map(
-    (tournamentPlayerStats ?? []).map((s) => [s.fcPlayerId, s])
+  const playersForUi = filterActiveSquad(
+    team.players.map((p) => ({
+      ...p,
+      eaId: p.fifaIndexId,
+    }))
   );
-  const starters = team.players.filter((p) => isStarterRole(p.squadRole));
-  const substitutes = team.players.filter((p) => isSubstituteRole(p.squadRole));
-  const playersForUi = team.players.map((p) => ({
-    ...p,
-    eaId: p.fifaIndexId,
-  }));
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-24">
@@ -90,82 +81,25 @@ export function TeamSquadView({
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <TeamStatsPanel
-          name={team.name}
-          overall={team.overall}
-          attack={team.attack}
-          midfield={team.midfield}
-          defense={team.defense}
-          leagueName={team.league?.name}
-        />
-        <SquadFormationPitch players={playersForUi} />
-      </div>
-
       {tournamentPlayerStats !== undefined && (
         <TournamentSquadStats stats={tournamentPlayerStats} />
       )}
 
-      <Card className="glass">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            Titulares
-            <Badge variant="secondary">{starters.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {starters.map((player) => {
-            const ms = statsByPlayer.get(player.id);
-            return (
-            <PlayerStatsRow
-              key={player.id}
-              player={{ ...player, eaId: player.fifaIndexId }}
-              matchStats={
-                ms
-                  ? {
-                      goals: ms.goals,
-                      yellowCards: ms.yellowCards,
-                      redCards: ms.redCards,
-                    }
-                  : undefined
-              }
-            />
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      {substitutes.length > 0 && (
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              Suplentes
-              <Badge variant="outline">{substitutes.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {substitutes.map((player) => {
-              const ms = statsByPlayer.get(player.id);
-              return (
-                <PlayerStatsRow
-                  key={player.id}
-                  player={{ ...player, eaId: player.fifaIndexId }}
-                  compact
-                  matchStats={
-                    ms
-                      ? {
-                          goals: ms.goals,
-                          yellowCards: ms.yellowCards,
-                          redCards: ms.redCards,
-                        }
-                      : undefined
-                  }
-                />
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+      <SquadRosterPanel
+        players={playersForUi}
+        teamEaId={team.fifaIndexId}
+        tournamentPlayerStats={tournamentPlayerStats}
+        statsPanel={
+          <TeamStatsPanel
+            name={team.name}
+            overall={team.overall}
+            attack={team.attack}
+            midfield={team.midfield}
+            defense={team.defense}
+            leagueName={team.league?.name}
+          />
+        }
+      />
     </div>
   );
 }

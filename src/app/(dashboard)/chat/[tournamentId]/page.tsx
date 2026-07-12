@@ -6,7 +6,7 @@ import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { TournamentChatRoom } from "@/features/chat/components/tournament-chat-room";
 import { ChatRepository } from "@/repositories/chat-repository";
 import { TournamentRepository } from "@/repositories/tournament-repository";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 
 interface PageProps {
   params: Promise<{ tournamentId: string }>;

@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SquadCountBadges } from "@/components/shared/squad-count-badges";
 import { useSyncTeamById } from "@/hooks/use-teams";
+import type { SerializedTeam } from "@/server-actions/team-actions";
 import {
   isStarterRole,
   isSubstituteRole,
@@ -23,6 +24,8 @@ interface SelectTeamViewProps {
   teamId: string;
   teamName: string;
   isTaken: boolean;
+  initialTeam?: SerializedTeam;
+  syncSource?: "cache" | "csv" | "ea-api";
 }
 
 export function SelectTeamView({
@@ -30,13 +33,16 @@ export function SelectTeamView({
   teamId,
   teamName,
   isTaken,
+  initialTeam,
+  syncSource: initialSource,
 }: SelectTeamViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { data, isLoading, error, isFetching } = useSyncTeamById(teamId);
+  const shouldSync = !initialTeam;
+  const { data, isLoading, error, isFetching } = useSyncTeamById(teamId, shouldSync);
 
-  const team = data?.team;
-  const source = data?.source;
+  const team = initialTeam ?? data?.team;
+  const source = initialSource ?? data?.source;
   const starters = team?.players.filter((p) => isStarterRole(p.squadRole)) ?? [];
   const substitutes =
     team?.players.filter((p) => isSubstituteRole(p.squadRole)) ?? [];
@@ -92,7 +98,7 @@ export function SelectTeamView({
     });
   }
 
-  if (isLoading || isFetching) {
+  if (shouldSync && (isLoading || isFetching)) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

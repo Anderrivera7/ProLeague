@@ -3,6 +3,7 @@ import {
   getNationalSquadTemplate,
   type SquadPlayerTemplate,
 } from "./squad-rosters";
+import { finalizeScrapedNationalSquad } from "./squad-enricher";
 
 const EA_DROP_API = "https://drop-api.ea.com/rating/ea-sports-fc";
 
@@ -38,11 +39,17 @@ function normalizeText(value: string) {
     .toLowerCase();
 }
 
-function toScrapedPlayer(p: EaPlayer, position?: string): ScrapedPlayerData {
+function toScrapedPlayer(
+  p: EaPlayer,
+  position?: string,
+  squadRole?: string
+): ScrapedPlayerData {
+  const role = squadRole ?? position ?? p.position?.shortLabel;
   return {
     eaId: String(p.id),
     name: playerName(p),
     position: position ?? p.position?.shortLabel,
+    squadRole: role,
     overall: p.overallRating,
     potential: p.overallRating,
     nationality: p.nationality?.label,
@@ -95,10 +102,10 @@ export async function lookupSquadPlayer(
     const theo = candidates.find((p) =>
       normalizeText(playerName(p)).includes("theo")
     );
-    if (theo) return toScrapedPlayer(theo, template.position);
+    if (theo) return toScrapedPlayer(theo, template.position, template.position);
   }
 
-  return toScrapedPlayer(candidates[0], template.position);
+  return toScrapedPlayer(candidates[0], template.position, template.position);
 }
 
 /**
@@ -124,9 +131,10 @@ export async function fetchNationalTeamSquad(
     }
 
     if (players.length > 0) {
+      const finalized = finalizeScrapedNationalSquad(nationalityId, players);
       const page = await fetchEaPage(nationalityId, 0);
       crestUrl = page.items?.[0]?.nationality?.imageUrl;
-      return { players, crestUrl, curated: true };
+      return { players: finalized, crestUrl, curated: true };
     }
   }
 

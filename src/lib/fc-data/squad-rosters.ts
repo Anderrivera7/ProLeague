@@ -60,8 +60,44 @@ const FRANCE_SQUAD: NationalSquadTemplate = {
   ],
 };
 
+const PORTUGAL_SQUAD: NationalSquadTemplate = {
+  nationalityId: 38,
+  careerTeamId: 1354,
+  overall: 86,
+  attack: 85,
+  midfield: 84,
+  defense: 84,
+  players: [
+    { search: "Costa", position: "GK" },
+    { search: "Patrício", position: "GK" },
+    { search: "Mendes", position: "LB" },
+    { search: "Cancelo", position: "LB" },
+    { search: "Inácio", position: "LCB" },
+    { search: "Dias", position: "RCB" },
+    { search: "Dalot", position: "RB" },
+    { search: "Guerreiro", position: "LB" },
+    { search: "Palhinha", position: "LDM" },
+    { search: "Gonçalves Neves", position: "RDM" },
+    { search: "Vitinha", position: "CDM" },
+    { search: "Fernandes", position: "LAM" },
+    { search: "Rafa", position: "CAM" },
+    { search: "Otávio", position: "RAM" },
+    { search: "Bernardo", position: "RCM" },
+    { search: "Leão", position: "LW" },
+    { search: "Neto", position: "RW" },
+    { search: "Ronaldo", position: "ST" },
+    { search: "Conceição", position: "RW" },
+    { search: "Semedo", position: "RB" },
+    { search: "Rúben Neves", position: "CDM" },
+    { search: "Matheus Nunes", position: "CM" },
+    { search: "Horta", position: "CAM" },
+    { search: "Jota Silva", position: "ST" },
+  ],
+};
+
 const ROSTERS_BY_NATIONALITY: Record<number, NationalSquadTemplate> = {
   18: FRANCE_SQUAD,
+  38: PORTUGAL_SQUAD,
 };
 
 export function getNationalSquadTemplate(

@@ -8,7 +8,7 @@ import { PerformanceChart } from "@/features/players/components/performance-char
 import { HeadToHeadPanel } from "@/features/players/components/head-to-head-panel";
 import { UserRepository } from "@/repositories/user-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getInitials } from "@/lib/utils";
 import { positiveStreak } from "@/utils/match-stats";
 import {

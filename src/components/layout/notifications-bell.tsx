@@ -68,7 +68,7 @@ export function NotificationsBell() {
 
     const interval = setInterval(() => {
       void fetchNotifications();
-    }, 30_000);
+    }, 60_000);
 
     return () => {
       active = false;

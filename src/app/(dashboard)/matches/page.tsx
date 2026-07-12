@@ -1,6 +1,6 @@
 import { Header } from "@/components/layout/header";
 import { MatchCard } from "@/features/matches/components/match-card";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 

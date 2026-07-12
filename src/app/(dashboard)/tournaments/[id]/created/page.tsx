@@ -4,7 +4,7 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { JoinCodeCard } from "@/features/tournaments/components/join-code-card";
 import { TournamentRepository } from "@/repositories/tournament-repository";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
 import { CheckCircle2 } from "lucide-react";
 

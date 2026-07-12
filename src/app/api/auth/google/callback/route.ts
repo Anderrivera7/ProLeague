@@ -76,19 +76,16 @@ export async function GET(request: Request) {
       throw sessionError ?? new Error("No se pudo iniciar sesión");
     }
 
-    const existing = await UserRepository.findById(sessionData.user.id);
-    if (!existing) {
-      const nickname =
-        googleUser.name?.replace(/\s/g, "") ??
-        `player_${sessionData.user.id.slice(0, 8)}`;
+    const nickname =
+      googleUser.name?.replace(/\s/g, "") ??
+      `player_${sessionData.user.id.slice(0, 8)}`;
 
-      await UserRepository.create({
-        id: sessionData.user.id,
-        email: googleUser.email,
-        nickname: nickname.toLowerCase().slice(0, 20),
-        avatarUrl: googleUser.picture,
-      });
-    }
+    await UserRepository.findOrCreateFromAuth({
+      id: sessionData.user.id,
+      email: googleUser.email,
+      nickname: nickname.toLowerCase().slice(0, 20),
+      avatarUrl: googleUser.picture,
+    });
 
     return NextResponse.redirect(new URL("/dashboard", origin));
   } catch (err) {

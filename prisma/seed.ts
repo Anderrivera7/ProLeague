@@ -1,8 +1,16 @@
 import { PrismaClient } from "@prisma/client";
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import dotenv from "dotenv";
 import { calculateLevel } from "../src/utils/points";
 import { AchievementService } from "../src/services/achievement-service";
 
+dotenv.config({ path: ".env.local" });
+dotenv.config();
+
 const prisma = new PrismaClient();
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const ACHIEVEMENTS = [
   // ── Primeros pasos (3 XP — fáciles) ──
@@ -140,6 +148,17 @@ async function main() {
       },
     });
     console.log("✅ Temporada activa creada");
+  }
+
+  const leagueCount = await prisma.fcLeague.count();
+  if (leagueCount === 0) {
+    console.log("📦 Importando catálogo EA FC (ligas, clubes y selecciones)...");
+    execSync("npm run seed:fc-all", {
+      stdio: "inherit",
+      cwd: rootDir,
+      env: process.env,
+    });
+    console.log("✅ Catálogo EA FC listo");
   }
 
   console.log(`🎉 Seed completado (${ACHIEVEMENTS.length} logros)`);

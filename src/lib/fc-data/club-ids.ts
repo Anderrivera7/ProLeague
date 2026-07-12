@@ -85,14 +85,20 @@ export function resolveTeamCrestUrl(
 /** Imagen hero de la competición (archivos en /public/leagues/) */
 const LEAGUE_COVER_BY_ID: Record<string, string> = {
   intl: "/leagues/intl.png",
-  "53": "/leagues/53.png",
+  "53": "/leagues/53.png", // LaLiga
   "13": "/leagues/13.png",
+  "19": "/leagues/19.png", // Bundesliga
+  "31": "/leagues/31.png", // Serie A
+  "16": "/leagues/16.png", // Ligue 1
   ucl: "/leagues/ucl.png",
   "223": "/leagues/ucl.png", // UEFA Champions League (SoFIFA)
 };
 
 const CHAMPIONS_LEAGUE_NAME = /champions\s*league|uefa\s*champions/i;
 const LA_LIGA_NAME = /la\s*liga|laliga|primera\s*divisi[oó]n/i;
+const SERIE_A_NAME = /serie\s*a/i;
+const BUNDESLIGA_NAME = /bundesliga/i;
+const LIGUE_1_NAME = /ligue\s*1/i;
 
 const LEAGUE_ICON_VERSION = "3";
 
@@ -150,6 +156,15 @@ export function getLeagueCoverUrl(
   }
   if (leagueName && LA_LIGA_NAME.test(leagueName)) {
     return LEAGUE_COVER_BY_ID["53"];
+  }
+  if (leagueName && SERIE_A_NAME.test(leagueName)) {
+    return LEAGUE_COVER_BY_ID["31"];
+  }
+  if (leagueName && BUNDESLIGA_NAME.test(leagueName)) {
+    return LEAGUE_COVER_BY_ID["19"];
+  }
+  if (leagueName && LIGUE_1_NAME.test(leagueName)) {
+    return LEAGUE_COVER_BY_ID["16"];
   }
   return null;
 }

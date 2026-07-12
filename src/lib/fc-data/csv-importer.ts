@@ -2,6 +2,7 @@ import { getEaPlayerPortraitUrl } from "./player-image";
 import { loadFc26CsvRows } from "./csv-store";
 import { getNationalSquadFromCsv } from "./csv-parser";
 import { computeTeamStats } from "./ea-drop-client";
+import { filterActiveSquad } from "./excluded-players";
 import {
   eaIdFromNationality,
   getCatalogNation,
@@ -12,27 +13,25 @@ import type { ScrapedPlayerData, TeamWithPlayersResult } from "./types";
 export { isStarterRole } from "./formation";
 
 function csvPlayerToScraped(p: Fc26CsvPlayer): ScrapedPlayerData {
-  const primaryPos =
-    p.nationPosition && !["SUB", "RES"].includes(p.nationPosition)
-      ? p.nationPosition
-      : p.positions.split(",")[0]?.trim();
+  const isGk = p.positions.trim().toUpperCase() === "GK";
+  const gkRating = p.positionRatings.GK ?? p.overall;
 
   return {
     eaId: p.playerId,
     name: p.shortName || p.name,
-    position: primaryPos,
+    position: p.positions.trim() || undefined,
     squadRole: p.nationPosition ?? undefined,
     jerseyNumber: p.nationJerseyNumber ?? undefined,
     overall: p.overall,
     potential: p.potential,
     nationality: p.nationalityName,
     imageUrl: getEaPlayerPortraitUrl(p.playerId),
-    pace: p.pace,
-    shooting: p.shooting,
-    passing: p.passing,
-    dribbling: p.dribbling,
-    defending: p.defending,
-    physic: p.physic,
+    pace: isGk && p.pace === 0 ? gkRating : p.pace,
+    shooting: isGk && p.shooting === 0 ? Math.round(gkRating * 0.35) : p.shooting,
+    passing: isGk && p.passing === 0 ? Math.round(gkRating * 0.82) : p.passing,
+    dribbling: isGk && p.dribbling === 0 ? Math.round(gkRating * 0.4) : p.dribbling,
+    defending: isGk && p.defending === 0 ? Math.round(gkRating * 0.2) : p.defending,
+    physic: isGk && p.physic === 0 ? Math.round(gkRating * 0.75) : p.physic,
   };
 }
 
@@ -51,7 +50,7 @@ export function importNationalTeamFromCsv(
     throw new Error(`Sin plantilla en CSV para ${catalog.nameEs} (ID ${nationalityId})`);
   }
 
-  const players = baseSquad.map(csvPlayerToScraped);
+  const players = filterActiveSquad(baseSquad.map(csvPlayerToScraped));
   const stats = computeTeamStats(players);
 
   return {

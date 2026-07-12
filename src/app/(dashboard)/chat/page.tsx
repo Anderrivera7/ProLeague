@@ -1,7 +1,7 @@
 import { Header } from "@/components/layout/header";
 import { TournamentChatList } from "@/features/chat/components/tournament-chat-list";
 import { ChatRepository } from "@/repositories/chat-repository";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";

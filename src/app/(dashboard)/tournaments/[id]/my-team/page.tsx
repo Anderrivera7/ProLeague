@@ -4,7 +4,7 @@ import { TeamSquadView } from "@/features/tournaments/components/team-squad-view
 import { TournamentRepository } from "@/repositories/tournament-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { TeamService } from "@/services/team-service";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -12,23 +12,20 @@ interface PageProps {
 
 export default async function MyTeamPage({ params }: PageProps) {
   const { id } = await params;
-  const [tournament, user] = await Promise.all([
-    TournamentRepository.findById(id),
-    getCurrentUser(),
+  const user = await getCurrentUser();
+  if (!user) notFound();
+
+  const [tournament, participant, tournamentPlayerStats] = await Promise.all([
+    TournamentRepository.findByIdMeta(id),
+    TournamentRepository.getParticipant(id, user.id),
+    StatsRepository.getTournamentPlayerStats(id, user.id),
   ]);
 
-  if (!tournament || !user) notFound();
-
-  const myParticipant = tournament.participants.find((p) => p.userId === user.id);
-  if (!myParticipant?.fcTeamId) {
+  if (!tournament || !participant?.fcTeamId) {
     redirect(`/tournaments/${id}/select-team`);
   }
 
-  const { team } = await TeamService.getOrSyncById(myParticipant.fcTeamId);
-  const tournamentPlayerStats = await StatsRepository.getTournamentPlayerStats(
-    id,
-    user.id
-  );
+  const { team } = await TeamService.getOrSyncById(participant.fcTeamId);
 
   return (
     <>

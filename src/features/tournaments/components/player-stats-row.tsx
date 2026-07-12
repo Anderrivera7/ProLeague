@@ -29,6 +29,7 @@ export interface PlayerWithStats {
 interface PlayerStatsRowProps {
   player: PlayerWithStats;
   compact?: boolean;
+  overallOnly?: boolean;
   matchStats?: {
     goals: number;
     yellowCards: number;
@@ -37,7 +38,7 @@ interface PlayerStatsRowProps {
 }
 
 function StatPill({ label, value }: { label: string; value: number | null }) {
-  if (value == null) return null;
+  if (value == null || value === 0) return null;
   return (
     <div className="flex flex-col items-center rounded-md bg-muted/60 px-2 py-1 min-w-[38px]">
       <span className="text-[10px] text-muted-foreground">{label}</span>
@@ -46,9 +47,10 @@ function StatPill({ label, value }: { label: string; value: number | null }) {
   );
 }
 
-export function PlayerStatsRow({ player, compact, matchStats }: PlayerStatsRowProps) {
+export function PlayerStatsRow({ player, compact, overallOnly, matchStats }: PlayerStatsRowProps) {
   const isBench =
     player.squadRole === "SUB" || player.squadRole === "RES";
+  const showStats = !compact && !overallOnly;
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 px-3 py-2.5">
@@ -68,16 +70,18 @@ export function PlayerStatsRow({ player, compact, matchStats }: PlayerStatsRowPr
             </span>
           )}
           <p className="truncate text-sm font-semibold">{player.name}</p>
-          {isBench && (
+          {isBench && !overallOnly && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
               SUB
             </Badge>
           )}
         </div>
+        {!overallOnly && (
         <p className="text-xs text-muted-foreground">
           {isBench ? "Suplente" : (player.squadRole ?? player.position ?? "—")}
           {!compact && player.potential != null && ` · POT ${player.potential}`}
         </p>
+        )}
         {matchStats &&
           (matchStats.goals > 0 ||
             matchStats.yellowCards > 0 ||
@@ -104,7 +108,7 @@ export function PlayerStatsRow({ player, compact, matchStats }: PlayerStatsRowPr
 
       <Badge className="shrink-0">{player.overall ?? "—"}</Badge>
 
-      {!compact && (
+      {!showStats ? null : (
         <div className="hidden gap-1 sm:flex">
           <StatPill label="PAC" value={player.pace} />
           <StatPill label="SHO" value={player.shooting} />

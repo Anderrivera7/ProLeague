@@ -4,7 +4,7 @@ import { TeamSquadView } from "@/features/tournaments/components/team-squad-view
 import { TournamentRepository } from "@/repositories/tournament-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { TeamService } from "@/services/team-service";
-import { getCurrentUser } from "@/actions/auth-actions";
+import { getCurrentUser } from "@/lib/auth/session";
 
 interface PageProps {
   params: Promise<{ id: string; teamId: string }>;

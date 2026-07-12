@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: proleague-db
+    restart: unless-stopped
+    ports:
+      - "55900:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: proleague
+    volumes:
+      - proleague_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d proleague"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  proleague_pg_data:

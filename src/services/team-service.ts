@@ -14,6 +14,9 @@ export interface SyncTeamResult {
   playersSynced: number;
 }
 
+/** Evita resyncs paralelos del mismo equipo (satura el pool de Prisma). */
+const syncByTeamId = new Map<string, Promise<SyncTeamResult>>();
+
 export class TeamService {
   /**
    * Lazy loading:
@@ -45,6 +48,17 @@ export class TeamService {
   }
 
   static async getOrSyncById(teamId: string): Promise<SyncTeamResult> {
+    const inFlight = syncByTeamId.get(teamId);
+    if (inFlight) return inFlight;
+
+    const work = this.resolveTeamById(teamId).finally(() => {
+      syncByTeamId.delete(teamId);
+    });
+    syncByTeamId.set(teamId, work);
+    return work;
+  }
+
+  private static async resolveTeamById(teamId: string): Promise<SyncTeamResult> {
     const cached = await TeamRepository.findById(teamId);
     if (!cached) throw new Error("Equipo no encontrado");
 
@@ -60,18 +74,27 @@ export class TeamService {
       };
     }
 
-    const players = await PlayerService.syncByTeamEaId(
-      cached.id,
-      cached.fifaIndexId
-    );
-    const team = await TeamRepository.findById(teamId);
-    if (!team) throw new Error("Error al recargar equipo");
+    try {
+      await PlayerService.syncByTeamEaId(cached.id, cached.fifaIndexId);
+      const team = await TeamRepository.findById(teamId);
+      if (!team) throw new Error("Error al recargar equipo");
 
-    return {
-      team,
-      source: needsRefresh ? "csv" : "cache",
-      playersSynced: players.length,
-    };
+      return {
+        team,
+        source: needsRefresh ? "csv" : "cache",
+        playersSynced: team.players.length,
+      };
+    } catch (error) {
+      console.error("[TeamService.resolveTeamById]", error);
+      if (cached.players.length > 0) {
+        return {
+          team: cached,
+          source: "cache",
+          playersSynced: cached.players.length,
+        };
+      }
+      throw error;
+    }
   }
 
   static async importFromEaApi(eaId: string): Promise<SyncTeamResult> {
