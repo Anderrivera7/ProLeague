@@ -3,7 +3,6 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import dotenv from "dotenv";
-import { calculateLevel } from "../src/utils/points";
 import { AchievementService } from "../src/services/achievement-service";
 
 dotenv.config({ path: ".env.local" });
@@ -114,22 +113,19 @@ async function main() {
     });
   }
 
-  console.log("📉 Rebajando puntos base (1000 → 0)...");
-  const users = await prisma.user.findMany({ select: { id: true, elo: true } });
-  for (const user of users) {
-    if (user.elo >= 1000) {
-      const newElo = user.elo - 1000;
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          elo: newElo,
-          level: calculateLevel(newElo),
-        },
-      });
-    }
+  console.log("♻️ Recalculando puntos (partidos + logros, base 0)...");
+  const { recalculateAllUserPoints } = await import(
+    "../src/services/trophy-service"
+  );
+  const results = await recalculateAllUserPoints();
+  for (const r of results) {
+    console.log(
+      `  · ${r.nickname}: ${r.total} pts (partidos ${r.matchPoints} + logros ${r.achievementXp}, revocados ${r.revoked})`
+    );
   }
 
   console.log("🏆 Sincronizando logros de usuarios existentes...");
+  const users = await prisma.user.findMany({ select: { id: true } });
   for (const user of users) {
     await AchievementService.syncForUser(user.id, prisma);
   }

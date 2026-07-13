@@ -24,6 +24,7 @@
     "import:fc26-csv": "tsx scripts/import-fc26-csv.ts",
     "scrape:ea-nations": "tsx scripts/scrape-ea-nations.ts",
     "db:studio": "prisma studio",
+    "db:recalc-points": "tsx scripts/recalculate-points.ts",
     "scrape:fifa-index": "tsx scripts/fifa-index/scrape.ts"
   },
   "prisma": {

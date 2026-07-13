@@ -3,6 +3,7 @@ import { getMatchPointUpdates } from "@/utils/points";
 import { isBetterWin } from "@/utils/match-stats";
 import { buildMatchResultMessage } from "@/utils/match-result-message";
 import { AchievementService } from "@/services/achievement-service";
+import { TrophyService } from "@/services/trophy-service";
 import type { MatchResultInput } from "@/types";
 
 function aggregateUserEvents(
@@ -194,6 +195,8 @@ export class MatchService {
             });
           }
         }
+
+        await TrophyService.maybeAwardFromCompletedMatch(tx, input.matchId);
       },
       { timeout: 15000 }
     );

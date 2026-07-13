@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Trophy,
+  Crown,
   Swords,
   BarChart3,
   TrendingUp,
@@ -25,6 +26,7 @@ import { AppLogo } from "@/components/shared/app-logo";
 const iconMap = {
   LayoutDashboard,
   Trophy,
+  Crown,
   Swords,
   BarChart3,
   TrendingUp,

@@ -37,6 +37,7 @@ export const TOURNAMENT_TYPES = {
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
   { href: "/tournaments", label: "Torneos", icon: "Trophy" },
+  { href: "/titles", label: "Títulos", icon: "Crown" },
   { href: "/matches", label: "Partidos", icon: "Swords" },
   { href: "/rankings", label: "Rankings", icon: "BarChart3" },
   { href: "/stats", label: "Estadísticas", icon: "TrendingUp" },
