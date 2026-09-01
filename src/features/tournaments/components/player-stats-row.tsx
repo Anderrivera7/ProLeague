@@ -18,12 +18,52 @@ export interface PlayerWithStats {
   overall: number | null;
   potential: number | null;
   imageUrl: string | null;
-  pace: number | null;
-  shooting: number | null;
-  passing: number | null;
-  dribbling: number | null;
-  defending: number | null;
-  physic: number | null;
+  pace?: number | null;
+  shooting?: number | null;
+  passing?: number | null;
+  dribbling?: number | null;
+  defending?: number | null;
+  physic?: number | null;
+}
+
+/** Normaliza LineupPlayer u objetos parciales para PlayerStatsRow. */
+export function normalizePlayerWithStats(
+  player: {
+    id: string;
+    eaId?: string;
+    name: string;
+    position: string | null;
+    squadRole?: string | null;
+    jerseyNumber: number | null;
+    overall: number | null;
+    potential?: number | null;
+    imageUrl: string | null;
+    pace?: number | null;
+    shooting?: number | null;
+    passing?: number | null;
+    dribbling?: number | null;
+    defending?: number | null;
+    physic?: number | null;
+  },
+  overrides?: Partial<Pick<PlayerWithStats, "eaId" | "potential" | "squadRole">>
+): PlayerWithStats {
+  return {
+    id: player.id,
+    eaId: overrides?.eaId ?? player.eaId ?? player.id,
+    name: player.name,
+    position: player.position,
+    squadRole: overrides?.squadRole ?? player.squadRole ?? null,
+    jerseyNumber: player.jerseyNumber,
+    overall: player.overall,
+    potential: overrides?.potential ?? player.potential ?? null,
+    imageUrl: player.imageUrl,
+    pace: player.pace ?? null,
+    shooting: player.shooting ?? null,
+    passing: player.passing ?? null,
+    dribbling: player.dribbling ?? null,
+    defending: player.defending ?? null,
+    physic: player.physic ?? null,
+  };
 }
 
 interface PlayerStatsRowProps {
@@ -37,7 +77,13 @@ interface PlayerStatsRowProps {
   };
 }
 
-function StatPill({ label, value }: { label: string; value: number | null }) {
+function StatPill({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | null | undefined;
+}) {
   if (value == null || value === 0) return null;
   return (
     <div className="flex flex-col items-center rounded-md bg-muted/60 px-2 py-1 min-w-[38px]">
