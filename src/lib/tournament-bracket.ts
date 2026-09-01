@@ -107,13 +107,14 @@ function resolveSeededParticipants(
 
   if (standings.length > 0) {
     const ranked = [...standings].sort((a, b) => b.points - a.points);
-    return ranked
-      .map((row, index) => {
-        const participant = participants.find((p) => p.id === row.participantId);
-        if (!participant) return null;
-        return { ...participant, seed: index + 1 };
-      })
-      .filter((p): p is BracketParticipant => p != null);
+    const seeded: BracketParticipant[] = [];
+    ranked.forEach((row, index) => {
+      const participant = participants.find((p) => p.id === row.participantId);
+      if (participant) {
+        seeded.push({ ...participant, seed: index + 1 });
+      }
+    });
+    return seeded;
   }
 
   return participants.map((p, index) => ({ ...p, seed: p.seed ?? index + 1 }));

@@ -18,6 +18,8 @@ const sessionUserInclude = {
   stats: true,
 } satisfies Prisma.UserInclude;
 
+type SessionUser = Prisma.UserGetPayload<{ include: typeof sessionUserInclude }>;
+
 export class UserRepository {
   static async findSessionById(id: string) {
     return prisma.user.findUnique({
@@ -132,7 +134,7 @@ export class UserRepository {
     nickname: string;
     avatarUrl?: string | null;
     country?: string | null;
-  }) {
+  }): Promise<SessionUser> {
     const existing = await this.findByIdForSession(data.id);
     if (existing) return existing;
 

@@ -226,7 +226,7 @@ export const FEATURED_LEAGUE_IDS = [
 export function sortLeaguesByPriority<T extends { fifaIndexId: string; name: string }>(
   leagues: T[]
 ) {
-  const priority = new Map(
+  const priority = new Map<string, number>(
     FEATURED_LEAGUE_IDS.map((id, index) => [id, index])
   );
 

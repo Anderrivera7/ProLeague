@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerAvatar } from "@/components/ui/player-avatar";
-import { PlayerStatsRow } from "@/features/tournaments/components/player-stats-row";
+import { PlayerStatsRow, type PlayerWithStats } from "@/features/tournaments/components/player-stats-row";
 import {
   buildLineupFromCsv,
   displayPosition,
@@ -72,6 +72,29 @@ export function SquadRosterPanel({
     return slotRole ?? displayPosition(player);
   }
 
+  function toPlayerWithStats(
+    player: LineupPlayer,
+    overrides?: Partial<Pick<PlayerWithStats, "eaId" | "potential" | "squadRole">>
+  ): PlayerWithStats {
+    return {
+      id: player.id,
+      eaId: overrides?.eaId ?? player.eaId ?? player.id,
+      name: player.name,
+      position: player.position,
+      squadRole: overrides?.squadRole ?? player.squadRole,
+      jerseyNumber: player.jerseyNumber,
+      overall: player.overall,
+      potential: overrides?.potential ?? player.potential ?? null,
+      imageUrl: player.imageUrl,
+      pace: player.pace ?? null,
+      shooting: player.shooting ?? null,
+      passing: player.passing ?? null,
+      dribbling: player.dribbling ?? null,
+      defending: player.defending ?? null,
+      physic: player.physic ?? null,
+    };
+  }
+
   return (
     <div className="space-y-6">
       <div className={cn("grid gap-6", statsPanel && "lg:grid-cols-2")}>
@@ -137,12 +160,9 @@ export function SquadRosterPanel({
               <PlayerStatsRow
                 key={slot.player.id}
                 overallOnly
-                player={{
-                  ...slot.player,
-                  eaId: slot.player.eaId ?? slot.player.id,
-                  potential: slot.player.potential ?? null,
+                player={toPlayerWithStats(slot.player, {
                   squadRole: roleForDisplay(slot.player, slot.slotRole),
-                }}
+                })}
                 matchStats={matchStatsFor(slot.player.id)}
               />
             ))}
@@ -162,11 +182,7 @@ export function SquadRosterPanel({
                 key={player.id}
                 overallOnly
                 compact
-                player={{
-                  ...player,
-                  eaId: player.eaId ?? player.id,
-                  potential: player.potential ?? null,
-                }}
+                player={toPlayerWithStats(player)}
                 matchStats={matchStatsFor(player.id)}
               />
             ))}
