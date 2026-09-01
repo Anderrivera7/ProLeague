@@ -9,17 +9,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TeamCrest } from "@/components/shared/team-crest";
 import type { MatchWithParticipants } from "@/types";
-import { ClipboardEdit } from "lucide-react";
+import { ClipboardEdit, CheckCircle2 } from "lucide-react";
 
 interface MatchCardProps {
   match: MatchWithParticipants;
   tournament?: { id: string; name: string };
   canReport?: boolean;
+  canConfirm?: boolean;
+  currentUserId?: string;
 }
 
 const statusVariant = {
   SCHEDULED: "outline" as const,
   LIVE: "success" as const,
+  PENDING_CONFIRMATION: "warning" as const,
   COMPLETED: "secondary" as const,
   CANCELLED: "destructive" as const,
   WALKOVER: "warning" as const,
@@ -28,15 +31,35 @@ const statusVariant = {
 const statusLabel = {
   SCHEDULED: "Programado",
   LIVE: "En vivo",
+  PENDING_CONFIRMATION: "Por confirmar",
   COMPLETED: "Finalizado",
   CANCELLED: "Cancelado",
   WALKOVER: "Walkover",
 };
 
-export function MatchCard({ match, tournament, canReport }: MatchCardProps) {
+export function MatchCard({
+  match,
+  tournament,
+  canReport,
+  canConfirm,
+}: MatchCardProps) {
   const isCompleted = match.status === "COMPLETED";
+  const isPending = match.status === "PENDING_CONFIRMATION";
   const t = tournament ?? match.tournament;
   const showReport = canReport && match.status === "SCHEDULED";
+  const showConfirm = canConfirm && isPending;
+
+  const displayHome = isCompleted
+    ? match.homeScore
+    : isPending
+      ? match.proposedHomeScore
+      : null;
+  const displayAway = isCompleted
+    ? match.awayScore
+    : isPending
+      ? match.proposedAwayScore
+      : null;
+  const showScore = displayHome != null && displayAway != null;
 
   const homeTeam = match.homeParticipant.fcTeam;
   const awayTeam = match.awayParticipant.fcTeam;
@@ -88,11 +111,11 @@ export function MatchCard({ match, tournament, canReport }: MatchCardProps) {
 
             <div className="flex shrink-0 flex-col items-center gap-0.5">
               <div className="flex items-center gap-2 rounded-xl bg-muted px-5 py-2.5 font-mono text-2xl font-bold">
-                {isCompleted ? (
+                {showScore ? (
                   <>
-                    <span>{match.homeScore}</span>
+                    <span>{displayHome}</span>
                     <span className="text-lg text-muted-foreground">—</span>
-                    <span>{match.awayScore}</span>
+                    <span>{displayAway}</span>
                   </>
                 ) : (
                   <span className="text-base text-muted-foreground">vs</span>
@@ -101,6 +124,11 @@ export function MatchCard({ match, tournament, canReport }: MatchCardProps) {
               {isCompleted && (
                 <span className="text-[10px] text-muted-foreground">
                   Resultado final
+                </span>
+              )}
+              {isPending && (
+                <span className="text-[10px] text-amber-500">
+                  Pendiente de confirmar
                 </span>
               )}
             </div>
@@ -141,6 +169,17 @@ export function MatchCard({ match, tournament, canReport }: MatchCardProps) {
             </div>
           )}
         </Link>
+
+        {showConfirm && (
+          <div className="mt-3 flex justify-center">
+            <Button size="sm" variant="default" asChild>
+              <Link href={`/matches/${match.id}`}>
+                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                Confirmar resultado
+              </Link>
+            </Button>
+          </div>
+        )}
 
         {showReport && (
           <div className="mt-3 flex justify-center">

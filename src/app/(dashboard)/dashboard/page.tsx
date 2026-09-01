@@ -4,7 +4,9 @@ import { MobileHeader } from "@/components/layout/mobile-header";
 import { TournamentSlide } from "@/components/home/tournament-slide";
 import { QuickActions } from "@/components/home/quick-actions";
 import { ActivityItem } from "@/components/home/activity-item";
+import { RealFootballWidget } from "@/features/football/components/real-football-widget";
 import { TournamentRepository } from "@/repositories/tournament-repository";
+import { RealFootballService } from "@/services/real-football-service";
 import { prisma } from "@/lib/prisma";
 import { ChevronRight } from "lucide-react";
 import { getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
@@ -14,7 +16,7 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [myTournaments, activities, fallbackActive, fallbackUpcoming] =
+  const [myTournaments, activities, fallbackActive, fallbackUpcoming, preferredLeagueId] =
     await Promise.all([
     prisma.tournament.findMany({
       where: {
@@ -44,7 +46,15 @@ export default async function DashboardPage() {
     }),
     TournamentRepository.findAll({ status: "ACTIVE", limit: 1 }),
     TournamentRepository.findAll({ status: "REGISTRATION", limit: 1 }),
+    RealFootballService.resolvePreferredLeagueId(user.id),
   ]);
+
+  const realFootballSnapshot = preferredLeagueId
+    ? await RealFootballService.getLeagueSnapshot(preferredLeagueId, {
+        standingsLimit: 5,
+        eventsLimit: 3,
+      })
+    : null;
 
   const activeTournaments = myTournaments.filter((t) => t.status === "ACTIVE");
   const upcomingTournaments = myTournaments.filter(
@@ -142,6 +152,10 @@ export default async function DashboardPage() {
         </section>
 
         <QuickActions />
+
+        {realFootballSnapshot && (
+          <RealFootballWidget snapshot={realFootballSnapshot} />
+        )}
 
         <section>
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">

@@ -120,7 +120,7 @@ export async function generateTournamentFixture(tournamentId: string) {
   if (!user) return { error: "No autenticado" };
 
   try {
-    const result = await TournamentService.generateFixture(tournamentId);
+    const result = await TournamentService.generateFixture(tournamentId, user.id);
     revalidatePath(`/tournaments/${tournamentId}`);
     return { success: true, ...result };
   } catch (e) {

@@ -1,12 +1,18 @@
 /**
  * Crea usuarios de prueba (Auth SQL + perfiles Prisma).
  * Uso: npm run seed:users
+ * NUNCA en producción.
  */
 
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { execSync } from "child_process";
 import path from "path";
+
+if (process.env.NODE_ENV === "production") {
+  console.error("⛔ seed:users está prohibido en producción.");
+  process.exit(1);
+}
 
 const prisma = new PrismaClient();
 

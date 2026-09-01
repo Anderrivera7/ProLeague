@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getMatchPointUpdates } from "@/utils/points";
 import { isBetterWin } from "@/utils/match-stats";
 import { buildMatchResultMessage } from "@/utils/match-result-message";
@@ -24,6 +25,149 @@ function aggregateUserEvents(
 }
 
 export class MatchService {
+  /** Propone un resultado; el rival debe confirmarlo. */
+  static async proposeResult(input: MatchResultInput, proposedByUserId: string) {
+    const match = await prisma.match.findUnique({
+      where: { id: input.matchId },
+      include: {
+        homeParticipant: true,
+        awayParticipant: true,
+      },
+    });
+
+    if (!match) throw new Error("Partido no encontrado");
+    if (match.status === "COMPLETED") {
+      throw new Error("Partido ya registrado");
+    }
+    if (
+      match.status !== "SCHEDULED" &&
+      match.status !== "PENDING_CONFIRMATION"
+    ) {
+      throw new Error("Este partido no admite propuestas de resultado");
+    }
+
+    const isParticipant =
+      match.homeParticipant.userId === proposedByUserId ||
+      match.awayParticipant.userId === proposedByUserId;
+    if (!isParticipant) {
+      throw new Error("Solo los jugadores del partido pueden proponer el resultado");
+    }
+
+    if (
+      match.status === "PENDING_CONFIRMATION" &&
+      match.proposedByUserId &&
+      match.proposedByUserId !== proposedByUserId
+    ) {
+      throw new Error(
+        "Ya hay un resultado pendiente. Confírmalo o recházalo antes de proponer otro"
+      );
+    }
+
+    await prisma.match.update({
+      where: { id: input.matchId },
+      data: {
+        status: "PENDING_CONFIRMATION",
+        proposedHomeScore: input.homeScore,
+        proposedAwayScore: input.awayScore,
+        proposedPenaltiesHome: input.penaltiesHome ?? null,
+        proposedPenaltiesAway: input.penaltiesAway ?? null,
+        proposedMvpUserId: input.mvpUserId ?? null,
+        proposedByUserId,
+        proposedPlayerStats: input.playerStats,
+        proposedAt: new Date(),
+      },
+    });
+
+    return { success: true, pendingConfirmation: true };
+  }
+
+  /** Confirma el resultado propuesto por el rival (o el creador fuerza). */
+  static async confirmProposedResult(matchId: string, confirmingUserId: string) {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        tournament: true,
+        homeParticipant: true,
+        awayParticipant: true,
+      },
+    });
+
+    if (!match) throw new Error("Partido no encontrado");
+    if (match.status !== "PENDING_CONFIRMATION") {
+      throw new Error("No hay un resultado pendiente de confirmación");
+    }
+    if (match.proposedHomeScore == null || match.proposedAwayScore == null) {
+      throw new Error("La propuesta de resultado está incompleta");
+    }
+
+    const isCreator = match.tournament.creatorId === confirmingUserId;
+    const isOpponent =
+      (match.homeParticipant.userId === confirmingUserId ||
+        match.awayParticipant.userId === confirmingUserId) &&
+      match.proposedByUserId !== confirmingUserId;
+
+    if (!isCreator && !isOpponent) {
+      throw new Error("No puedes confirmar este resultado");
+    }
+
+    const playerStats = Array.isArray(match.proposedPlayerStats)
+      ? (match.proposedPlayerStats as MatchResultInput["playerStats"])
+      : [];
+
+    return this.recordResult({
+      matchId,
+      homeScore: match.proposedHomeScore,
+      awayScore: match.proposedAwayScore,
+      penaltiesHome: match.proposedPenaltiesHome ?? undefined,
+      penaltiesAway: match.proposedPenaltiesAway ?? undefined,
+      mvpUserId: match.proposedMvpUserId ?? undefined,
+      playerStats,
+    });
+  }
+
+  /** Rechaza la propuesta y vuelve el partido a programado. */
+  static async rejectProposedResult(matchId: string, userId: string) {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        tournament: true,
+        homeParticipant: true,
+        awayParticipant: true,
+      },
+    });
+
+    if (!match) throw new Error("Partido no encontrado");
+    if (match.status !== "PENDING_CONFIRMATION") {
+      throw new Error("No hay un resultado pendiente de confirmación");
+    }
+
+    const isCreator = match.tournament.creatorId === userId;
+    const isParticipant =
+      match.homeParticipant.userId === userId ||
+      match.awayParticipant.userId === userId;
+
+    if (!isCreator && !isParticipant) {
+      throw new Error("No puedes rechazar este resultado");
+    }
+
+    await prisma.match.update({
+      where: { id: matchId },
+      data: {
+        status: "SCHEDULED",
+        proposedHomeScore: null,
+        proposedAwayScore: null,
+        proposedPenaltiesHome: null,
+        proposedPenaltiesAway: null,
+        proposedMvpUserId: null,
+        proposedByUserId: null,
+        proposedPlayerStats: Prisma.DbNull,
+        proposedAt: null,
+      },
+    });
+
+    return { success: true };
+  }
+
   static async recordResult(input: MatchResultInput) {
     const match = await prisma.match.findUnique({
       where: { id: input.matchId },
@@ -36,6 +180,13 @@ export class MatchService {
 
     if (!match) throw new Error("Partido no encontrado");
     if (match.status === "COMPLETED") throw new Error("Partido ya registrado");
+    if (
+      match.status !== "SCHEDULED" &&
+      match.status !== "PENDING_CONFIRMATION" &&
+      match.status !== "LIVE"
+    ) {
+      throw new Error("Este partido no se puede finalizar");
+    }
 
     const homeUser = match.homeParticipant.user;
     const awayUser = match.awayParticipant.user;
@@ -68,6 +219,14 @@ export class MatchService {
             mvpUserId: input.mvpUserId,
             status: "COMPLETED",
             playedAt: new Date(),
+            proposedHomeScore: null,
+            proposedAwayScore: null,
+            proposedPenaltiesHome: null,
+            proposedPenaltiesAway: null,
+            proposedMvpUserId: null,
+            proposedByUserId: null,
+            proposedPlayerStats: Prisma.DbNull,
+            proposedAt: null,
           },
         });
 

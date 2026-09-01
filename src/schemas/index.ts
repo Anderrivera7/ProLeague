@@ -5,6 +5,34 @@ export const loginSchema = z.object({
   password: z.string().min(6, "Mínimo 6 caracteres"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Email inválido"),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    password: z.string().min(6, "Mínimo 6 caracteres"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
+
+export const crewCreateSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Mínimo 2 caracteres")
+    .max(40, "Máximo 40 caracteres"),
+});
+
+export const crewJoinSchema = z.object({
+  joinCode: z
+    .string()
+    .min(6, "Código inválido")
+    .transform((v) => v.trim().toUpperCase()),
+});
+
 export const registerSchema = z
   .object({
     email: z.string().email("Email inválido"),

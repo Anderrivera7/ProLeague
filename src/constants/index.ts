@@ -38,6 +38,8 @@ export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
   { href: "/tournaments", label: "Torneos", icon: "Trophy" },
   { href: "/titles", label: "Títulos", icon: "Crown" },
+  { href: "/crews", label: "Compañeros", icon: "UsersRound" },
+  { href: "/football", label: "Fútbol real", icon: "Globe" },
   { href: "/matches", label: "Partidos", icon: "Swords" },
   { href: "/rankings", label: "Rankings", icon: "BarChart3" },
   { href: "/stats", label: "Estadísticas", icon: "TrendingUp" },

@@ -27,6 +27,7 @@ enum TournamentStatus {
 enum MatchStatus {
   SCHEDULED
   LIVE
+  PENDING_CONFIRMATION
   COMPLETED
   CANCELLED
   WALKOVER
@@ -164,11 +165,15 @@ model User {
   participations     TournamentParticipant[]
   matchEvents        MatchEvent[]
   mvpMatches         Match[]            @relation("MatchMVP")
+  proposedMatchResults Match[]          @relation("MatchResultProposer")
 
   headToHeadAsUser     HeadToHead[] @relation("H2HUser")
   headToHeadAsOpponent HeadToHead[] @relation("H2HOpponent")
   biggestWinsAgainst   PlayerStats[] @relation("BiggestWinOpponent")
   tournamentMessages   TournamentMessage[]
+
+  crewsOwned  Crew[]       @relation("CrewOwner")
+  crewMembers CrewMember[]
 
   @@map("users")
 }
@@ -392,6 +397,17 @@ model Match {
   mvpUserId String?
   mvpUser   User?   @relation("MatchMVP", fields: [mvpUserId], references: [id])
 
+  /// Resultado propuesto pendiente de confirmación del rival
+  proposedHomeScore     Int?
+  proposedAwayScore     Int?
+  proposedPenaltiesHome Int?
+  proposedPenaltiesAway Int?
+  proposedMvpUserId     String?
+  proposedByUserId      String?
+  proposedByUser        User?     @relation("MatchResultProposer", fields: [proposedByUserId], references: [id])
+  proposedPlayerStats   Json?
+  proposedAt            DateTime?
+
   events    MatchEvent[]
   playerStats MatchPlayerStat[]
   createdAt DateTime @default(now())
@@ -400,6 +416,7 @@ model Match {
   @@index([tournamentId])
   @@index([status])
   @@index([scheduledAt])
+  @@index([proposedByUserId])
   @@map("matches")
 }
 
@@ -548,6 +565,35 @@ model Activity {
 
   @@index([userId, createdAt])
   @@map("activities")
+}
+
+// ─── Crews (grupos de compañeros) ────────────────────────────────────────────
+
+model Crew {
+  id        String   @id @default(uuid())
+  name      String
+  joinCode  String   @unique
+  ownerId   String
+  owner     User     @relation("CrewOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   CrewMember[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@map("crews")
+}
+
+model CrewMember {
+  id       String   @id @default(uuid())
+  crewId   String
+  crew     Crew     @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@unique([crewId, userId])
+  @@index([userId])
+  @@map("crew_members")
 }
 
 // ─── Tournament Chat ─────────────────────────────────────────────────────────

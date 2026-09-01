@@ -5,7 +5,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { UserRepository } from "@/repositories/user-repository";
-import { loginSchema, registerSchema } from "@/schemas";
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+} from "@/schemas";
 
 export async function signInWithEmail(formData: FormData) {
   try {
@@ -77,6 +82,73 @@ export async function signUpWithEmail(formData: FormData) {
         e instanceof Error
           ? e.message
           : "No se pudo conectar con el servidor. Reinicia npm run dev.",
+    };
+  }
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  try {
+    const parsed = forgotPasswordSchema.safeParse({
+      email: formData.get("email"),
+    });
+
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? "Email inválido" };
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const supabase = await createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      parsed.data.email,
+      { redirectTo: `${appUrl}/auth/callback?next=/reset-password` }
+    );
+
+    if (error) return { error: error.message };
+    return { success: true };
+  } catch (e) {
+    return {
+      error:
+        e instanceof Error
+          ? e.message
+          : "No se pudo enviar el enlace. Inténtalo de nuevo.",
+    };
+  }
+}
+
+export async function updatePassword(formData: FormData) {
+  try {
+    const parsed = resetPasswordSchema.safeParse({
+      password: formData.get("password"),
+      confirmPassword: formData.get("confirmPassword"),
+    });
+
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return {
+        error: "El enlace ha expirado. Solicita uno nuevo.",
+      };
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: parsed.data.password,
+    });
+
+    if (error) return { error: error.message };
+    return { success: true };
+  } catch (e) {
+    return {
+      error:
+        e instanceof Error
+          ? e.message
+          : "No se pudo actualizar la contraseña.",
     };
   }
 }

@@ -8,6 +8,14 @@ import { AchievementService } from "../src/services/achievement-service";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
+if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "true") {
+  console.error(
+    "⛔ Seed bloqueado en producción.\n" +
+      "Si realmente debes ejecutarlo, usa ALLOW_PROD_SEED=true (con cuidado)."
+  );
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 

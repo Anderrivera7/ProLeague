@@ -28,10 +28,12 @@ const iconMap = {
 };
 
 export default async function StatsPage() {
-  const [topScorers, topAssists, mostWins, eloRanking] = await Promise.all([
+  const [topScorers, topAssists, mostWins, mostTitles, eloRanking] =
+    await Promise.all([
     StatsRepository.getTopScorers(10),
     StatsRepository.getTopAssists(10),
     StatsRepository.getMostWins(10),
+    StatsRepository.getMostTitles(10),
     StatsRepository.getEloRanking(10),
   ]);
 
@@ -48,6 +50,17 @@ export default async function StatsPage() {
         value: s.wins,
       })),
       stat: "victorias",
+    },
+    {
+      title: "Más Títulos",
+      data: mostTitles.map((s, i) => ({
+        rank: i + 1,
+        userId: s.userId,
+        nickname: s.user.nickname,
+        avatarUrl: s.user.avatarUrl,
+        value: s.titlesWon,
+      })),
+      stat: "títulos",
     },
     {
       title: "Ranking ELO",

@@ -13,6 +13,8 @@ import {
   TrendingUp,
   Users,
   User,
+  UsersRound,
+  Globe,
   ChevronLeft,
   ChevronRight,
   X,
@@ -32,6 +34,8 @@ const iconMap = {
   TrendingUp,
   Users,
   User,
+  UsersRound,
+  Globe,
 };
 
 interface SidebarProps {

@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.supabase.co", pathname: "/**" },
       { protocol: "https", hostname: "r2.thesportsdb.com", pathname: "/**" },
       { protocol: "https", hostname: "www.thesportsdb.com", pathname: "/**" },
+      { protocol: "https", hostname: "d37kf7rs4g1hyv.cloudfront.net", pathname: "/**" },
+      { protocol: "https", hostname: "www.scorebat.com", pathname: "/**" },
     ],
   },
 };

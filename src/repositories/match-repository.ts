@@ -12,6 +12,7 @@ export class MatchRepository {
         events: { include: { user: true } },
         playerStats: { include: { fcPlayer: true } },
         mvpUser: true,
+        proposedByUser: { select: { id: true, nickname: true } },
       },
     });
   }

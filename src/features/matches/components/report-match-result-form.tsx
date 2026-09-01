@@ -308,6 +308,10 @@ export function ReportMatchResultForm({
       const result = await recordMatchResult(formData);
       if (result.error) {
         toast.error(result.error);
+      } else if (result.pendingConfirmation) {
+        toast.success("Resultado enviado. Esperando confirmación del rival");
+        router.push(`/matches/${matchId}`);
+        router.refresh();
       } else {
         toast.success("Resultado registrado");
         router.push(`/matches/${matchId}`);
@@ -321,7 +325,7 @@ export function ReportMatchResultForm({
       <CardHeader>
         <CardTitle className="text-base">Registrar resultado</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Victoria +3 pts · Empate +1 · Derrota 0 · MVP +1 en ranking global
+          El rival debe confirmar el marcador. Victoria +3 · Empate +1 · Derrota 0 · MVP +1
         </p>
       </CardHeader>
       <CardContent>

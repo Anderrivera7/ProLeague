@@ -30,13 +30,22 @@ export default async function MatchesPage() {
       <div className="flex-1 overflow-y-auto p-4 lg:p-6">
         {matches.length > 0 ? (
           <div className="space-y-3 max-w-3xl">
-            {matches.map((match) => (
-              <MatchCard
-                key={match.id}
-                match={match as never}
-                canReport={match.status === "SCHEDULED"}
-              />
-            ))}
+            {matches.map((match) => {
+              const canConfirm =
+                match.status === "PENDING_CONFIRMATION" &&
+                match.proposedByUserId !== user.id &&
+                match.proposedByUserId != null;
+
+              return (
+                <MatchCard
+                  key={match.id}
+                  match={match as never}
+                  canReport={match.status === "SCHEDULED"}
+                  canConfirm={canConfirm}
+                  currentUserId={user.id}
+                />
+              );
+            })}
           </div>
         ) : (
           <Card className="glass">

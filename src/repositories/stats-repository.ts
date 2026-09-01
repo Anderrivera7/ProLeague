@@ -52,6 +52,15 @@ export class StatsRepository {
     });
   }
 
+  static async getMostTitles(limit = 10) {
+    return prisma.playerStats.findMany({
+      where: { titlesWon: { gt: 0 } },
+      orderBy: { titlesWon: "desc" },
+      take: limit,
+      include: { user: true },
+    });
+  }
+
   static async getEloRanking(limit = 50) {
     return prisma.user.findMany({
       orderBy: { elo: "desc" },

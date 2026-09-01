@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { EnrichedPlayerStat } from "@/types/match-stats";
 import { MatchEventsSummaryLoader } from "@/features/matches/components/match-events-summary-loader";
 import { ReportMatchResultFormLoader } from "@/features/matches/components/report-match-result-form-loader";
+import { PendingMatchResultCard } from "@/features/matches/components/pending-match-result-card";
 import { HeadToHeadPanel } from "@/features/players/components/head-to-head-panel";
 import { MatchRepository } from "@/repositories/match-repository";
 import { PlayerRepository } from "@/repositories/player-repository";
@@ -23,10 +24,11 @@ interface PageProps {
 const statusLabel = {
   SCHEDULED: "Programado",
   LIVE: "En vivo",
+  PENDING_CONFIRMATION: "Por confirmar",
   COMPLETED: "Finalizado",
   CANCELLED: "Cancelado",
   WALKOVER: "Walkover",
-};
+} as const;
 
 export default async function MatchDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
@@ -46,6 +48,7 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
   const isParticipant =
     homeUser.id === user.id || awayUser.id === user.id;
   const isCreator = match.tournament.creatorId === user.id;
+  const isPending = match.status === "PENDING_CONFIRMATION";
   const canReport =
     match.status === "SCHEDULED" && (isParticipant || isCreator);
   const showForm = canReport && report === "1";
@@ -93,6 +96,13 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
     }
   );
 
+  const displayHomeScore = isPending
+    ? match.proposedHomeScore
+    : match.homeScore;
+  const displayAwayScore = isPending
+    ? match.proposedAwayScore
+    : match.awayScore;
+
   return (
     <>
       <Header
@@ -131,11 +141,11 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
 
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-3 rounded-xl bg-muted px-6 py-3 font-mono text-3xl font-bold">
-                  {isCompleted ? (
+                  {isCompleted || isPending ? (
                     <>
-                      <span>{match.homeScore}</span>
+                      <span>{displayHomeScore}</span>
                       <span className="text-muted-foreground text-xl">—</span>
-                      <span>{match.awayScore}</span>
+                      <span>{displayAwayScore}</span>
                     </>
                   ) : (
                     <span className="text-lg text-muted-foreground">vs</span>
@@ -176,6 +186,25 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
             )}
           </CardContent>
         </Card>
+
+        {isPending &&
+          match.proposedByUser &&
+          match.proposedHomeScore != null &&
+          match.proposedAwayScore != null && (
+            <PendingMatchResultCard
+              matchId={match.id}
+              homeScore={match.proposedHomeScore}
+              awayScore={match.proposedAwayScore}
+              penaltiesHome={match.proposedPenaltiesHome}
+              penaltiesAway={match.proposedPenaltiesAway}
+              proposedByNickname={match.proposedByUser.nickname}
+              proposedByUserId={match.proposedByUser.id}
+              currentUserId={user.id}
+              isCreator={isCreator}
+              homeTeamName={homeTeamName}
+              awayTeamName={awayTeamName}
+            />
+          )}
 
         <HeadToHeadPanel
           opponentNickname={h2hOpponentLabel}

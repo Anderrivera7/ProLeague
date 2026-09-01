@@ -50,12 +50,19 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/register") ||
-    request.nextUrl.pathname.startsWith("/auth");
+    request.nextUrl.pathname.startsWith("/auth") ||
+    request.nextUrl.pathname.startsWith("/forgot-password");
+
+  const isPasswordResetRoute =
+    request.nextUrl.pathname.startsWith("/reset-password");
 
   const isOAuthRoute = request.nextUrl.pathname.startsWith("/api/auth/");
 
   const isPublicRoute =
-    request.nextUrl.pathname === "/" || isAuthRoute || isOAuthRoute;
+    request.nextUrl.pathname === "/" ||
+    isAuthRoute ||
+    isOAuthRoute ||
+    isPasswordResetRoute;
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
@@ -64,7 +71,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
+  if (user && isAuthRoute && !isPasswordResetRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

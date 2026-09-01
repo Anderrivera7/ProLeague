@@ -100,9 +100,12 @@ export class TournamentService {
     );
   }
 
-  static async generateFixture(tournamentId: string) {
+  static async generateFixture(tournamentId: string, userId: string) {
     const tournament = await TournamentRepository.findById(tournamentId);
     if (!tournament) throw new Error("Torneo no encontrado");
+    if (tournament.creatorId !== userId) {
+      throw new Error("Solo el creador del torneo puede generar el fixture");
+    }
     if (tournament.participants.length < 2) {
       throw new Error("Se necesitan al menos 2 participantes");
     }

@@ -69,6 +69,9 @@ export interface MatchWithParticipants {
   groupName: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  proposedHomeScore?: number | null;
+  proposedAwayScore?: number | null;
+  proposedByUserId?: string | null;
   status: MatchStatus;
   scheduledAt: Date | null;
   playedAt?: Date | null;
