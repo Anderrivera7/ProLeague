@@ -1,32 +1,43 @@
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-/** Origen público de la app (Vercel, dominio propio o localhost). */
-export function resolveAppOrigin(requestOrigin?: string): string {
-  if (requestOrigin) {
-    return requestOrigin.replace(/\/$/, "");
-  }
+/**
+ * Origen canónico de la app.
+ * En Vercel/producción usa SIEMPRE NEXT_PUBLIC_APP_URL para que coincida con Google Cloud.
+ */
+export function resolveAppOrigin(): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (configured && configured !== "http://localhost:3000") {
+
+  if (process.env.VERCEL === "1" && configured) {
     return configured;
   }
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    configured &&
+    configured !== "http://localhost:3000"
+  ) {
+    return configured;
+  }
+
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  return "http://localhost:3000";
+
+  return configured || "http://localhost:3000";
 }
 
-export function getGoogleRedirectUri(origin?: string) {
-  return `${resolveAppOrigin(origin)}/api/auth/google/callback`;
+export function getGoogleRedirectUri(): string {
+  return `${resolveAppOrigin()}/api/auth/google/callback`;
 }
 
-export function buildGoogleAuthUrl(state: string, origin?: string) {
+export function buildGoogleAuthUrl(state: string) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     throw new Error("Falta GOOGLE_CLIENT_ID en .env");
   }
 
-  const redirectUri = getGoogleRedirectUri(origin);
+  const redirectUri = getGoogleRedirectUri();
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -50,7 +61,7 @@ export interface GoogleUserInfo {
 
 export async function exchangeGoogleCode(
   code: string,
-  origin?: string
+  redirectUri?: string
 ): Promise<GoogleUserInfo> {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -59,7 +70,7 @@ export async function exchangeGoogleCode(
     throw new Error("Faltan GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET en .env");
   }
 
-  const redirectUri = getGoogleRedirectUri(origin);
+  const uri = redirectUri ?? getGoogleRedirectUri();
 
   const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
@@ -68,7 +79,7 @@ export async function exchangeGoogleCode(
       code,
       client_id: clientId,
       client_secret: clientSecret,
-      redirect_uri: redirectUri,
+      redirect_uri: uri,
       grant_type: "authorization_code",
     }),
   });

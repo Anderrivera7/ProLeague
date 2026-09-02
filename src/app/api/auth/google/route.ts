@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { buildGoogleAuthUrl } from "@/lib/google-oauth";
+import { buildGoogleAuthUrl, getGoogleRedirectUri } from "@/lib/google-oauth";
 
 export async function GET(request: Request) {
   const origin = new URL(request.url).origin;
 
   try {
     const state = crypto.randomUUID();
+    const redirectUri = getGoogleRedirectUri();
     const cookieStore = await cookies();
 
     cookieStore.set("google_oauth_state", state, {
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
       path: "/",
     });
 
-    cookieStore.set("google_oauth_origin", origin, {
+    cookieStore.set("google_oauth_redirect", redirectUri, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
       path: "/",
     });
 
-    const authUrl = buildGoogleAuthUrl(state, origin);
+    const authUrl = buildGoogleAuthUrl(state);
     return NextResponse.redirect(authUrl);
   } catch (error) {
     const message =

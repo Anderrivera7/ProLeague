@@ -3,6 +3,20 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "prisma"],
+  poweredByHeader: false,
+  compress: true,
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "recharts",
+      "@radix-ui/react-avatar",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+      "@radix-ui/react-tabs",
+    ],
+  },
   turbopack: {
     root: path.resolve(__dirname),
   },

@@ -29,19 +29,17 @@ export async function GET(request: Request) {
 
   const cookieStore = await cookies();
   const savedState = cookieStore.get("google_oauth_state")?.value;
-  const savedOrigin = cookieStore.get("google_oauth_origin")?.value;
+  const savedRedirect = cookieStore.get("google_oauth_redirect")?.value;
   cookieStore.delete("google_oauth_state");
-  cookieStore.delete("google_oauth_origin");
+  cookieStore.delete("google_oauth_redirect");
 
   if (!savedState || savedState !== state) {
     loginUrl.searchParams.set("error", "Estado OAuth inválido");
     return NextResponse.redirect(loginUrl);
   }
 
-  const oauthOrigin = savedOrigin ?? origin;
-
   try {
-    const googleUser = await exchangeGoogleCode(code, oauthOrigin);
+    const googleUser = await exchangeGoogleCode(code, savedRedirect ?? undefined);
     const admin = createAdminClient();
     const supabase = await createClient();
 
