@@ -4,6 +4,9 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { LastActiveTracker } from "@/components/layout/last-active-tracker";
 
+/** Rutas autenticadas: usan cookies de Supabase, no pre-render estático. */
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {

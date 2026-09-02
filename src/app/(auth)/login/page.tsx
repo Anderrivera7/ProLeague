@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,36 +11,34 @@ import { signInWithEmail } from "@/actions/auth-actions";
 import { APP_NAME } from "@/constants";
 import { AppLogo } from "@/components/shared/app-logo";
 
+function friendlyAuthError(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes("redirect_uri_mismatch") || lower.includes("acceso bloqueado")) {
+    return "Google OAuth: URL de redirección incorrecta. Añade en Google Cloud la URL de tu app + /api/auth/google/callback";
+  }
+  return raw;
+}
+
 export default function LoginPage() {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const authError = new URLSearchParams(window.location.search).get("error");
     if (authError) {
-      setError(authError);
-      toast.error(authError);
+      const msg = friendlyAuthError(decodeURIComponent(authError));
+      setError(msg);
+      toast.error(msg);
     }
   }, []);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      try {
-        const result = await signInWithEmail(formData);
-        if (result.error) {
-          setError(result.error);
-          toast.error(result.error);
-        } else {
-          toast.success("¡Bienvenido de vuelta!");
-          router.push("/dashboard");
-        }
-      } catch {
-        const msg =
-          "No se pudo conectar con el servidor. Comprueba que npm run dev esté activo.";
-        setError(msg);
-        toast.error(msg);
+      const result = await signInWithEmail(formData);
+      if (result?.error) {
+        setError(result.error);
+        toast.error(result.error);
       }
     });
   }

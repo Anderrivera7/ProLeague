@@ -14,7 +14,11 @@ export async function GET(request: Request) {
   const loginUrl = new URL("/login", origin);
 
   if (error) {
-    loginUrl.searchParams.set("error", "Google canceló el inicio de sesión");
+    const msg =
+      error === "access_denied"
+        ? "Inicio de sesión con Google cancelado"
+        : error;
+    loginUrl.searchParams.set("error", msg);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -25,15 +29,19 @@ export async function GET(request: Request) {
 
   const cookieStore = await cookies();
   const savedState = cookieStore.get("google_oauth_state")?.value;
+  const savedOrigin = cookieStore.get("google_oauth_origin")?.value;
   cookieStore.delete("google_oauth_state");
+  cookieStore.delete("google_oauth_origin");
 
   if (!savedState || savedState !== state) {
     loginUrl.searchParams.set("error", "Estado OAuth inválido");
     return NextResponse.redirect(loginUrl);
   }
 
+  const oauthOrigin = savedOrigin ?? origin;
+
   try {
-    const googleUser = await exchangeGoogleCode(code);
+    const googleUser = await exchangeGoogleCode(code, oauthOrigin);
     const admin = createAdminClient();
     const supabase = await createClient();
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { cache } from "react";
+import { connection } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -13,21 +14,29 @@ import {
 } from "@/schemas";
 
 export async function signInWithEmail(formData: FormData) {
+  const parsed = loginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
   try {
-    const parsed = loginSchema.safeParse({
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
-
-    if (!parsed.success) {
-      return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
-    }
-
     const supabase = await createClient();
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
-    if (error) return { error: error.message };
-    return { success: true };
+    if (error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes("email not confirmed")) {
+        return {
+          error:
+            "Confirma tu email antes de iniciar sesión (revisa tu bandeja de entrada).",
+        };
+      }
+      return { error: error.message };
+    }
   } catch (e) {
     return {
       error:
@@ -36,6 +45,9 @@ export async function signInWithEmail(formData: FormData) {
           : "No se pudo conectar con el servidor. Reinicia npm run dev.",
     };
   }
+
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
 }
 
 export async function signUpWithEmail(formData: FormData) {
@@ -167,6 +179,7 @@ export async function signOut() {
 
 export const getSessionUser = cache(async () => {
   try {
+    await connection();
     const supabase = await createClient();
     const {
       data: { user },

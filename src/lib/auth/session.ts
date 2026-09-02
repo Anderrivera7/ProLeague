@@ -1,16 +1,28 @@
 import { cache } from "react";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { UserRepository } from "@/repositories/user-repository";
+
+function isDynamicServerError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    (error as { digest?: string }).digest === "DYNAMIC_SERVER_USAGE"
+  );
+}
 
 /** Solo Supabase — sin consulta a Prisma (para server actions ligeras). */
 export const getSessionUserId = cache(async (): Promise<string | null> => {
   try {
+    await connection();
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     return user?.id ?? null;
-  } catch {
+  } catch (error) {
+    if (isDynamicServerError(error)) return null;
     return null;
   }
 });
@@ -18,6 +30,7 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
 /** Perfil de sesión; deduplicado por request con React.cache. */
 export const getCurrentUser = cache(async () => {
   try {
+    await connection();
     const supabase = await createClient();
     const {
       data: { user },
@@ -51,7 +64,9 @@ export const getCurrentUser = cache(async () => {
       country: user.user_metadata?.country ?? null,
     });
   } catch (error) {
-    console.error("[getCurrentUser]", error);
+    if (!isDynamicServerError(error)) {
+      console.error("[getCurrentUser]", error);
+    }
     return null;
   }
 });

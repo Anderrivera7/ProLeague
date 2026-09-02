@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { buildGoogleAuthUrl } from "@/lib/google-oauth";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const origin = new URL(request.url).origin;
+
   try {
     const state = crypto.randomUUID();
     const cookieStore = await cookies();
@@ -15,13 +17,21 @@ export async function GET() {
       path: "/",
     });
 
-    const authUrl = buildGoogleAuthUrl(state);
+    cookieStore.set("google_oauth_origin", origin, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 600,
+      path: "/",
+    });
+
+    const authUrl = buildGoogleAuthUrl(state, origin);
     return NextResponse.redirect(authUrl);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Error al iniciar Google OAuth";
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(message)}`, process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000")
+      new URL(`/login?error=${encodeURIComponent(message)}`, origin)
     );
   }
 }
