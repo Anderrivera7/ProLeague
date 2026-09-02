@@ -7,7 +7,7 @@ export async function GET(request: Request) {
 
   try {
     const state = crypto.randomUUID();
-    const redirectUri = getGoogleRedirectUri();
+    const redirectUri = getGoogleRedirectUri(origin);
     const cookieStore = await cookies();
 
     cookieStore.set("google_oauth_state", state, {
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       path: "/",
     });
 
-    const authUrl = buildGoogleAuthUrl(state);
+    const authUrl = buildGoogleAuthUrl(state, origin);
     return NextResponse.redirect(authUrl);
   } catch (error) {
     const message =

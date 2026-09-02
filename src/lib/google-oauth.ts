@@ -1,23 +1,42 @@
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
+const PLACEHOLDER_ORIGIN = /TU-PROYECTO|YOUR_|example\.com|tu-dominio/i;
+
+function isConfiguredPlaceholder(value?: string) {
+  return !value || PLACEHOLDER_ORIGIN.test(value);
+}
+
 /**
  * Origen canónico de la app.
- * En Vercel/producción usa SIEMPRE NEXT_PUBLIC_APP_URL para que coincida con Google Cloud.
+ * En rutas OAuth prioriza el origin real del request (runtime) para evitar
+ * valores obsoletos de NEXT_PUBLIC_APP_URL embebidos en el build.
  */
-export function resolveAppOrigin(): string {
+export function resolveAppOrigin(requestOrigin?: string): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
 
-  if (process.env.VERCEL === "1" && configured) {
-    return configured;
+  if (process.env.VERCEL === "1") {
+    if (requestOrigin) {
+      return requestOrigin;
+    }
+    if (configured && !isConfiguredPlaceholder(configured)) {
+      return configured;
+    }
+    if (process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}`;
+    }
   }
 
   if (
     process.env.NODE_ENV === "production" &&
     configured &&
-    configured !== "http://localhost:3000"
+    !isConfiguredPlaceholder(configured)
   ) {
     return configured;
+  }
+
+  if (requestOrigin) {
+    return requestOrigin;
   }
 
   if (process.env.VERCEL_URL) {
@@ -27,17 +46,17 @@ export function resolveAppOrigin(): string {
   return configured || "http://localhost:3000";
 }
 
-export function getGoogleRedirectUri(): string {
-  return `${resolveAppOrigin()}/api/auth/google/callback`;
+export function getGoogleRedirectUri(requestOrigin?: string): string {
+  return `${resolveAppOrigin(requestOrigin)}/api/auth/google/callback`;
 }
 
-export function buildGoogleAuthUrl(state: string) {
+export function buildGoogleAuthUrl(state: string, requestOrigin?: string) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     throw new Error("Falta GOOGLE_CLIENT_ID en .env");
   }
 
-  const redirectUri = getGoogleRedirectUri();
+  const redirectUri = getGoogleRedirectUri(requestOrigin);
 
   const params = new URLSearchParams({
     client_id: clientId,
