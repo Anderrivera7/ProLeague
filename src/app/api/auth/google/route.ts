@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { buildGoogleAuthUrl, getGoogleRedirectUri } from "@/lib/google-oauth";
+import {
+  buildGoogleAuthUrl,
+  getGoogleRedirectUri,
+  resolveRequestOrigin,
+} from "@/lib/google-oauth";
 
 export async function GET(request: Request) {
-  const origin = new URL(request.url).origin;
+  const origin = resolveRequestOrigin(request);
 
   try {
     const state = crypto.randomUUID();

@@ -7,43 +7,57 @@ function isConfiguredPlaceholder(value?: string) {
   return !value || PLACEHOLDER_ORIGIN.test(value);
 }
 
+function sanitizeOrigin(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.replace(/\/$/, "");
+  if (isConfiguredPlaceholder(trimmed)) return null;
+  try {
+    const url = trimmed.includes("://")
+      ? new URL(trimmed)
+      : new URL(`https://${trimmed}`);
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Origen canónico de la app.
- * En rutas OAuth prioriza el origin real del request (runtime) para evitar
- * valores obsoletos de NEXT_PUBLIC_APP_URL embebidos en el build.
+ * En Vercel prioriza Host / x-forwarded-host del request (runtime).
+ * Nunca usa placeholders tipo TU-PROYECTO.vercel.app.
  */
 export function resolveAppOrigin(requestOrigin?: string): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const fromRequest = sanitizeOrigin(requestOrigin);
+  if (fromRequest) return fromRequest;
 
-  if (process.env.VERCEL === "1") {
-    if (requestOrigin) {
-      return requestOrigin;
-    }
-    if (configured && !isConfiguredPlaceholder(configured)) {
-      return configured;
-    }
-    if (process.env.VERCEL_URL) {
-      return `https://${process.env.VERCEL_URL}`;
-    }
+  const configured = sanitizeOrigin(process.env.NEXT_PUBLIC_APP_URL);
+  if (configured) return configured;
+
+  const vercel = sanitizeOrigin(process.env.VERCEL_URL);
+  if (vercel) return vercel;
+
+  return "http://localhost:3000";
+}
+
+/** Origen a partir de cabeceras del request (fiable en Vercel). */
+export function resolveRequestOrigin(request: Request): string {
+  const headers = request.headers;
+  const forwardedHost = headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost || headers.get("host");
+  const proto =
+    headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+    (process.env.VERCEL === "1" ? "https" : "http");
+
+  if (host) {
+    const fromHeaders = sanitizeOrigin(`${proto}://${host}`);
+    if (fromHeaders) return fromHeaders;
   }
 
-  if (
-    process.env.NODE_ENV === "production" &&
-    configured &&
-    !isConfiguredPlaceholder(configured)
-  ) {
-    return configured;
+  try {
+    return resolveAppOrigin(new URL(request.url).origin);
+  } catch {
+    return resolveAppOrigin();
   }
-
-  if (requestOrigin) {
-    return requestOrigin;
-  }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  return configured || "http://localhost:3000";
 }
 
 export function getGoogleRedirectUri(requestOrigin?: string): string {
