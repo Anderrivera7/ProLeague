@@ -27,9 +27,8 @@ import {
   User,
   Users,
 } from "lucide-react";
-import Image from "next/image";
-import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
 import { TrophyService } from "@/services/trophy-service";
+import { TitlesShowcase } from "@/features/titles/components/titles-showcase";
 
 const menuItems = [
   { href: "/titles", label: "Títulos", icon: Crown, color: "text-amber-400 bg-amber-400/15" },
@@ -149,8 +148,8 @@ export default async function ProfilePage() {
 
         <div className="grid grid-cols-2 gap-3">
           {statCards.map((stat) => {
-            const card = (
-              <Card key={stat.label} className="glass border-border/80">
+            const inner = (
+              <Card className="glass border-border/80">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -168,86 +167,15 @@ export default async function ProfilePage() {
             if (stat.label === "Títulos") {
               return (
                 <Link key={stat.label} href="/titles" className="block">
-                  {card}
+                  {inner}
                 </Link>
               );
             }
-            return card;
+            return <div key={stat.label}>{inner}</div>;
           })}
         </div>
 
-        {trophies.length > 0 && (
-          <Card className="glass">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Crown className="h-4 w-4 text-primary" />
-                Vitrina · {trophies.length} título{trophies.length === 1 ? "" : "s"}
-              </CardTitle>
-              <Link href="/titles" className="text-xs font-medium text-primary">
-                Ver todos ({trophies.length})
-              </Link>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
-                {[...trophies]
-                  .sort((a, b) =>
-                    (a.clubName || a.title || "").localeCompare(
-                      b.clubName || b.title || "",
-                      "es"
-                    )
-                  )
-                  .slice(0, 8)
-                  .map((trophy) => {
-                  const league = trophy.tournament?.fcLeague;
-                  const label =
-                    league?.name ??
-                    trophy.title.replace(/^Campeón\s*·\s*/i, "");
-                  const url = resolveTrophyImage(
-                    trophy.imageUrl,
-                    league?.fifaIndexId,
-                    label
-                  );
-                  return (
-                    <Link
-                      key={trophy.id}
-                      href="/titles"
-                      className="flex w-24 shrink-0 flex-col items-center gap-2"
-                    >
-                      <div className="relative flex h-24 w-20 items-end justify-center">
-                        {url ? (
-                          <Image
-                            src={url}
-                            alt={label}
-                            width={80}
-                            height={96}
-                            className="h-24 w-auto object-contain"
-                            unoptimized={url.startsWith("http")}
-                          />
-                        ) : (
-                          <Trophy className="h-12 w-12 text-primary" />
-                        )}
-                        {trophy.clubCrestUrl && (
-                          <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card p-0.5 shadow">
-                            <Image
-                              src={trophy.clubCrestUrl}
-                              alt={trophy.clubName ?? ""}
-                              width={24}
-                              height={24}
-                              className="h-5 w-5 object-contain"
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <p className="line-clamp-2 text-center text-[10px] text-muted-foreground">
-                        {trophy.clubName ?? label}
-                      </p>
-                    </Link>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <TitlesShowcase trophies={trophies} />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="glass">
