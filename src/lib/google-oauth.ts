@@ -22,19 +22,24 @@ function sanitizeOrigin(value?: string | null): string | null {
 }
 
 /**
- * Origen canónico de la app.
- * En Vercel prioriza Host / x-forwarded-host del request (runtime).
+ * Origen canónico de la app (uso general).
+ * Orden: request → VERCEL_PROJECT_PRODUCTION_URL → VERCEL_URL → NEXT_PUBLIC_APP_URL.
  * Nunca usa placeholders tipo TU-PROYECTO.vercel.app.
  */
 export function resolveAppOrigin(requestOrigin?: string): string {
   const fromRequest = sanitizeOrigin(requestOrigin);
   if (fromRequest) return fromRequest;
 
-  const configured = sanitizeOrigin(process.env.NEXT_PUBLIC_APP_URL);
-  if (configured) return configured;
+  const productionHost = sanitizeOrigin(
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+  );
+  if (productionHost) return productionHost;
 
   const vercel = sanitizeOrigin(process.env.VERCEL_URL);
   if (vercel) return vercel;
+
+  const configured = sanitizeOrigin(process.env.NEXT_PUBLIC_APP_URL);
+  if (configured) return configured;
 
   return "http://localhost:3000";
 }
@@ -60,8 +65,19 @@ export function resolveRequestOrigin(request: Request): string {
   }
 }
 
+/**
+ * Redirect URI de Google OAuth.
+ * NO usa NEXT_PUBLIC_APP_URL (se congela en el build y suele quedar mal).
+ * Solo: origin del request → dominio Production de Vercel → fallback del proyecto.
+ */
 export function getGoogleRedirectUri(requestOrigin?: string): string {
-  return `${resolveAppOrigin(requestOrigin)}/api/auth/google/callback`;
+  const origin =
+    sanitizeOrigin(requestOrigin) ||
+    sanitizeOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
+    sanitizeOrigin(process.env.VERCEL_URL) ||
+    "https://pro-league-xi.vercel.app";
+
+  return `${origin}/api/auth/google/callback`;
 }
 
 export function buildGoogleAuthUrl(state: string, requestOrigin?: string) {
