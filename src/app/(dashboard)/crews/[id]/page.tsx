@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { getSessionUser } from "@/actions/auth-actions";
 import { Header } from "@/components/layout/header";
-import { CrewPodiumPanel } from "@/features/crews/components/crew-podium-panel";
+import { CrewStatsBoard } from "@/features/crews/components/crew-stats-board";
 import { CrewActions } from "@/features/crews/components/crew-actions";
 import { CrewService } from "@/services/crew-service";
 
@@ -17,22 +17,32 @@ export default async function CrewDetailPage({
   const crew = await CrewService.getCrewForMember(id, session.id);
   if (!crew) notFound();
 
-  const podium = await CrewService.getPodium(id, session.id);
-  if (!podium) notFound();
+  const boardsData = await CrewService.getBoards(id, session.id);
+  if (!boardsData) notFound();
 
   const isOwner = crew.ownerId === session.id;
+  const memberCount = crew.members.length;
 
   return (
     <>
-      <Header title={crew.name} subtitle="Podio de títulos del grupo" />
+      <Header
+        title={crew.name}
+        subtitle="Podios en vivo entre amigos del grupo"
+      />
       <div className="flex-1 overflow-y-auto p-4 lg:p-6">
         <div className="mx-auto max-w-3xl space-y-6">
           <CrewActions
             crewId={crew.id}
             joinCode={crew.joinCode}
             isOwner={isOwner}
+            memberCount={memberCount}
           />
-          <CrewPodiumPanel entries={podium} crewName={crew.name} />
+          <CrewStatsBoard
+            boards={boardsData.boards}
+            titlesDetail={boardsData.titlesDetail}
+            crewName={crew.name}
+            memberCount={memberCount}
+          />
         </div>
       </div>
     </>

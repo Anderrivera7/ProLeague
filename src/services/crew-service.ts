@@ -1,4 +1,5 @@
 import { CrewRepository } from "@/repositories/crew-repository";
+import { formatBiggestWin } from "@/utils/match-stats";
 
 const MAX_MEMBERS = 20;
 const JOIN_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -30,6 +31,54 @@ export type CrewPodiumEntry = {
     leagueName: string | null;
   }[];
 };
+
+export type CrewBoardEntry = {
+  userId: string;
+  nickname: string;
+  avatarUrl: string | null;
+  value: number;
+  detail?: string;
+  rank: number;
+  isCurrentUser: boolean;
+  isOwner: boolean;
+};
+
+export type CrewBoardCategory = {
+  id: "titles" | "relegations" | "thrashings" | "wins";
+  title: string;
+  subtitle: string;
+  unitSingular: string;
+  unitPlural: string;
+  entries: CrewBoardEntry[];
+};
+
+function rankByValue(
+  members: {
+    userId: string;
+    nickname: string;
+    avatarUrl: string | null;
+    isOwner: boolean;
+    isCurrentUser: boolean;
+    value: number;
+    detail?: string;
+  }[],
+  /** Si true, mayor valor gana; si false, se usa igual (siempre desc). */
+  descending = true
+): CrewBoardEntry[] {
+  const sorted = [...members].sort((a, b) =>
+    descending ? b.value - a.value : a.value - b.value
+  );
+  return sorted.map((m, i) => ({
+    userId: m.userId,
+    nickname: m.nickname,
+    avatarUrl: m.avatarUrl,
+    value: m.value,
+    detail: m.detail,
+    rank: i + 1,
+    isCurrentUser: m.isCurrentUser,
+    isOwner: m.isOwner,
+  }));
+}
 
 export class CrewService {
   static async createCrew(userId: string, name: string) {
@@ -153,6 +202,126 @@ export class CrewService {
         leagueName: t.tournament?.fcLeague?.name ?? null,
       })),
     }));
+  }
+
+  /** Podios del grupo: títulos, descensos, goleadas entre amigos, victorias. */
+  static async getBoards(
+    crewId: string,
+    currentUserId: string
+  ): Promise<{
+    boards: CrewBoardCategory[];
+    titlesDetail: CrewPodiumEntry[];
+  } | null> {
+    const crew = await CrewRepository.findById(crewId);
+    if (!crew) return null;
+
+    const isMember = crew.members.some((m) => m.userId === currentUserId);
+    if (!isMember) return null;
+
+    const memberIds = crew.members.map((m) => m.user.id);
+    const base = crew.members.map((m) => ({
+      userId: m.user.id,
+      nickname: m.user.nickname,
+      avatarUrl: m.user.avatarUrl,
+      isOwner: m.user.id === crew.ownerId,
+      isCurrentUser: m.user.id === currentUserId,
+      stats: m.user.stats,
+    }));
+
+    const [relegations, thrashings, titlesDetail] = await Promise.all([
+      CrewRepository.countRelegationsByUser(memberIds),
+      CrewRepository.listCrewThrashings(memberIds),
+      this.getPodium(crewId, currentUserId),
+    ]);
+
+    if (!titlesDetail) return null;
+
+    const bestThrashByUser = new Map<
+      string,
+      { margin: number; detail: string }
+    >();
+    for (const row of thrashings) {
+      const prev = bestThrashByUser.get(row.userId);
+      if (!prev || row.biggestWin > prev.margin) {
+        bestThrashByUser.set(row.userId, {
+          margin: row.biggestWin,
+          detail: formatBiggestWin(
+            row.biggestWinFor,
+            row.biggestWinAgainst,
+            row.opponent.nickname
+          ),
+        });
+      }
+    }
+
+    const titlesBoard = rankByValue(
+      base.map((m) => ({
+        ...m,
+        value: m.stats?.titlesWon ?? 0,
+      }))
+    );
+
+    const relegationsBoard = rankByValue(
+      base.map((m) => ({
+        ...m,
+        value: relegations.get(m.userId) ?? 0,
+      }))
+    );
+
+    const thrashingsBoard = rankByValue(
+      base.map((m) => {
+        const best = bestThrashByUser.get(m.userId);
+        return {
+          ...m,
+          value: best?.margin ?? 0,
+          detail: best?.detail,
+        };
+      })
+    );
+
+    const winsBoard = rankByValue(
+      base.map((m) => ({
+        ...m,
+        value: m.stats?.wins ?? 0,
+      }))
+    );
+
+    const boards: CrewBoardCategory[] = [
+      {
+        id: "titles",
+        title: "Más títulos",
+        subtitle: "Campeones del grupo",
+        unitSingular: "título",
+        unitPlural: "títulos",
+        entries: titlesBoard,
+      },
+      {
+        id: "relegations",
+        title: "Más descensos",
+        subtitle: "Coleros y eliminados",
+        unitSingular: "descenso",
+        unitPlural: "descensos",
+        entries: relegationsBoard,
+      },
+      {
+        id: "thrashings",
+        title: "Mayor goleada",
+        subtitle: "Entre ustedes",
+        unitSingular: "gol de diferencia",
+        unitPlural: "goles de diferencia",
+        entries: thrashingsBoard,
+      },
+      {
+        id: "wins",
+        title: "Más victorias",
+        subtitle: "Partidos ganados",
+        unitSingular: "victoria",
+        unitPlural: "victorias",
+        entries: winsBoard,
+      },
+    ];
+
+    return { boards, titlesDetail };
   }
 
   static async listUserCrews(userId: string) {

@@ -12,7 +12,15 @@ const memberInclude = {
         select: {
           titlesWon: true,
           wins: true,
+          losses: true,
           matchesPlayed: true,
+          biggestWin: true,
+          biggestWinFor: true,
+          biggestWinAgainst: true,
+          biggestLoss: true,
+          goalsFor: true,
+          goalsAgainst: true,
+          goalDifference: true,
         },
       },
       trophies: {
@@ -34,6 +42,78 @@ const memberInclude = {
 } as const;
 
 export class CrewRepository {
+  /** Descensos: puestos de cola en ligas completadas + eliminaciones. */
+  static async countRelegationsByUser(userIds: string[]) {
+    const counts = new Map<string, number>(userIds.map((id) => [id, 0]));
+    if (userIds.length === 0) return counts;
+
+    const leagues = await prisma.tournament.findMany({
+      where: {
+        status: "COMPLETED",
+        type: "LEAGUE",
+        participants: { some: { userId: { in: userIds } } },
+      },
+      select: {
+        id: true,
+        standings: {
+          where: { OR: [{ groupName: null }, { groupName: "" }] },
+          orderBy: [{ points: "desc" }, { gd: "desc" }, { gf: "desc" }],
+          select: {
+            participant: { select: { userId: true } },
+          },
+        },
+      },
+    });
+
+    for (const league of leagues) {
+      const allOrdered = league.standings.map((s) => s.participant.userId);
+      if (allOrdered.length < 2) continue;
+
+      const spots = allOrdered.length >= 8 ? 2 : 1;
+      const relegated = new Set(allOrdered.slice(-spots));
+      for (const id of userIds) {
+        if (!relegated.has(id)) continue;
+        counts.set(id, (counts.get(id) ?? 0) + 1);
+      }
+    }
+
+    const eliminations = await prisma.tournamentParticipant.groupBy({
+      by: ["userId"],
+      where: {
+        userId: { in: userIds },
+        eliminated: true,
+        tournament: { status: "COMPLETED" },
+      },
+      _count: { _all: true },
+    });
+
+    for (const row of eliminations) {
+      counts.set(row.userId, (counts.get(row.userId) ?? 0) + row._count._all);
+    }
+
+    return counts;
+  }
+
+  /** Goleadas entre miembros del grupo (HeadToHead). */
+  static async listCrewThrashings(userIds: string[]) {
+    if (userIds.length < 2) return [];
+    return prisma.headToHead.findMany({
+      where: {
+        userId: { in: userIds },
+        opponentId: { in: userIds },
+        biggestWin: { gt: 0 },
+      },
+      select: {
+        userId: true,
+        opponentId: true,
+        biggestWin: true,
+        biggestWinFor: true,
+        biggestWinAgainst: true,
+        opponent: { select: { nickname: true } },
+      },
+    });
+  }
+
   static async findByJoinCode(joinCode: string) {
     return prisma.crew.findUnique({
       where: { joinCode },

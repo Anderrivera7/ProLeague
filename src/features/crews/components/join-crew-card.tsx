@@ -5,9 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { joinCrew } from "@/actions/crew-actions";
-import { UserPlus } from "lucide-react";
+import { KeyRound } from "lucide-react";
 
 export function JoinCrewCard() {
   const [isPending, startTransition] = useTransition();
@@ -23,10 +22,7 @@ export function JoinCrewCard() {
           toast.error(result.error);
         }
       } catch (e) {
-        if (
-          e instanceof Error &&
-          e.message.includes("NEXT_REDIRECT")
-        ) {
+        if (e instanceof Error && e.message.includes("NEXT_REDIRECT")) {
           return;
         }
         toast.error("No se pudo unir al grupo");
@@ -35,17 +31,17 @@ export function JoinCrewCard() {
   }
 
   return (
-    <Card className="glass max-w-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <UserPlus className="h-4 w-4 text-primary" />
-          Unirse con código
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form action={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="joinCode">Código de invitación</Label>
+    <div className="rounded-3xl border border-border bg-gradient-to-b from-[#161616] to-[#0d0d0d] p-5 sm:p-6">
+      <form action={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label
+            htmlFor="joinCode"
+            className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground"
+          >
+            <KeyRound className="h-3.5 w-3.5" />
+            Código de invitación
+          </Label>
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               id="joinCode"
               name="joinCode"
@@ -53,15 +49,19 @@ export function JoinCrewCard() {
               required
               minLength={6}
               maxLength={6}
-              className="font-mono uppercase tracking-widest"
+              className="h-12 rounded-2xl font-mono text-lg uppercase tracking-[0.35em]"
             />
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="h-12 shrink-0 rounded-2xl px-6"
+            >
+              {isPending ? "Entrando..." : "Unirme"}
+            </Button>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" variant="outline" disabled={isPending}>
-            {isPending ? "Uniéndose..." : "Unirse al grupo"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </form>
+    </div>
   );
 }
