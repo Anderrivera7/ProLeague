@@ -1,6 +1,6 @@
 import type { Prisma, TournamentType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getCompetitionTitleLabel } from "@/lib/fc-data/league-trophies";
+import { getCompetitionTitleLabel, getLeagueTrophyUrl } from "@/lib/fc-data/league-trophies";
 import { calculateLevel } from "@/utils/points";
 
 type Db = typeof prisma | Prisma.TransactionClient;
@@ -160,12 +160,14 @@ export class TrophyService {
       input.leagueName,
       input.tournamentName
     );
+    const imageUrl = getLeagueTrophyUrl(input.leagueId, input.leagueName);
 
     await db.trophy.create({
       data: {
         userId: input.userId,
         tournamentId: input.tournamentId,
         title,
+        imageUrl,
         placement: 1,
         seasonName: input.seasonName,
         wonAt: input.wonAt,

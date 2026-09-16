@@ -1,0 +1,84 @@
+/**
+ * Descarga trofeos remotos como PNG locales en public/trophies.
+ */
+import { config } from "dotenv";
+config({ path: ".env" });
+
+import fs from "fs";
+import path from "path";
+import sharp from "sharp";
+
+const OUT = path.join(process.cwd(), "public", "trophies");
+
+const FILES: Array<{ file: string; url: string }> = [
+  {
+    file: "premier-league.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/9a6kw51689108793.png",
+  },
+  {
+    file: "serie-a.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/83l94y1684416466.png",
+  },
+  {
+    file: "bundesliga.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/0o56hs1684416407.png",
+  },
+  {
+    file: "ligue-1.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/ygfgeq1684416349.png",
+  },
+  {
+    file: "primeira-liga.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/3v5npc1726462062.png",
+  },
+  {
+    file: "super-lig.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/2oirc41681158648.png",
+  },
+  {
+    file: "liga-argentina.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/9sj4611777273081.png",
+  },
+  {
+    file: "ucl.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/31y13d1747884950.png",
+  },
+  {
+    file: "libertadores.png",
+    url: "https://www.thesportsdb.com/images/media/league/trophy/4k9p861687241077.png",
+  },
+  {
+    file: "sudamericana.png",
+    url: "https://www.thesportsdb.com/images/media/league/trophy/xtvtut1448813925.png",
+  },
+  {
+    file: "liga-1-peru.png",
+    url: "https://www.thesportsdb.com/images/media/league/trophy/vwsrsw1422053586.png",
+  },
+  {
+    file: "taca-portugal.png",
+    url: "https://www.thesportsdb.com/images/media/league/trophy/spqxps1422053380.png",
+  },
+];
+
+async function downloadAsPng(url: string, outFile: string) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const outPath = path.join(OUT, outFile);
+  await sharp(buf).png({ compressionLevel: 9 }).toFile(outPath);
+  console.log("ok", outFile, fs.statSync(outPath).size);
+}
+
+async function main() {
+  fs.mkdirSync(OUT, { recursive: true });
+  for (const item of FILES) {
+    try {
+      await downloadAsPng(item.url, item.file);
+    } catch (e) {
+      console.error("fail", item.file, e);
+    }
+  }
+}
+
+main();

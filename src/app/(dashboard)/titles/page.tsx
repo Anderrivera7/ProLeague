@@ -5,7 +5,7 @@ import { Crown, Trophy } from "lucide-react";
 import { getSessionUser } from "@/actions/auth-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getLeagueTrophyUrl } from "@/lib/fc-data/league-trophies";
+import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
 import { TrophyService } from "@/services/trophy-service";
 import { formatTimeAgo } from "@/lib/utils";
 
@@ -58,7 +58,8 @@ export default async function TitlesPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {trophies.map((trophy) => {
             const league = trophy.tournament?.fcLeague;
-            const trophyUrl = getLeagueTrophyUrl(
+            const trophyUrl = resolveTrophyImage(
+              trophy.imageUrl,
               league?.fifaIndexId,
               league?.name ?? trophy.tournament?.name ?? trophy.title
             );

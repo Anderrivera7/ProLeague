@@ -28,7 +28,7 @@ import {
   Users,
 } from "lucide-react";
 import Image from "next/image";
-import { getLeagueTrophyUrl } from "@/lib/fc-data/league-trophies";
+import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
 import { TrophyService } from "@/services/trophy-service";
 
 const menuItems = [
@@ -191,7 +191,8 @@ export default async function ProfilePage() {
               <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
                 {trophies.slice(0, 6).map((trophy) => {
                   const league = trophy.tournament?.fcLeague;
-                  const url = getLeagueTrophyUrl(
+                  const url = resolveTrophyImage(
+                    trophy.imageUrl,
                     league?.fifaIndexId,
                     league?.name ?? trophy.tournament?.name ?? trophy.title
                   );

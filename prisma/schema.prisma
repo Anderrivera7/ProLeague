@@ -521,6 +521,8 @@ model Trophy {
   tournamentId String?
   tournament   Tournament? @relation(fields: [tournamentId], references: [id])
   title        String
+  /** Ruta local o URL del PNG del trofeo de la competición */
+  imageUrl     String?
   placement    Int         @default(1)
   seasonName   String?
   wonAt        DateTime    @default(now())

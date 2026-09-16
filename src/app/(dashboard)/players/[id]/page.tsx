@@ -10,7 +10,7 @@ import { HeadToHeadPanel } from "@/features/players/components/head-to-head-pane
 import { UserRepository } from "@/repositories/user-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getLeagueTrophyUrl } from "@/lib/fc-data/league-trophies";
+import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
 import { getInitials } from "@/lib/utils";
 import { positiveStreak } from "@/utils/match-stats";
 import {
@@ -140,7 +140,8 @@ export default async function PlayerProfilePage({ params }: PageProps) {
               {player.trophies.length > 0 ? (
                 player.trophies.map((trophy) => {
                   const league = trophy.tournament?.fcLeague;
-                  const url = getLeagueTrophyUrl(
+                  const url = resolveTrophyImage(
+                    trophy.imageUrl,
                     league?.fifaIndexId,
                     league?.name ?? trophy.tournament?.name ?? trophy.title
                   );
