@@ -12,8 +12,9 @@ import {
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type {
   CrewBoardCategory,
   CrewBoardEntry,
@@ -73,38 +74,6 @@ const TAB_META: Record<
     soft: "border-sky-500/30 bg-sky-500/10",
   },
 };
-
-function Avatar({
-  nickname,
-  avatarUrl,
-  className,
-}: {
-  nickname: string;
-  avatarUrl?: string | null;
-  className?: string;
-}) {
-  if (avatarUrl) {
-    return (
-      <Image
-        src={avatarUrl}
-        alt={nickname}
-        width={72}
-        height={72}
-        className={cn("rounded-full object-cover", className)}
-      />
-    );
-  }
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-center rounded-full bg-primary/20 font-bold text-primary",
-        className
-      )}
-    >
-      {getInitials(nickname)}
-    </div>
-  );
-}
 
 function StatPill({
   icon,
@@ -168,14 +137,13 @@ function PodiumStep({
             {rank === 1 && (
               <Crown className="mb-1 h-5 w-5 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.7)] sm:h-6 sm:w-6" />
             )}
-            <Avatar
+            <UserAvatar
               nickname={entry.nickname}
               avatarUrl={entry.avatarUrl}
+              size={rank === 1 ? 56 : 44}
               className={cn(
                 "ring-2 ring-offset-2 ring-offset-[#080808]",
-                rank === 1
-                  ? "h-12 w-12 text-xs ring-yellow-400/80 sm:h-16 sm:w-16 sm:text-sm"
-                  : "h-10 w-10 text-[10px] ring-white/25 sm:h-12 sm:w-12 sm:text-xs"
+                rank === 1 ? "ring-yellow-400/80" : "ring-white/25"
               )}
             />
           </>
@@ -457,10 +425,10 @@ export function CrewStatsBoard({
                 >
                   {entry.rank}
                 </span>
-                <Avatar
+                <UserAvatar
                   nickname={entry.nickname}
                   avatarUrl={entry.avatarUrl}
-                  className="h-9 w-9 shrink-0 text-[10px] ring-1 ring-white/10"
+                  size={36}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1">
@@ -494,40 +462,48 @@ export function CrewStatsBoard({
               </div>
 
               {entry.recentTrophies.length > 0 ? (
-                <div className="mt-2.5 flex gap-1.5 overflow-x-auto pl-9 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {entry.recentTrophies.map((trophy) => {
-                    const url = resolveTrophyImage(
-                      trophy.imageUrl,
-                      trophy.leagueFifaId,
-                      trophy.title
-                    );
-                    return (
-                      <div
-                        key={trophy.id}
-                        className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/8 bg-white/[0.03] px-2 py-1"
-                        title={trophy.title}
-                      >
-                        {url ? (
-                          <Image
-                            src={url}
-                            alt={trophy.title}
-                            width={20}
-                            height={26}
-                            className="h-6 w-auto object-contain"
-                            unoptimized
-                          />
-                        ) : (
-                          <Trophy className="h-3.5 w-3.5 text-primary" />
-                        )}
-                        <span className="max-w-[80px] truncate text-[9px] text-muted-foreground">
-                          {trophy.title.replace(/^Campeón\s*·\s*/i, "")}
-                        </span>
-                      </div>
-                    );
-                  })}
+                <div className="mt-3 pl-9 sm:pl-10">
+                  <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Últimos títulos
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {entry.recentTrophies.map((trophy) => {
+                      const url = resolveTrophyImage(
+                        trophy.imageUrl,
+                        trophy.leagueFifaId,
+                        trophy.title
+                      );
+                      const label = trophy.title.replace(/^Campeón\s*·\s*/i, "");
+                      return (
+                        <div
+                          key={trophy.id}
+                          title={label}
+                          className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 rounded-xl border border-white/8 bg-white/[0.03] px-1.5 py-2"
+                        >
+                          <div className="relative flex h-9 w-9 items-center justify-center">
+                            {url ? (
+                              <Image
+                                src={url}
+                                alt={label}
+                                width={36}
+                                height={36}
+                                className="max-h-9 max-w-9 object-contain"
+                                unoptimized
+                              />
+                            ) : (
+                              <Trophy className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                          <span className="line-clamp-2 w-full text-center text-[8px] leading-tight text-muted-foreground">
+                            {label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
-                <p className="mt-2 pl-9 text-[11px] text-muted-foreground">
+                <p className="mt-2 pl-9 text-[11px] text-muted-foreground sm:pl-10">
                   Sin títulos todavía
                 </p>
               )}
