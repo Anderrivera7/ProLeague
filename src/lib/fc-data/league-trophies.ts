@@ -17,9 +17,12 @@ const LOCAL_TROPHY_BY_ID: Record<string, string> = {
   ucl: "/trophies/ucl.png",
   libertadores: "/trophies/libertadores.png",
   ecuador: "/trophies/liga-ecuador.png",
-  sudamericana: "/trophies/liga-ecuador.png",
   peru: "/trophies/liga-1-peru.png",
   taca_portugal: "/trophies/taca-portugal.png",
+  world_cup: "/trophies/world-cup.png",
+  confederations: "/trophies/confederations.png",
+  club_world_cup: "/trophies/club-world-cup.png",
+  intercontinental: "/trophies/intercontinental.png",
 };
 
 const REMOTE_TROPHY_BY_ID: Record<string, string> = {
@@ -66,8 +69,12 @@ const NAME_TO_LEAGUE_ID: Array<{ pattern: RegExp; id: string }> = [
     id: "ecuador",
   },
   { pattern: /sudamericana/i, id: "sudamericana" },
-  { pattern: /liga\s*1|peruana|per[uú]|universitario/i, id: "peru" },
-  { pattern: /mundial|world\s*cup|selecciones/i, id: "intl" },
+  { pattern: /liga\s*1\s*per[uú]|liga\s*peruana|per[uú](?!\s*liga)/i, id: "peru" },
+  { pattern: /copa\s*del\s*mundo|world\s*cup|mundial(?!\s*de\s*club)/i, id: "world_cup" },
+  { pattern: /confederaciones|confederations/i, id: "confederations" },
+  { pattern: /mundial\s*de\s*clubes|club\s*world\s*cup/i, id: "club_world_cup" },
+  { pattern: /intercontinental/i, id: "intercontinental" },
+  { pattern: /mundial|selecciones/i, id: "intl" },
 ];
 
 export function resolveLeagueIdForTrophy(

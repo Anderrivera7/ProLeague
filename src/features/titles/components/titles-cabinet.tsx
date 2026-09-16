@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
 import {
   competitionLabel,
+  recentTrophies,
   type TrophyWithTournament,
   uniqueClubs,
   uniqueCompetitions,
@@ -19,7 +20,7 @@ export function TitlesCabinet({ trophies }: TitlesCabinetProps) {
   const count = trophies.length;
   const clubs = uniqueClubs(trophies);
   const competitions = uniqueCompetitions(trophies);
-  const featured = trophies.slice(0, Math.min(3, count));
+  const latest = recentTrophies(trophies, 3);
 
   if (count === 0) {
     return (
@@ -66,10 +67,10 @@ export function TitlesCabinet({ trophies }: TitlesCabinetProps) {
         <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3 sm:px-5">
           <div className="min-w-0">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/85">
-              Destacados
+              Recientes
             </p>
             <h2 className="truncate text-base font-semibold sm:text-lg">
-              Vitrina principal
+              Últimas 3 jugadas
             </h2>
           </div>
           <Badge className="shrink-0 bg-primary/15 text-primary">
@@ -78,7 +79,7 @@ export function TitlesCabinet({ trophies }: TitlesCabinetProps) {
         </div>
 
         <div className="grid gap-3 p-4 sm:grid-cols-3 sm:gap-4 sm:p-6">
-          {featured.map((trophy, index) => (
+          {latest.map((trophy, index) => (
             <FeaturedTrophyCard
               key={trophy.id}
               trophy={trophy}

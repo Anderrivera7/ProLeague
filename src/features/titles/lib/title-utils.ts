@@ -31,6 +31,19 @@ export function sortTrophies(trophies: TrophyWithTournament[]) {
   });
 }
 
+/** Últimos títulos jugados / ganados (más reciente primero). */
+export function recentTrophies(
+  trophies: TrophyWithTournament[],
+  limit = 3
+): TrophyWithTournament[] {
+  return [...trophies]
+    .sort(
+      (a, b) =>
+        new Date(b.wonAt).getTime() - new Date(a.wonAt).getTime()
+    )
+    .slice(0, limit);
+}
+
 export function uniqueClubs(trophies: TrophyWithTournament[]) {
   return new Set(
     trophies.map((t) => t.clubName).filter((n): n is string => Boolean(n))
