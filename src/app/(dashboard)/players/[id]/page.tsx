@@ -163,14 +163,23 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                         ) : (
                           <Trophy className="h-8 w-8 text-primary" />
                         )}
+                        {trophy.clubCrestUrl && (
+                          <div className="absolute -bottom-0.5 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card p-0.5">
+                            <Image
+                              src={trophy.clubCrestUrl}
+                              alt={trophy.clubName ?? ""}
+                              width={16}
+                              height={16}
+                              className="h-4 w-4 object-contain"
+                            />
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{trophy.title}</p>
-                        {league?.name && (
-                          <p className="truncate text-xs text-muted-foreground">
-                            {league.name}
-                          </p>
-                        )}
+                        <p className="truncate text-xs text-muted-foreground">
+                          {trophy.clubName ?? league?.name ?? "Campeón"}
+                        </p>
                       </div>
                       <Badge variant="outline">#{trophy.placement}</Badge>
                     </div>

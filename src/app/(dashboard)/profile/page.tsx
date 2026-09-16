@@ -191,7 +191,10 @@ export default async function ProfilePage() {
               <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
                 {[...trophies]
                   .sort((a, b) =>
-                    (a.title || "").localeCompare(b.title || "", "es")
+                    (a.clubName || a.title || "").localeCompare(
+                      b.clubName || b.title || "",
+                      "es"
+                    )
                   )
                   .slice(0, 8)
                   .map((trophy) => {
@@ -223,9 +226,20 @@ export default async function ProfilePage() {
                         ) : (
                           <Trophy className="h-12 w-12 text-primary" />
                         )}
+                        {trophy.clubCrestUrl && (
+                          <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card p-0.5 shadow">
+                            <Image
+                              src={trophy.clubCrestUrl}
+                              alt={trophy.clubName ?? ""}
+                              width={24}
+                              height={24}
+                              className="h-5 w-5 object-contain"
+                            />
+                          </div>
+                        )}
                       </div>
                       <p className="line-clamp-2 text-center text-[10px] text-muted-foreground">
-                        {label}
+                        {trophy.clubName ?? label}
                       </p>
                     </Link>
                   );

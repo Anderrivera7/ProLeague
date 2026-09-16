@@ -523,6 +523,10 @@ model Trophy {
   title        String
   /** Ruta local o URL del PNG del trofeo de la competición */
   imageUrl     String?
+  /** Equipo con el que se ganó el título */
+  clubName     String?
+  /** Escudo PNG del equipo */
+  clubCrestUrl String?
   placement    Int         @default(1)
   seasonName   String?
   wonAt        DateTime    @default(now())

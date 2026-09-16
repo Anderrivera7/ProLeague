@@ -25,11 +25,13 @@ export default async function TitlesPage() {
   const trophies = await TrophyService.listForUser(session.id);
   const count = trophies.length;
 
-  const sorted = [...trophies].sort((a, b) =>
-    competitionLabel(a).localeCompare(competitionLabel(b), "es", {
+  const sorted = [...trophies].sort((a, b) => {
+    const clubCmp = (a.clubName || "").localeCompare(b.clubName || "", "es");
+    if (clubCmp !== 0) return clubCmp;
+    return competitionLabel(a).localeCompare(competitionLabel(b), "es", {
       sensitivity: "base",
-    })
-  );
+    });
+  });
 
   return (
     <div className="flex min-h-full flex-col pb-24 lg:pb-6">
@@ -44,14 +46,12 @@ export default async function TitlesPage() {
 
       <div className="mx-auto w-full max-w-4xl space-y-5 px-3 py-4 sm:px-4 lg:px-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Crown className="h-4 w-4 text-primary" />
-              Torneos ProLeague que ya ganaste
-            </p>
-          </div>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Crown className="h-4 w-4 text-primary" />
+            Torneos ProLeague ganados · con escudo del equipo
+          </p>
           {count > 0 && (
-            <Badge className="bg-primary/15 text-primary px-3 py-1 text-sm">
+            <Badge className="bg-primary/15 px-3 py-1 text-sm text-primary">
               {count} en total
             </Badge>
           )}
@@ -62,10 +62,6 @@ export default async function TitlesPage() {
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
               <Trophy className="h-12 w-12 text-muted-foreground" />
               <p className="font-medium">Aún no tienes títulos</p>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                Gana un torneo de ProLeague y el trofeo de esa competición
-                aparecerá aquí.
-              </p>
               <Link
                 href="/tournaments"
                 className="mt-2 text-sm font-medium text-primary hover:underline"
@@ -87,7 +83,19 @@ export default async function TitlesPage() {
 
               return (
                 <Card key={trophy.id} className="glass overflow-hidden">
-                  <CardContent className="flex flex-col items-center gap-3 p-4 text-center">
+                  <CardContent className="relative flex flex-col items-center gap-3 p-4 pt-5 text-center">
+                    {trophy.clubCrestUrl && (
+                      <div className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card p-1 shadow-md">
+                        <Image
+                          src={trophy.clubCrestUrl}
+                          alt={trophy.clubName ?? "Escudo"}
+                          width={36}
+                          height={36}
+                          className="h-8 w-8 object-contain"
+                        />
+                      </div>
+                    )}
+
                     <div className="relative flex h-32 w-28 items-end justify-center">
                       {trophyUrl ? (
                         <Image
@@ -102,9 +110,27 @@ export default async function TitlesPage() {
                         <Trophy className="h-16 w-16 text-primary" />
                       )}
                     </div>
+
                     <Badge className="bg-primary/15 text-primary">Campeón</Badge>
+
                     <div className="min-w-0 space-y-1">
                       <p className="font-semibold leading-snug">{label}</p>
+                      {trophy.clubName && (
+                        <div className="flex items-center justify-center gap-1.5">
+                          {trophy.clubCrestUrl && (
+                            <Image
+                              src={trophy.clubCrestUrl}
+                              alt=""
+                              width={16}
+                              height={16}
+                              className="h-4 w-4 object-contain"
+                            />
+                          )}
+                          <p className="truncate text-sm text-muted-foreground">
+                            {trophy.clubName}
+                          </p>
+                        </div>
+                      )}
                       {trophy.tournament && (
                         <Link
                           href={`/tournaments/${trophy.tournament.id}`}
