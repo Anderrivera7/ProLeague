@@ -1,11 +1,20 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, TournamentType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getCompetitionTitleLabel } from "@/lib/fc-data/league-trophies";
 import { calculateLevel } from "@/utils/points";
 
 type Db = typeof prisma | Prisma.TransactionClient;
 
+type AwardMatch = Prisma.MatchGetPayload<{
+  include: {
+    tournament: { include: { fcLeague: true; season: true } };
+    homeParticipant: { include: { user: true; fcTeam: true } };
+    awayParticipant: { include: { user: true; fcTeam: true } };
+  };
+}>;
+
 export class TrophyService {
-  /** Otorga el título al ganador de la final si aún no existe. */
+  /** Otorga el título al campeón cuando el torneo queda decidido. */
   static async maybeAwardFromCompletedMatch(
     db: Db,
     matchId: string
@@ -25,6 +34,69 @@ export class TrophyService {
     });
 
     if (!match || match.status !== "COMPLETED") return false;
+
+    const existing = await db.trophy.findFirst({
+      where: {
+        tournamentId: match.tournamentId,
+        placement: 1,
+      },
+    });
+    if (existing) return false;
+
+    const type = match.tournament.type as TournamentType;
+
+    if (type === "LEAGUE" || type === "GROUPS") {
+      return this.maybeAwardFromStandings(db, match);
+    }
+
+    return this.maybeAwardFromKnockoutFinal(db, match);
+  }
+
+  /** Liga / grupos: campeón = 1º de la tabla cuando todos los partidos terminaron. */
+  private static async maybeAwardFromStandings(
+    db: Db,
+    match: AwardMatch
+  ): Promise<boolean> {
+    const pending = await db.match.count({
+      where: {
+        tournamentId: match.tournamentId,
+        status: { not: "COMPLETED" },
+      },
+    });
+    if (pending > 0) return false;
+
+    const top = await db.standing.findFirst({
+      where: {
+        tournamentId: match.tournamentId,
+        ...(match.tournament.type === "LEAGUE"
+          ? { groupName: null }
+          : {}),
+      },
+      orderBy: [{ points: "desc" }, { gd: "desc" }, { gf: "desc" }],
+      include: {
+        participant: true,
+      },
+    });
+
+    if (!top?.participant) return false;
+
+    return this.awardChampion(db, {
+      userId: top.participant.userId,
+      participantId: top.participant.id,
+      tournamentId: match.tournamentId,
+      tournamentName: match.tournament.name,
+      leagueName: match.tournament.fcLeague?.name,
+      leagueId: match.tournament.fcLeague?.fifaIndexId,
+      seasonName: match.tournament.season?.name ?? null,
+      wonAt: match.playedAt ?? new Date(),
+    });
+  }
+
+  /** Eliminación / ida-vuelta: campeón = ganador de la última ronda. */
+  private static async maybeAwardFromKnockoutFinal(
+    db: Db,
+    match: AwardMatch
+  ): Promise<boolean> {
     if (match.groupName) return false;
     if (match.homeScore == null || match.awayScore == null) return false;
     if (match.homeScore === match.awayScore) {
@@ -58,56 +130,76 @@ export class TrophyService {
         (match.penaltiesHome ?? 0) > (match.penaltiesAway ?? 0));
 
     const winner = homeWins ? match.homeParticipant : match.awayParticipant;
-    const leagueName = match.tournament.fcLeague?.name ?? match.tournament.name;
-    const title = `Campeón · ${leagueName}`;
 
-    const existing = await db.trophy.findFirst({
-      where: {
-        tournamentId: match.tournamentId,
-        placement: 1,
-      },
+    return this.awardChampion(db, {
+      userId: winner.userId,
+      participantId: winner.id,
+      tournamentId: match.tournamentId,
+      tournamentName: match.tournament.name,
+      leagueName: match.tournament.fcLeague?.name,
+      leagueId: match.tournament.fcLeague?.fifaIndexId,
+      seasonName: match.tournament.season?.name ?? null,
+      wonAt: match.playedAt ?? new Date(),
     });
-    if (existing) return false;
+  }
+
+  private static async awardChampion(
+    db: Db,
+    input: {
+      userId: string;
+      participantId: string;
+      tournamentId: string;
+      tournamentName: string;
+      leagueName?: string | null;
+      leagueId?: string | null;
+      seasonName: string | null;
+      wonAt: Date;
+    }
+  ): Promise<boolean> {
+    const title = getCompetitionTitleLabel(
+      input.leagueName,
+      input.tournamentName
+    );
 
     await db.trophy.create({
       data: {
-        userId: winner.userId,
-        tournamentId: match.tournamentId,
+        userId: input.userId,
+        tournamentId: input.tournamentId,
         title,
         placement: 1,
-        seasonName: match.tournament.season?.name ?? null,
-        wonAt: match.playedAt ?? new Date(),
+        seasonName: input.seasonName,
+        wonAt: input.wonAt,
       },
     });
 
     await db.playerStats.upsert({
-      where: { userId: winner.userId },
+      where: { userId: input.userId },
       create: {
-        userId: winner.userId,
+        userId: input.userId,
         titlesWon: 1,
       },
       update: { titlesWon: { increment: 1 } },
     });
 
     await db.tournament.update({
-      where: { id: match.tournamentId },
+      where: { id: input.tournamentId },
       data: { status: "COMPLETED" },
     });
 
     await db.tournamentParticipant.update({
-      where: { id: winner.id },
+      where: { id: input.participantId },
       data: { placement: 1 },
     });
 
     await db.activity.create({
       data: {
-        userId: winner.userId,
+        userId: input.userId,
         type: "TOURNAMENT_WON",
-        title: `Campeón de ${match.tournament.name}`,
+        title: `Campeón de ${input.tournamentName}`,
         metadata: {
-          tournamentId: match.tournamentId,
-          leagueId: match.tournament.fcLeague?.fifaIndexId,
-          leagueName,
+          tournamentId: input.tournamentId,
+          leagueId: input.leagueId,
+          leagueName: input.leagueName ?? input.tournamentName,
         },
       },
     });

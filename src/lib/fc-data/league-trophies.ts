@@ -1,12 +1,16 @@
 import { getLeagueCoverUrl, getLeagueIconUrl } from "./club-ids";
 
 /**
- * Trofeos de ligas vía TheSportsDB (strTrophy).
+ * Trofeos locales (prioridad) + TheSportsDB.
  * Clave = fifaIndexId de FcLeague / SoFIFA.
  */
-const LEAGUE_TROPHY_BY_ID: Record<string, string> = {
+const LOCAL_TROPHY_BY_ID: Record<string, string> = {
+  "53": "/trophies/la-liga.png", // La Liga — imagen propia
+};
+
+const REMOTE_TROPHY_BY_ID: Record<string, string> = {
   "13": "https://r2.thesportsdb.com/images/media/league/trophy/9a6kw51689108793.png", // Premier
-  "53": "https://r2.thesportsdb.com/images/media/league/trophy/vc2z6q1684416521.png", // La Liga
+  "53": "https://r2.thesportsdb.com/images/media/league/trophy/vc2z6q1684416521.png", // La Liga fallback
   "31": "https://r2.thesportsdb.com/images/media/league/trophy/83l94y1684416466.png", // Serie A
   "19": "https://r2.thesportsdb.com/images/media/league/trophy/0o56hs1684416407.png", // Bundesliga
   "16": "https://r2.thesportsdb.com/images/media/league/trophy/ygfgeq1684416349.png", // Ligue 1
@@ -22,7 +26,10 @@ const LEAGUE_TROPHY_BY_ID: Record<string, string> = {
 
 const NAME_TO_LEAGUE_ID: Array<{ pattern: RegExp; id: string }> = [
   { pattern: /premier\s*league|inglesa/i, id: "13" },
-  { pattern: /la\s*liga|laliga|primera\s*divisi[oó]n/i, id: "53" },
+  {
+    pattern: /la\s*liga|laliga|liga\s*espa[nñ]ola|primera\s*divisi[oó]n/i,
+    id: "53",
+  },
   { pattern: /serie\s*a/i, id: "31" },
   { pattern: /bundesliga/i, id: "19" },
   { pattern: /ligue\s*1/i, id: "16" },
@@ -40,7 +47,9 @@ export function resolveLeagueIdForTrophy(
   fifaIndexId?: string | null,
   leagueName?: string | null
 ): string | null {
-  if (fifaIndexId && LEAGUE_TROPHY_BY_ID[fifaIndexId]) return fifaIndexId;
+  if (fifaIndexId && (LOCAL_TROPHY_BY_ID[fifaIndexId] || REMOTE_TROPHY_BY_ID[fifaIndexId])) {
+    return fifaIndexId;
+  }
   if (fifaIndexId === "intl") return "intl";
 
   if (leagueName) {
@@ -52,7 +61,7 @@ export function resolveLeagueIdForTrophy(
   return fifaIndexId ?? null;
 }
 
-/** URL del trofeo de la competición (TheSportsDB) o fallback a logo/cover. */
+/** URL del trofeo de la competición (local > TheSportsDB > logo). */
 export function getLeagueTrophyUrl(
   fifaIndexId?: string | null,
   leagueName?: string | null
@@ -60,11 +69,20 @@ export function getLeagueTrophyUrl(
   const id = resolveLeagueIdForTrophy(fifaIndexId, leagueName);
   if (!id) return null;
 
-  if (LEAGUE_TROPHY_BY_ID[id]) return LEAGUE_TROPHY_BY_ID[id];
+  if (LOCAL_TROPHY_BY_ID[id]) return LOCAL_TROPHY_BY_ID[id];
+  if (REMOTE_TROPHY_BY_ID[id]) return REMOTE_TROPHY_BY_ID[id];
 
   return (
     getLeagueIconUrl(id, leagueName) ??
     getLeagueCoverUrl(id, leagueName ?? undefined) ??
     null
   );
+}
+
+export function getCompetitionTitleLabel(
+  leagueName?: string | null,
+  tournamentName?: string | null
+): string {
+  const name = leagueName?.trim() || tournamentName?.trim() || "Torneo";
+  return `Campeón · ${name}`;
 }

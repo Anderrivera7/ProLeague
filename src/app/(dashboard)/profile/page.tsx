@@ -16,6 +16,7 @@ import {
   Award,
   BarChart3,
   ChevronRight,
+  Crown,
   Gamepad2,
   Medal,
   Pencil,
@@ -26,8 +27,12 @@ import {
   User,
   Users,
 } from "lucide-react";
+import Image from "next/image";
+import { getLeagueTrophyUrl } from "@/lib/fc-data/league-trophies";
+import { TrophyService } from "@/services/trophy-service";
 
 const menuItems = [
+  { href: "/titles", label: "Títulos", icon: Crown, color: "text-amber-400 bg-amber-400/15" },
   { href: "/players", label: "Mis equipos", icon: Users, color: "text-primary bg-primary/15" },
   { href: "/profile/achievements", label: "Logros", icon: Award, color: "text-amber-400 bg-amber-400/15" },
   { href: "/stats", label: "Estadísticas", icon: BarChart3, color: "text-sky-400 bg-sky-400/15" },
@@ -39,7 +44,7 @@ export default async function ProfilePage() {
   const session = await getSessionUser();
   if (!session) redirect("/login");
 
-  const [user, rankInfo, recentActivities] = await Promise.all([
+  const [user, rankInfo, recentActivities, trophies] = await Promise.all([
     AchievementService.syncForUser(session.id, prisma).then(() =>
       UserRepository.findProfileCardById(session.id)
     ),
@@ -50,6 +55,7 @@ export default async function ProfilePage() {
       take: 3,
       select: { id: true, type: true, title: true, createdAt: true },
     }),
+    TrophyService.listForUser(session.id),
   ]);
 
   if (!user) redirect("/login");
@@ -142,23 +148,83 @@ export default async function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {statCards.map((stat) => (
-            <Card key={stat.label} className="glass border-border/80">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
-                    <p className="mt-1 text-2xl font-bold">{stat.value}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{stat.sub}</p>
+          {statCards.map((stat) => {
+            const card = (
+              <Card key={stat.label} className="glass border-border/80">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+                      <p className="mt-1 text-2xl font-bold">{stat.value}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{stat.sub}</p>
+                    </div>
+                    <div className="rounded-xl bg-muted p-2">
+                      <stat.icon className={`h-4 w-4 ${stat.accent}`} />
+                    </div>
                   </div>
-                  <div className="rounded-xl bg-muted p-2">
-                    <stat.icon className={`h-4 w-4 ${stat.accent}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+            if (stat.label === "Títulos") {
+              return (
+                <Link key={stat.label} href="/titles" className="block">
+                  {card}
+                </Link>
+              );
+            }
+            return card;
+          })}
         </div>
+
+        {trophies.length > 0 && (
+          <Card className="glass">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Crown className="h-4 w-4 text-primary" />
+                Vitrina de títulos
+              </CardTitle>
+              <Link href="/titles" className="text-xs text-primary">
+                Ver todos
+              </Link>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
+                {trophies.slice(0, 6).map((trophy) => {
+                  const league = trophy.tournament?.fcLeague;
+                  const url = getLeagueTrophyUrl(
+                    league?.fifaIndexId,
+                    league?.name ?? trophy.tournament?.name ?? trophy.title
+                  );
+                  return (
+                    <Link
+                      key={trophy.id}
+                      href="/titles"
+                      className="flex w-24 shrink-0 flex-col items-center gap-2"
+                    >
+                      <div className="relative flex h-24 w-20 items-end justify-center">
+                        {url ? (
+                          <Image
+                            src={url}
+                            alt={trophy.title}
+                            width={80}
+                            height={96}
+                            className="h-24 w-auto object-contain"
+                            unoptimized={url.startsWith("http")}
+                          />
+                        ) : (
+                          <Trophy className="h-12 w-12 text-primary" />
+                        )}
+                      </div>
+                      <p className="line-clamp-2 text-center text-[10px] text-muted-foreground">
+                        {league?.name ?? trophy.title}
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="glass">

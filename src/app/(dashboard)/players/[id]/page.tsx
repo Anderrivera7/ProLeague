@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { StatCard } from "@/components/shared/stat-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,6 +10,7 @@ import { HeadToHeadPanel } from "@/features/players/components/head-to-head-pane
 import { UserRepository } from "@/repositories/user-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getLeagueTrophyUrl } from "@/lib/fc-data/league-trophies";
 import { getInitials } from "@/lib/utils";
 import { positiveStreak } from "@/utils/match-stats";
 import {
@@ -136,15 +138,43 @@ export default async function PlayerProfilePage({ params }: PageProps) {
             </CardHeader>
             <CardContent className="space-y-2">
               {player.trophies.length > 0 ? (
-                player.trophies.map((trophy) => (
-                  <div
-                    key={trophy.id}
-                    className="flex items-center justify-between rounded-lg bg-card-hover p-3"
-                  >
-                    <span className="font-medium">{trophy.title}</span>
-                    <Badge variant="outline">#{trophy.placement}</Badge>
-                  </div>
-                ))
+                player.trophies.map((trophy) => {
+                  const league = trophy.tournament?.fcLeague;
+                  const url = getLeagueTrophyUrl(
+                    league?.fifaIndexId,
+                    league?.name ?? trophy.tournament?.name ?? trophy.title
+                  );
+                  return (
+                    <div
+                      key={trophy.id}
+                      className="flex items-center gap-3 rounded-lg bg-card-hover p-3"
+                    >
+                      <div className="relative flex h-14 w-12 shrink-0 items-end justify-center">
+                        {url ? (
+                          <Image
+                            src={url}
+                            alt={trophy.title}
+                            width={48}
+                            height={56}
+                            className="h-14 w-auto object-contain"
+                            unoptimized={url.startsWith("http")}
+                          />
+                        ) : (
+                          <Trophy className="h-8 w-8 text-primary" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{trophy.title}</p>
+                        {league?.name && (
+                          <p className="truncate text-xs text-muted-foreground">
+                            {league.name}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant="outline">#{trophy.placement}</Badge>
+                    </div>
+                  );
+                })
               ) : (
                 <p className="text-sm text-muted-foreground py-4 text-center">
                   Sin trofeos aún

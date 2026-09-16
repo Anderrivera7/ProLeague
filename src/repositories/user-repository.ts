@@ -83,7 +83,21 @@ export class UserRepository {
             biggestWinOpponent: { select: { nickname: true } },
           },
         },
-        trophies: { orderBy: { wonAt: "desc" }, take: 10 },
+        trophies: {
+          orderBy: { wonAt: "desc" },
+          take: 10,
+          include: {
+            tournament: {
+              select: {
+                id: true,
+                name: true,
+                fcLeague: {
+                  select: { name: true, fifaIndexId: true },
+                },
+              },
+            },
+          },
+        },
         achievements: {
           include: { achievement: true },
           orderBy: { unlockedAt: "desc" },
