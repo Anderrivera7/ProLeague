@@ -37,7 +37,7 @@ export function TournamentSlide({
     <Link
       href={`/tournaments/${id}`}
       className={cn(
-        "relative flex h-40 min-w-[280px] shrink-0 flex-col justify-end overflow-hidden rounded-2xl border border-border p-4 transition-transform active:scale-[0.98]",
+        "relative flex h-36 min-w-[min(85vw,280px)] shrink-0 flex-col justify-end overflow-hidden rounded-2xl border border-border p-3 transition-transform active:scale-[0.98] sm:h-40 sm:min-w-[280px] sm:p-4",
         !hasCover && (isActive ? "tournament-card-active" : "tournament-card-upcoming")
       )}
     >

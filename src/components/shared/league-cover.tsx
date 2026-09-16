@@ -21,6 +21,8 @@ export function LeagueCover({
       <img
         src={coverUrl}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         className={cn("absolute inset-0 h-full w-full object-cover", className)}
       />
       <div

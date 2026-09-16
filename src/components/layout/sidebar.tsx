@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Trophy,
@@ -51,30 +50,37 @@ export function Sidebar({ user }: SidebarProps) {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [isMobileOpen, setMobileOpen]);
+
   const collapsed = mounted ? isCollapsed : false;
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center gap-3 border-b border-border px-4">
-        <AppLogo size={36} className="shrink-0" />
-        <AnimatePresence initial={false}>
-          {!collapsed && (
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1, width: "auto" }}
-              exit={{ opacity: 0, width: 0 }}
-              className="overflow-hidden"
-            >
-              <p className="text-sm font-bold text-gradient whitespace-nowrap">
-                {APP_NAME}
-              </p>
-              <p className="text-xs text-muted-foreground">eSports Platform</p>
-            </motion.div>
+      <div className="flex h-14 items-center gap-3 border-b border-border px-4 sm:h-16">
+        <AppLogo size={32} className="shrink-0" />
+        <div
+          className={cn(
+            "min-w-0 overflow-hidden transition-opacity duration-200",
+            collapsed ? "opacity-0 w-0" : "opacity-100"
           )}
-        </AnimatePresence>
+        >
+          <p className="truncate text-sm font-bold text-gradient">{APP_NAME}</p>
+          <p className="text-xs text-muted-foreground">eSports Platform</p>
+        </div>
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-2 sm:p-3">
         {NAV_ITEMS.map((item) => {
           const Icon = iconMap[item.icon as keyof typeof iconMap];
           const isActive =
@@ -84,28 +90,29 @@ export function Sidebar({ user }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
               onClick={() => setMobileOpen(false)}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-primary/10 text-primary glow-primary"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-card-hover hover:text-foreground"
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
       {user && !collapsed && (
-        <div className="border-t border-border p-4">
+        <div className="border-t border-border p-3 sm:p-4">
           <div className="flex items-center gap-3 rounded-lg bg-card-hover p-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
               {getInitials(user.nickname)}
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user.nickname}</p>
               <p className="text-xs text-muted-foreground">Puntos {user.elo}</p>
             </div>
@@ -135,48 +142,38 @@ export function Sidebar({ user }: SidebarProps) {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 72 : 256 }}
-        transition={{ duration: 0.2 }}
-        className="hidden lg:flex h-screen flex-col border-r border-border bg-card glass shrink-0"
+      <aside
+        className={cn(
+          "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 lg:flex",
+          collapsed ? "w-[72px]" : "w-64"
+        )}
       >
         {sidebarContent}
-      </motion.aside>
+      </aside>
 
-      {/* Mobile overlay */}
-      <AnimatePresence initial={false}>
-        {isMobileOpen && (
-          <>
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-              onClick={() => setMobileOpen(false)}
-            />
-            <motion.aside
-              initial={false}
-              animate={{ x: 0 }}
-              exit={{ x: -280 }}
-              transition={{ type: "spring", damping: 25 }}
-              className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-border bg-card lg:hidden"
-            >
-              <div className="flex justify-end p-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-              {sidebarContent}
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+      {isMobileOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden
+          />
+          <aside className="fixed left-0 top-0 z-50 flex h-dvh w-[min(100vw-3rem,16rem)] flex-col border-r border-border bg-card shadow-xl lg:hidden">
+            <div className="flex justify-end p-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="min-h-11 min-w-11"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Cerrar menú"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            {sidebarContent}
+          </aside>
+        </>
+      )}
     </>
   );
 }

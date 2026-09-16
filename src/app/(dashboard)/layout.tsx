@@ -19,7 +19,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-dvh bg-background">
       <Sidebar
         user={{
           nickname: user.nickname,
@@ -27,9 +27,9 @@ export default async function DashboardLayout({
           elo: user.elo,
         }}
       />
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <LastActiveTracker />
-        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col lg:max-w-none">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
           {children}
         </div>
         <div className="lg:hidden">

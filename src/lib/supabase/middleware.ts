@@ -11,9 +11,49 @@ function isServerActionRequest(request: NextRequest) {
   );
 }
 
+function hasSupabaseAuthCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some(
+      (c) =>
+        c.name.includes("-auth-token") ||
+        (c.name.startsWith("sb-") && c.name.includes("auth"))
+    );
+}
+
 export async function updateSession(request: NextRequest) {
   if (isServerActionRequest(request)) {
     return NextResponse.next({ request });
+  }
+
+  const pathname = request.nextUrl.pathname;
+
+  const isAuthRoute =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/forgot-password");
+
+  const isPasswordResetRoute = pathname.startsWith("/reset-password");
+  const isOAuthRoute = pathname.startsWith("/api/auth/");
+
+  const isPublicRoute =
+    pathname === "/" ||
+    isAuthRoute ||
+    isOAuthRoute ||
+    isPasswordResetRoute;
+
+  const hasSessionCookie = hasSupabaseAuthCookie(request);
+
+  // Sin cookie: no llamar a Supabase (ahorra latencia en landing/login).
+  if (!hasSessionCookie) {
+    if (isPublicRoute) {
+      return NextResponse.next({ request });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(url);
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -47,27 +87,10 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  const isAuthRoute =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/register") ||
-    request.nextUrl.pathname.startsWith("/auth") ||
-    request.nextUrl.pathname.startsWith("/forgot-password");
-
-  const isPasswordResetRoute =
-    request.nextUrl.pathname.startsWith("/reset-password");
-
-  const isOAuthRoute = request.nextUrl.pathname.startsWith("/api/auth/");
-
-  const isPublicRoute =
-    request.nextUrl.pathname === "/" ||
-    isAuthRoute ||
-    isOAuthRoute ||
-    isPasswordResetRoute;
-
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", request.nextUrl.pathname);
+    url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 

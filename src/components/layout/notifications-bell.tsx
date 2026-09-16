@@ -17,6 +17,8 @@ interface Notification {
   tournament: { id: string; name: string };
 }
 
+const POLL_MS = 90_000;
+
 export function NotificationsBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -37,9 +39,10 @@ export function NotificationsBell() {
     let active = true;
 
     async function fetchNotifications() {
+      if (typeof document !== "undefined" && document.hidden) return [];
       try {
         const data = await getMatchNotifications();
-        if (!active) return data as Notification[];
+        if (!active) return [];
         setNotifications(data as Notification[]);
         return data as Notification[];
       } catch {
@@ -48,7 +51,7 @@ export function NotificationsBell() {
     }
 
     fetchNotifications().then((data) => {
-      if (!active) return;
+      if (!active || !data.length) return;
       const latest = data[0];
       if (!latest || toastedRef.current.has(latest.id)) return;
       const seen = sessionStorage.getItem(`notif-seen-${latest.id}`);
@@ -68,11 +71,17 @@ export function NotificationsBell() {
 
     const interval = setInterval(() => {
       void fetchNotifications();
-    }, 60_000);
+    }, POLL_MS);
+
+    const onVisibility = () => {
+      if (!document.hidden) void fetchNotifications();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       active = false;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [router]);
 
@@ -81,10 +90,11 @@ export function NotificationsBell() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative"
+        className="relative min-h-11 min-w-11"
+        aria-label="Notificaciones"
         onClick={() => {
           setOpen((v) => !v);
-          if (!open) load();
+          if (!open) void load();
         }}
       >
         <Bell className="h-5 w-5" />
@@ -99,11 +109,11 @@ export function NotificationsBell() {
             className="fixed inset-0 z-40"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl">
+          <div className="absolute right-0 top-full z-50 mt-2 w-[min(100vw-2rem,20rem)] rounded-xl border border-border bg-card shadow-xl">
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold">Notificaciones</p>
             </div>
-            <div className="max-h-80 overflow-y-auto">
+            <div className="max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain">
               {notifications.length === 0 ? (
                 <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                   Sin notificaciones
@@ -114,7 +124,7 @@ export function NotificationsBell() {
                     key={n.id}
                     href={`/chat/${n.tournamentId}`}
                     onClick={() => setOpen(false)}
-                    className="block border-b border-border/50 px-4 py-3 hover:bg-muted/50 transition-colors last:border-0"
+                    className="block border-b border-border/50 px-4 py-3 transition-colors last:border-0 hover:bg-muted/50"
                   >
                     <p className="text-xs font-medium text-primary">
                       {n.tournament.name}

@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 interface AppLogoProps {
   size?: number;
   className?: string;
+  priority?: boolean;
 }
 
-export function AppLogo({ size = 36, className }: AppLogoProps) {
+export function AppLogo({ size = 36, className, priority = false }: AppLogoProps) {
   return (
     <Image
       src="/logo.png"
@@ -14,7 +15,7 @@ export function AppLogo({ size = 36, className }: AppLogoProps) {
       width={size}
       height={size}
       className={cn("object-contain", className)}
-      priority
+      priority={priority}
     />
   );
 }

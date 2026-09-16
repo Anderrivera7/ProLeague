@@ -15,8 +15,7 @@ export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) return null;
 
-  const [myTournaments, activities, fallbackActive, fallbackUpcoming] =
-    await Promise.all([
+  const [myTournaments, activities] = await Promise.all([
     prisma.tournament.findMany({
       where: {
         OR: [
@@ -25,9 +24,17 @@ export default async function DashboardPage() {
         ],
         status: { in: ["ACTIVE", "REGISTRATION"] },
       },
-      include: {
-        fcLeague: true,
-        _count: { select: { participants: true, matches: true } },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        status: true,
+        maxParticipants: true,
+        createdAt: true,
+        fcLeague: {
+          select: { fifaIndexId: true, name: true },
+        },
+        _count: { select: { participants: true } },
         matches: {
           where: { status: "COMPLETED" },
           select: { round: true },
@@ -36,21 +43,45 @@ export default async function DashboardPage() {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 4,
     }),
     prisma.activity.findMany({
       where: { userId: user.id },
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 5,
     }),
-    TournamentRepository.findAll({ status: "ACTIVE", limit: 1 }),
-    TournamentRepository.findAll({ status: "REGISTRATION", limit: 1 }),
   ]);
 
   const activeTournaments = myTournaments.filter((t) => t.status === "ACTIVE");
   const upcomingTournaments = myTournaments.filter(
     (t) => t.status === "REGISTRATION"
   );
+
+  let fallbackActive: Awaited<
+    ReturnType<typeof TournamentRepository.findAll>
+  > = [];
+  let fallbackUpcoming: Awaited<
+    ReturnType<typeof TournamentRepository.findAll>
+  > = [];
+
+  if (activeTournaments.length === 0 || upcomingTournaments.length === 0) {
+    const missing = await Promise.all([
+      activeTournaments.length === 0
+        ? TournamentRepository.findAll({ status: "ACTIVE", limit: 1 })
+        : Promise.resolve([]),
+      upcomingTournaments.length === 0
+        ? TournamentRepository.findAll({ status: "REGISTRATION", limit: 1 })
+        : Promise.resolve([]),
+    ]);
+    fallbackActive = missing[0];
+    fallbackUpcoming = missing[1];
+  }
 
   const slides: Array<{
     id: string;
@@ -87,11 +118,10 @@ export default async function DashboardPage() {
     };
   }
 
-  const active =
-    activeTournaments[0] ?? fallbackActive[0];
+  const active = activeTournaments[0] ?? fallbackActive[0];
   if (active) {
     const currentRound =
-      "matches" in active && active.matches[0]?.round
+      "matches" in active && active.matches?.[0]?.round
         ? active.matches[0].round
         : 1;
     slides.push(
@@ -99,36 +129,35 @@ export default async function DashboardPage() {
     );
   }
 
-  const upcoming =
-    upcomingTournaments[0] ?? fallbackUpcoming[0];
+  const upcoming = upcomingTournaments[0] ?? fallbackUpcoming[0];
   if (upcoming && upcoming.id !== active?.id) {
     slides.push(slideFromTournament(upcoming, "upcoming", "REGISTRATION"));
   }
 
   return (
-    <div className="flex min-h-full flex-col pb-20">
+    <div className="flex min-h-full flex-col pb-24 lg:pb-6">
       <MobileHeader nickname={user.nickname} />
 
-      <div className="flex-1 space-y-6 px-4 pb-6">
+      <div className="mx-auto w-full max-w-5xl flex-1 space-y-5 px-3 pb-6 sm:space-y-6 sm:px-4 lg:px-8">
         <section>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">Mis torneos</h2>
             <Link
               href="/tournaments"
-              className="flex items-center gap-0.5 text-xs text-primary"
+              className="flex shrink-0 items-center gap-0.5 text-xs text-primary"
             >
               Ver todos
               <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           {slides.length > 0 ? (
-            <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-none">
+            <div className="-mx-3 flex gap-3 overflow-x-auto px-3 pb-1 scrollbar-none sm:-mx-4 sm:px-4 touch-pan-x">
               {slides.map((t) => (
                 <TournamentSlide key={t.id} {...t} />
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
+            <div className="rounded-2xl border border-dashed border-border bg-card p-5 text-center sm:p-6">
               <p className="text-sm text-muted-foreground">
                 Aún no tienes torneos activos
               </p>

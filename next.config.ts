@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname),
   },
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
       { protocol: "https", hostname: "cdn.sofifa.net", pathname: "/**" },
       { protocol: "https", hostname: "ratings-images-prod.pulse.ea.com", pathname: "/**" },
