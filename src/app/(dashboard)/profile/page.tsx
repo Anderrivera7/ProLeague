@@ -181,20 +181,28 @@ export default async function ProfilePage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <Crown className="h-4 w-4 text-primary" />
-                Vitrina de títulos
+                Vitrina · {trophies.length} título{trophies.length === 1 ? "" : "s"}
               </CardTitle>
-              <Link href="/titles" className="text-xs text-primary">
-                Ver todos
+              <Link href="/titles" className="text-xs font-medium text-primary">
+                Ver todos ({trophies.length})
               </Link>
             </CardHeader>
             <CardContent>
               <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
-                {trophies.slice(0, 6).map((trophy) => {
+                {[...trophies]
+                  .sort((a, b) =>
+                    (a.title || "").localeCompare(b.title || "", "es")
+                  )
+                  .slice(0, 8)
+                  .map((trophy) => {
                   const league = trophy.tournament?.fcLeague;
+                  const label =
+                    league?.name ??
+                    trophy.title.replace(/^Campeón\s*·\s*/i, "");
                   const url = resolveTrophyImage(
                     trophy.imageUrl,
                     league?.fifaIndexId,
-                    league?.name ?? trophy.tournament?.name ?? trophy.title
+                    label
                   );
                   return (
                     <Link
@@ -206,7 +214,7 @@ export default async function ProfilePage() {
                         {url ? (
                           <Image
                             src={url}
-                            alt={trophy.title}
+                            alt={label}
                             width={80}
                             height={96}
                             className="h-24 w-auto object-contain"
@@ -217,7 +225,7 @@ export default async function ProfilePage() {
                         )}
                       </div>
                       <p className="line-clamp-2 text-center text-[10px] text-muted-foreground">
-                        {league?.name ?? trophy.title}
+                        {label}
                       </p>
                     </Link>
                   );

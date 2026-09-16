@@ -16,7 +16,8 @@ const LOCAL_TROPHY_BY_ID: Record<string, string> = {
   "223": "/trophies/ucl.png",
   ucl: "/trophies/ucl.png",
   libertadores: "/trophies/libertadores.png",
-  sudamericana: "/trophies/sudamericana.png",
+  ecuador: "/trophies/liga-ecuador.png",
+  sudamericana: "/trophies/liga-ecuador.png",
   peru: "/trophies/liga-1-peru.png",
   taca_portugal: "/trophies/taca-portugal.png",
 };
@@ -60,8 +61,12 @@ const NAME_TO_LEAGUE_ID: Array<{ pattern: RegExp; id: string }> = [
   { pattern: /liga\s*profesional|argentin|racing/i, id: "353" },
   { pattern: /champions\s*league|uefa\s*champions/i, id: "ucl" },
   { pattern: /libertadores/i, id: "libertadores" },
+  {
+    pattern: /liga\s*pro|ecuador|ldu|quito|serie\s*a\s*ecuador/i,
+    id: "ecuador",
+  },
   { pattern: /sudamericana/i, id: "sudamericana" },
-  { pattern: /liga\s*1|peruana|peru|universitario/i, id: "peru" },
+  { pattern: /liga\s*1|peruana|per[uú]|universitario/i, id: "peru" },
   { pattern: /mundial|world\s*cup|selecciones/i, id: "intl" },
 ];
 
