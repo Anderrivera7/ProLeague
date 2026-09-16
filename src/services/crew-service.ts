@@ -26,6 +26,7 @@ export type CrewPodiumEntry = {
   recentTrophies: {
     id: string;
     title: string;
+    imageUrl: string | null;
     wonAt: Date;
     leagueFifaId: string | null;
     leagueName: string | null;
@@ -197,6 +198,7 @@ export class CrewService {
       recentTrophies: m.user.trophies.map((t) => ({
         id: t.id,
         title: t.title,
+        imageUrl: t.imageUrl,
         wonAt: t.wonAt,
         leagueFifaId: t.tournament?.fcLeague?.fifaIndexId ?? null,
         leagueName: t.tournament?.fcLeague?.name ?? null,
@@ -228,7 +230,7 @@ export class CrewService {
       stats: m.user.stats,
     }));
 
-    const [relegations, thrashings, titlesDetail] = await Promise.all([
+    const [computedRelegations, thrashings, titlesDetail] = await Promise.all([
       CrewRepository.countRelegationsByUser(memberIds),
       CrewRepository.listCrewThrashings(memberIds),
       this.getPodium(crewId, currentUserId),
@@ -261,11 +263,16 @@ export class CrewService {
       }))
     );
 
+    // Contador de perfil (relegations) + cálculo de torneos
     const relegationsBoard = rankByValue(
-      base.map((m) => ({
-        ...m,
-        value: relegations.get(m.userId) ?? 0,
-      }))
+      base.map((m) => {
+        const stored = Number(m.stats?.relegations ?? 0);
+        const computed = computedRelegations.get(m.userId) ?? 0;
+        return {
+          ...m,
+          value: Math.max(stored, computed),
+        };
+      })
     );
 
     const thrashingsBoard = rankByValue(

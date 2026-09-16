@@ -201,6 +201,7 @@ model PlayerStats {
   bestStreak      Int    @default(0)
   cleanSheets     Int    @default(0)
   titlesWon       Int    @default(0)
+  relegations     Int    @default(0)
   seasonsPlayed   Int    @default(0)
   totalAssists    Int    @default(0)
   totalMvp        Int    @default(0)

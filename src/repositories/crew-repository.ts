@@ -11,6 +11,7 @@ const memberInclude = {
       stats: {
         select: {
           titlesWon: true,
+          relegations: true,
           wins: true,
           losses: true,
           matchesPlayed: true,
@@ -29,6 +30,7 @@ const memberInclude = {
         select: {
           id: true,
           title: true,
+          imageUrl: true,
           wonAt: true,
           tournament: {
             select: {

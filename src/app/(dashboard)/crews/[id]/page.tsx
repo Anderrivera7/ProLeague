@@ -27,7 +27,7 @@ export default async function CrewDetailPage({
     <>
       <Header
         title={crew.name}
-        subtitle="Podios en vivo entre amigos del grupo"
+        subtitle="Arena · títulos · descensos · goleadas"
       />
       <div className="flex-1 overflow-y-auto p-4 lg:p-6">
         <div className="mx-auto max-w-3xl space-y-6">
