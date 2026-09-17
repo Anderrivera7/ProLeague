@@ -30,6 +30,28 @@ export function CrewActions({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function shareLink() {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/crews?code=${joinCode}`
+        : `/crews?code=${joinCode}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Únete a mi grupo en ProLeague",
+          text: `Código: ${joinCode}`,
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link de invitación copiado");
+      }
+    } catch {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link de invitación copiado");
+    }
+  }
+
   function handleLeave() {
     if (!confirm("¿Seguro que quieres salir de este grupo?")) return;
     startTransition(async () => {
@@ -86,6 +108,16 @@ export function CrewActions({
                 <Copy className="h-4 w-4 text-primary/70 group-hover:text-primary" />
               )}
             </button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={shareLink}
+              className="rounded-full"
+            >
+              <Share2 className="mr-1.5 h-3.5 w-3.5" />
+              Link
+            </Button>
             <Badge variant="outline" className="text-muted-foreground">
               {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
             </Badge>

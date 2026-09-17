@@ -111,6 +111,36 @@ export class CrewService {
     }
 
     await CrewRepository.addMember(crew.id, userId);
+
+    const { prisma } = await import("@/lib/prisma");
+    const { NotificationService } = await import(
+      "@/services/notification-service"
+    );
+
+    const [joiner, members] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { nickname: true },
+      }),
+      prisma.crewMember.findMany({
+        where: { crewId: crew.id, userId: { not: userId } },
+        select: { userId: true },
+      }),
+    ]);
+
+    await Promise.all(
+      members.map((m) =>
+        NotificationService.create(prisma, {
+          userId: m.userId,
+          type: "CREW_JOINED",
+          title: "Nuevo en el grupo",
+          body: `${joiner?.nickname ?? "Alguien"} se unió a ${crew.name}`,
+          href: `/crews/${crew.id}`,
+          metadata: { crewId: crew.id, joinerId: userId },
+        })
+      )
+    );
+
     return { success: true, crewId: crew.id };
   }
 

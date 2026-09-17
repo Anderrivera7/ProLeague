@@ -131,6 +131,16 @@ enum ActivityType {
   ELO_MILESTONE
   GOAL_SCORED
   ASSIST_MADE
+  RELEGATED
+  TITLE_SURPASSED
+}
+
+enum NotificationType {
+  MATCH_RESULT
+  RELEGATION
+  TITLE_SURPASSED
+  CREW_JOINED
+  GENERAL
 }
 
 enum ChatMessageType {
@@ -174,6 +184,7 @@ model User {
 
   crewsOwned  Crew[]       @relation("CrewOwner")
   crewMembers CrewMember[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -572,6 +583,22 @@ model Activity {
 
   @@index([userId, createdAt])
   @@map("activities")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType @default(GENERAL)
+  title     String
+  body      String?
+  href      String?
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 // ─── Crews (grupos de compañeros) ────────────────────────────────────────────

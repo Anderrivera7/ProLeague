@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { joinCrew } from "@/actions/crew-actions";
 import { KeyRound } from "lucide-react";
 
-export function JoinCrewCard() {
+export function JoinCrewCard({ defaultCode = "" }: { defaultCode?: string }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +49,7 @@ export function JoinCrewCard() {
               required
               minLength={6}
               maxLength={6}
+              defaultValue={defaultCode}
               className="h-12 rounded-2xl font-mono text-lg uppercase tracking-[0.35em]"
             />
             <Button

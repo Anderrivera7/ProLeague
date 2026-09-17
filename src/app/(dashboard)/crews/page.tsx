@@ -8,10 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { JoinCrewCard } from "@/features/crews/components/join-crew-card";
 import { CrewService } from "@/services/crew-service";
 
-export default async function CrewsPage() {
+export default async function CrewsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>;
+}) {
   const session = await getSessionUser();
   if (!session) redirect("/login");
 
+  const { code } = await searchParams;
   const crews = await CrewService.listUserCrews(session.id);
 
   return (
@@ -134,7 +139,7 @@ export default async function CrewsPage() {
               </p>
             </div>
           </div>
-          <JoinCrewCard />
+          <JoinCrewCard defaultCode={code?.toUpperCase() ?? ""} />
         </section>
       </div>
     </>

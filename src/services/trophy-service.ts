@@ -1,7 +1,11 @@
 import type { Prisma, TournamentType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getCompetitionTitleLabel, getLeagueTrophyUrl } from "@/lib/fc-data/league-trophies";
+import {
+  getCompetitionTitleLabel,
+  getLeagueTrophyUrl,
+} from "@/lib/fc-data/league-trophies";
 import { calculateLevel } from "@/utils/points";
+import { NotificationService } from "@/services/notification-service";
 
 type Db = typeof prisma | Prisma.TransactionClient;
 
@@ -46,13 +50,96 @@ export class TrophyService {
     const type = match.tournament.type as TournamentType;
 
     if (type === "LEAGUE" || type === "GROUPS") {
-      return this.maybeAwardFromStandings(db, match);
+      const awarded = await this.maybeAwardFromStandings(db, match);
+      if (awarded && type === "LEAGUE") {
+        await this.processLeagueRelegations(
+          db,
+          match.tournamentId,
+          match.tournament.name
+        );
+      }
+      return awarded;
     }
 
     return this.maybeAwardFromKnockoutFinal(db, match);
   }
 
-  /** Liga / grupos: campeón = 1º de la tabla cuando todos los partidos terminaron. */
+  /**
+   * Descenso: último en la tabla final con 0 puntos.
+   */
+  private static async processLeagueRelegations(
+    db: Db,
+    tournamentId: string,
+    tournamentName: string
+  ) {
+    const standings = await db.standing.findMany({
+      where: { tournamentId, groupName: null },
+      orderBy: [{ points: "asc" }, { gd: "asc" }, { gf: "asc" }],
+      include: {
+        participant: { select: { id: true, userId: true } },
+      },
+    });
+
+    if (standings.length < 2) return;
+
+    const last = standings[0];
+    if (!last?.participant || last.points !== 0) return;
+    if (!standings.some((s) => s.points > 0)) return;
+
+    const relegated = standings.filter((s) => s.points === 0 && s.participant);
+
+    for (const row of relegated) {
+      const userId = row.participant.userId;
+
+      const stats = await db.playerStats.upsert({
+        where: { userId },
+        create: { userId, relegations: 1 },
+        update: { relegations: { increment: 1 } },
+      });
+
+      const newCount = stats.relegations;
+      const previousDivision = newCount;
+      const currentDivision = newCount + 1;
+
+      await db.tournamentParticipant.update({
+        where: { id: row.participant.id },
+        data: {
+          eliminated: true,
+          placement: standings.length,
+        },
+      });
+
+      await db.activity.create({
+        data: {
+          userId,
+          type: "RELEGATED",
+          title: `Descenso en ${tournamentName}`,
+          metadata: {
+            tournamentId,
+            previousDivision,
+            currentDivision,
+            points: 0,
+          },
+        },
+      });
+
+      await NotificationService.create(db, {
+        userId,
+        type: "RELEGATION",
+        title: "Nuevo descenso",
+        body: `Has descendido a División ${currentDivision} · ${tournamentName}`,
+        href: "/profile",
+        metadata: {
+          tournamentId,
+          tournamentName,
+          previousDivision,
+          currentDivision,
+          animate: true,
+        },
+      });
+    }
+  }
+
   private static async maybeAwardFromStandings(
     db: Db,
     match: AwardMatch
@@ -68,9 +155,7 @@ export class TrophyService {
     const top = await db.standing.findFirst({
       where: {
         tournamentId: match.tournamentId,
-        ...(match.tournament.type === "LEAGUE"
-          ? { groupName: null }
-          : {}),
+        ...(match.tournament.type === "LEAGUE" ? { groupName: null } : {}),
       },
       orderBy: [{ points: "desc" }, { gd: "desc" }, { gf: "desc" }],
       include: {
@@ -92,7 +177,6 @@ export class TrophyService {
     });
   }
 
-  /** Eliminación / ida-vuelta: campeón = ganador de la última ronda. */
   private static async maybeAwardFromKnockoutFinal(
     db: Db,
     match: AwardMatch
@@ -100,7 +184,8 @@ export class TrophyService {
     if (match.groupName) return false;
     if (match.homeScore == null || match.awayScore == null) return false;
     if (match.homeScore === match.awayScore) {
-      if (match.penaltiesHome == null || match.penaltiesAway == null) return false;
+      if (match.penaltiesHome == null || match.penaltiesAway == null)
+        return false;
       if (match.penaltiesHome === match.penaltiesAway) return false;
     }
 
@@ -162,6 +247,12 @@ export class TrophyService {
     );
     const imageUrl = getLeagueTrophyUrl(input.leagueId, input.leagueName);
 
+    const winnerBefore = await db.playerStats.findUnique({
+      where: { userId: input.userId },
+      select: { titlesWon: true },
+    });
+    const titlesBefore = winnerBefore?.titlesWon ?? 0;
+
     await db.trophy.create({
       data: {
         userId: input.userId,
@@ -206,7 +297,96 @@ export class TrophyService {
       },
     });
 
+    await NotificationService.create(db, {
+      userId: input.userId,
+      type: "GENERAL",
+      title: "¡Nuevo título!",
+      body: `Campeón de ${input.tournamentName}`,
+      href: "/titles",
+      metadata: { tournamentId: input.tournamentId },
+    });
+
+    await this.notifyTitleSurpassed(db, {
+      winnerId: input.userId,
+      titlesAfter: titlesBefore + 1,
+      tournamentName: input.tournamentName,
+    });
+
     return true;
+  }
+
+  private static async notifyTitleSurpassed(
+    db: Db,
+    input: {
+      winnerId: string;
+      titlesAfter: number;
+      tournamentName: string;
+    }
+  ) {
+    const winner = await db.user.findUnique({
+      where: { id: input.winnerId },
+      select: { nickname: true },
+    });
+    if (!winner) return;
+
+    const memberships = await db.crewMember.findMany({
+      where: { userId: input.winnerId },
+      select: { crewId: true },
+    });
+    if (memberships.length === 0) return;
+
+    const mates = await db.crewMember.findMany({
+      where: {
+        crewId: { in: memberships.map((m) => m.crewId) },
+        userId: { not: input.winnerId },
+      },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            stats: { select: { titlesWon: true } },
+          },
+        },
+      },
+    });
+
+    const targetTitles = input.titlesAfter - 1;
+    const notified = new Set<string>();
+
+    for (const mate of mates) {
+      if (notified.has(mate.userId)) continue;
+      const mateTitles = mate.user.stats?.titlesWon ?? 0;
+      if (mateTitles !== targetTitles) continue;
+      notified.add(mate.userId);
+
+      await db.activity.create({
+        data: {
+          userId: mate.userId,
+          type: "TITLE_SURPASSED",
+          title: `${winner.nickname} te superó en títulos`,
+          metadata: {
+            byUserId: input.winnerId,
+            titles: input.titlesAfter,
+          },
+        },
+      });
+
+      await NotificationService.create(db, {
+        userId: mate.userId,
+        type: "TITLE_SURPASSED",
+        title: "Te superaron en títulos",
+        body: `${winner.nickname} ahora tiene ${input.titlesAfter} título${
+          input.titlesAfter === 1 ? "" : "s"
+        } · ${input.tournamentName}`,
+        href: "/crews",
+        metadata: {
+          byUserId: input.winnerId,
+          byNickname: winner.nickname,
+          titles: input.titlesAfter,
+          animate: true,
+        },
+      });
+    }
   }
 
   static async listForUser(userId: string) {
@@ -324,7 +504,9 @@ export async function recalculateUserPoints(userId: string) {
 }
 
 export async function recalculateAllUserPoints() {
-  const users = await prisma.user.findMany({ select: { id: true, nickname: true } });
+  const users = await prisma.user.findMany({
+    select: { id: true, nickname: true },
+  });
   const results = [];
   for (const user of users) {
     const result = await recalculateUserPoints(user.id);

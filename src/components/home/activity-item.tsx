@@ -1,4 +1,4 @@
-import { Trophy, Swords, Clock } from "lucide-react";
+import { Trophy, Swords, Clock, ArrowDownToLine, Crown } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import type { ActivityType } from "@prisma/client";
 
@@ -13,6 +13,9 @@ const iconMap: Record<string, typeof Trophy> = {
   MATCH_LOST: Swords,
   MATCH_PLAYED: Swords,
   MATCH_DRAWN: Swords,
+  TOURNAMENT_WON: Trophy,
+  RELEGATED: ArrowDownToLine,
+  TITLE_SURPASSED: Crown,
   default: Clock,
 };
 
@@ -20,6 +23,9 @@ const colorMap: Record<string, string> = {
   MATCH_WON: "text-primary bg-primary/15",
   MATCH_LOST: "text-destructive bg-destructive/15",
   MATCH_DRAWN: "text-yellow-400 bg-yellow-400/15",
+  TOURNAMENT_WON: "text-primary bg-primary/15",
+  RELEGATED: "text-red-400 bg-red-500/15",
+  TITLE_SURPASSED: "text-amber-400 bg-amber-500/15",
   default: "text-muted-foreground bg-muted",
 };
 

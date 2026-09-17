@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, Swords, MessageCircle, User } from "lucide-react";
+import { Home, Trophy, Swords, User, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BOTTOM_NAV_ITEMS } from "@/constants/navigation";
 
@@ -10,7 +10,7 @@ const iconMap = {
   Home,
   Trophy,
   Swords,
-  MessageCircle,
+  UsersRound,
   User,
 };
 
