@@ -145,6 +145,7 @@ export class TournamentRepository {
   static async findAll(filters?: {
     status?: string;
     creatorId?: string;
+    participantUserId?: string;
     limit?: number;
   }) {
     return prisma.tournament.findMany({
@@ -153,10 +154,26 @@ export class TournamentRepository {
           status: filters.status as Prisma.EnumTournamentStatusFilter,
         }),
         ...(filters?.creatorId && { creatorId: filters.creatorId }),
+        ...(filters?.participantUserId && {
+          OR: [
+            { creatorId: filters.participantUserId },
+            { participants: { some: { userId: filters.participantUserId } } },
+          ],
+        }),
       },
-      include: {
-        creator: true,
-        fcLeague: true,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        type: true,
+        status: true,
+        maxParticipants: true,
+        startDate: true,
+        createdAt: true,
+        creator: { select: { id: true, nickname: true } },
+        fcLeague: {
+          select: { id: true, name: true, fifaIndexId: true, logoUrl: true },
+        },
         _count: { select: { participants: true, matches: true } },
       },
       orderBy: { createdAt: "desc" },

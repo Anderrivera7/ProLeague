@@ -3,14 +3,14 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/actions/auth-actions";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ActivityItem } from "@/components/home/activity-item";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AchievementService } from "@/services/achievement-service";
 import { prisma } from "@/lib/prisma";
 import { UserRepository } from "@/repositories/user-repository";
-import { formatTimeAgo, getInitials } from "@/lib/utils";
+import { formatTimeAgo } from "@/lib/utils";
 import { getLevelProgress } from "@/utils/points";
 import {
   Award,
@@ -105,12 +105,14 @@ export default async function ProfilePage() {
         <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 text-center glow-primary">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent" />
           <div className="relative mx-auto w-fit">
-            <Avatar className="h-24 w-24 border-4 border-primary/40 shadow-[0_0_24px_rgba(57,255,20,0.25)]">
-              <AvatarImage src={user.avatarUrl ?? undefined} />
-              <AvatarFallback className="bg-primary/10 text-2xl text-primary">
-                {getInitials(user.nickname)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="rounded-full border-4 border-primary/40 shadow-[0_0_24px_rgba(57,255,20,0.25)]">
+              <UserAvatar
+                nickname={user.nickname}
+                avatarUrl={user.avatarUrl}
+                size={96}
+                className="text-2xl"
+              />
+            </div>
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-primary/40 bg-card px-2.5 py-0.5 text-xs font-bold text-primary">
               Nv. {user.level}
             </div>

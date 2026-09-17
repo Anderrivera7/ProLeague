@@ -35,8 +35,8 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
     : null;
 
   return (
-    <Link href={`/tournaments/${tournament.id}`}>
-      <Card className="glass hover:border-primary/30 hover:glow-primary transition-all cursor-pointer h-full overflow-hidden">
+    <Link href={`/tournaments/${tournament.id}`} prefetch className="block h-full">
+      <Card className="glass h-full cursor-pointer overflow-hidden transition-all hover:border-primary/30 hover:glow-primary active:scale-[0.99]">
         <div className="relative h-28">
           <LeagueCover
             coverUrl={coverUrl}
@@ -52,12 +52,12 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
             </Badge>
           </div>
         </div>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base line-clamp-1">
+        <CardHeader className="pb-2 pt-4">
+          <CardTitle className="line-clamp-1 text-base">
             {tournament.name}
           </CardTitle>
           {tournament.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2">
+            <p className="line-clamp-2 text-xs text-muted-foreground">
               {tournament.description}
             </p>
           )}
@@ -74,6 +74,21 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
                 {formatDate(tournament.startDate)}
               </span>
             )}
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary/80 transition-all"
+              style={{
+                width: `${Math.min(
+                  100,
+                  Math.round(
+                    (tournament._count.participants /
+                      Math.max(1, tournament.maxParticipants)) *
+                      100
+                  )
+                )}%`,
+              }}
+            />
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline" className="text-xs">

@@ -41,7 +41,10 @@ export function UserAvatar({
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-primary">
+        <div
+          className="flex h-full w-full items-center justify-center font-bold text-primary"
+          style={{ fontSize: Math.max(10, Math.round(size * 0.32)) }}
+        >
           {getInitials(nickname)}
         </div>
       )}

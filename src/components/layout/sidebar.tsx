@@ -18,7 +18,8 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
-import { cn, getInitials } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { cn } from "@/lib/utils";
 import { NAV_ITEMS, APP_NAME } from "@/constants";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { Button } from "@/components/ui/button";
@@ -108,15 +109,20 @@ export function Sidebar({ user }: SidebarProps) {
 
       {user && !collapsed && (
         <div className="border-t border-border p-3 sm:p-4">
-          <div className="flex items-center gap-3 rounded-lg bg-card-hover p-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
-              {getInitials(user.nickname)}
-            </div>
+          <Link
+            href="/profile"
+            className="flex items-center gap-3 rounded-lg bg-card-hover p-3 transition-colors hover:bg-muted"
+          >
+            <UserAvatar
+              nickname={user.nickname}
+              avatarUrl={user.avatarUrl}
+              size={36}
+            />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user.nickname}</p>
               <p className="text-xs text-muted-foreground">Puntos {user.elo}</p>
             </div>
-          </div>
+          </Link>
         </div>
       )}
 

@@ -1,13 +1,13 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getSessionUser } from "@/actions/auth-actions";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { TournamentSlide } from "@/components/home/tournament-slide";
 import { QuickActions } from "@/components/home/quick-actions";
 import { ActivityItem } from "@/components/home/activity-item";
 import { RealFootballSection } from "@/features/football/components/real-football-section";
-import { TournamentRepository } from "@/repositories/tournament-repository";
 import { prisma } from "@/lib/prisma";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Swords, Trophy, UsersRound } from "lucide-react";
 import { getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
 import type { TournamentType } from "@prisma/client";
 
@@ -15,73 +15,66 @@ export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) return null;
 
-  const [myTournaments, activities] = await Promise.all([
-    prisma.tournament.findMany({
-      where: {
-        OR: [
-          { creatorId: user.id },
-          { participants: { some: { userId: user.id } } },
-        ],
-        status: { in: ["ACTIVE", "REGISTRATION"] },
-      },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        status: true,
-        maxParticipants: true,
-        createdAt: true,
-        fcLeague: {
-          select: { fifaIndexId: true, name: true },
+  const [myTournaments, activities, pendingMatches, openTournamentsCount] =
+    await Promise.all([
+      prisma.tournament.findMany({
+        where: {
+          OR: [
+            { creatorId: user.id },
+            { participants: { some: { userId: user.id } } },
+          ],
+          status: { in: ["ACTIVE", "REGISTRATION"] },
         },
-        _count: { select: { participants: true } },
-        matches: {
-          where: { status: "COMPLETED" },
-          select: { round: true },
-          orderBy: { round: "desc" },
-          take: 1,
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          status: true,
+          maxParticipants: true,
+          createdAt: true,
+          fcLeague: {
+            select: { fifaIndexId: true, name: true },
+          },
+          _count: { select: { participants: true } },
+          matches: {
+            where: { status: "COMPLETED" },
+            select: { round: true },
+            orderBy: { round: "desc" },
+            take: 1,
+          },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 4,
-    }),
-    prisma.activity.findMany({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        type: true,
-        title: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-  ]);
+        orderBy: { createdAt: "desc" },
+        take: 4,
+      }),
+      prisma.activity.findMany({
+        where: { userId: user.id },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      prisma.match.count({
+        where: {
+          status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] },
+          OR: [
+            { homeParticipant: { userId: user.id } },
+            { awayParticipant: { userId: user.id } },
+          ],
+        },
+      }),
+      prisma.tournament.count({
+        where: { status: "REGISTRATION" },
+      }),
+    ]);
 
   const activeTournaments = myTournaments.filter((t) => t.status === "ACTIVE");
   const upcomingTournaments = myTournaments.filter(
     (t) => t.status === "REGISTRATION"
   );
-
-  let fallbackActive: Awaited<
-    ReturnType<typeof TournamentRepository.findAll>
-  > = [];
-  let fallbackUpcoming: Awaited<
-    ReturnType<typeof TournamentRepository.findAll>
-  > = [];
-
-  if (activeTournaments.length === 0 || upcomingTournaments.length === 0) {
-    const missing = await Promise.all([
-      activeTournaments.length === 0
-        ? TournamentRepository.findAll({ status: "ACTIVE", limit: 1 })
-        : Promise.resolve([]),
-      upcomingTournaments.length === 0
-        ? TournamentRepository.findAll({ status: "REGISTRATION", limit: 1 })
-        : Promise.resolve([]),
-    ]);
-    fallbackActive = missing[0];
-    fallbackUpcoming = missing[1];
-  }
 
   const slides: Array<{
     id: string;
@@ -97,7 +90,7 @@ export default async function DashboardPage() {
   }> = [];
 
   function slideFromTournament(
-    t: (typeof myTournaments)[number] | (typeof fallbackActive)[number],
+    t: (typeof myTournaments)[number],
     variant: "active" | "upcoming",
     status: "ACTIVE" | "REGISTRATION",
     roundLabel?: string
@@ -118,32 +111,74 @@ export default async function DashboardPage() {
     };
   }
 
-  const active = activeTournaments[0] ?? fallbackActive[0];
-  if (active) {
-    const currentRound =
-      "matches" in active && active.matches?.[0]?.round
-        ? active.matches[0].round
-        : 1;
+  for (const t of activeTournaments.slice(0, 2)) {
+    const currentRound = t.matches?.[0]?.round ?? 1;
     slides.push(
-      slideFromTournament(active, "active", "ACTIVE", `Jornada ${currentRound}`)
+      slideFromTournament(t, "active", "ACTIVE", `Jornada ${currentRound}`)
     );
   }
 
-  const upcoming = upcomingTournaments[0] ?? fallbackUpcoming[0];
-  if (upcoming && upcoming.id !== active?.id) {
-    slides.push(slideFromTournament(upcoming, "upcoming", "REGISTRATION"));
+  for (const t of upcomingTournaments.slice(0, 2)) {
+    if (slides.some((s) => s.id === t.id)) continue;
+    slides.push(slideFromTournament(t, "upcoming", "REGISTRATION"));
   }
+
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
 
   return (
     <div className="flex min-h-full flex-col pb-24 lg:pb-6">
       <MobileHeader nickname={user.nickname} />
 
       <div className="mx-auto w-full max-w-5xl flex-1 space-y-5 px-3 pb-6 sm:space-y-6 sm:px-4 lg:px-8">
+        <section className="rounded-3xl border border-white/8 bg-gradient-to-br from-primary/15 via-card to-background px-4 py-4 sm:px-5 sm:py-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary/90">
+            {greeting}
+          </p>
+          <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
+            Hola, {user.nickname}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {slides.length > 0
+              ? "Sigue tus torneos y partidos pendientes."
+              : "Empieza uniéndote a un torneo o creando el tuyo."}
+          </p>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <Link
+              href="/tournaments?filter=mine"
+              className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2.5 transition-colors hover:border-primary/30"
+            >
+              <Trophy className="mb-1 h-3.5 w-3.5 text-primary" />
+              <p className="text-lg font-bold tabular-nums">{slides.length}</p>
+              <p className="text-[10px] text-muted-foreground">Mis torneos</p>
+            </Link>
+            <Link
+              href="/matches"
+              className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2.5 transition-colors hover:border-sky-500/30"
+            >
+              <Swords className="mb-1 h-3.5 w-3.5 text-sky-400" />
+              <p className="text-lg font-bold tabular-nums">{pendingMatches}</p>
+              <p className="text-[10px] text-muted-foreground">Pendientes</p>
+            </Link>
+            <Link
+              href="/tournaments?filter=open"
+              className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2.5 transition-colors hover:border-amber-500/30"
+            >
+              <UsersRound className="mb-1 h-3.5 w-3.5 text-amber-400" />
+              <p className="text-lg font-bold tabular-nums">
+                {openTournamentsCount}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Abiertos</p>
+            </Link>
+          </div>
+        </section>
+
         <section>
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">Mis torneos</h2>
             <Link
-              href="/tournaments"
+              href="/tournaments?filter=mine"
               className="flex shrink-0 items-center gap-0.5 text-xs text-primary"
             >
               Ver todos
@@ -159,21 +194,32 @@ export default async function DashboardPage() {
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-card p-5 text-center sm:p-6">
               <p className="text-sm text-muted-foreground">
-                Aún no tienes torneos activos
+                Aún no estás inscrito en ningún torneo
               </p>
-              <Link
-                href="/tournaments/create"
-                className="mt-2 inline-block text-sm font-medium text-primary"
-              >
-                Crear tu primer torneo
-              </Link>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href="/tournaments?filter=open"
+                  className="text-sm font-medium text-primary"
+                >
+                  Ver torneos abiertos
+                  {openTournamentsCount > 0 ? ` (${openTournamentsCount})` : ""}
+                </Link>
+                <Link
+                  href="/tournaments/create"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Crear torneo
+                </Link>
+              </div>
             </div>
           )}
         </section>
 
         <QuickActions />
 
-        <RealFootballSection userId={user.id} />
+        <Suspense fallback={null}>
+          <RealFootballSection userId={user.id} />
+        </Suspense>
 
         <section>
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
