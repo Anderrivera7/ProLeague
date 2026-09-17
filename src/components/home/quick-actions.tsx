@@ -12,9 +12,9 @@ const actions = [
     color: "bg-primary/15 text-primary",
   },
   {
-    href: "/tournaments?filter=open",
+    href: "/tournaments/join",
     label: "Unirse",
-    fullLabel: "Torneos abiertos",
+    fullLabel: "Código invitación",
     icon: LogIn,
     color: "bg-secondary/15 text-secondary",
   },

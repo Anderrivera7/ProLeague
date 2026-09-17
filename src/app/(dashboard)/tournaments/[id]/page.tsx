@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     tournament = await TournamentRepository.findByIdForDetail(id);
     if (!tournament) notFound();
   }
+
+  const isMember = tournament.participants.some((p) => p.userId === user?.id);
+  if (!isMember && !isCreator) {
+    redirect("/tournaments/join");
+  }
+
   const myParticipant = tournament.participants.find((p) => p.userId === user?.id);
   const needsTeam = myParticipant && !myParticipant.fcTeamId;
   const typeInfo = TOURNAMENT_TYPES[tournament.type];

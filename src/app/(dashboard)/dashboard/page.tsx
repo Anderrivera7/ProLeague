@@ -7,7 +7,7 @@ import { QuickActions } from "@/components/home/quick-actions";
 import { ActivityItem } from "@/components/home/activity-item";
 import { RealFootballSection } from "@/features/football/components/real-football-section";
 import { prisma } from "@/lib/prisma";
-import { ChevronRight, Swords, Trophy, UsersRound } from "lucide-react";
+import { ChevronRight, KeyRound, Swords, Trophy } from "lucide-react";
 import { getLeagueCoverUrl } from "@/lib/fc-data/club-ids";
 import type { TournamentType } from "@prisma/client";
 
@@ -15,61 +15,57 @@ export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) return null;
 
-  const [myTournaments, activities, pendingMatches, openTournamentsCount] =
-    await Promise.all([
-      prisma.tournament.findMany({
-        where: {
-          OR: [
-            { creatorId: user.id },
-            { participants: { some: { userId: user.id } } },
-          ],
-          status: { in: ["ACTIVE", "REGISTRATION"] },
+  const [myTournaments, activities, pendingMatches] = await Promise.all([
+    prisma.tournament.findMany({
+      where: {
+        OR: [
+          { creatorId: user.id },
+          { participants: { some: { userId: user.id } } },
+        ],
+        status: { in: ["ACTIVE", "REGISTRATION"] },
+      },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        status: true,
+        maxParticipants: true,
+        createdAt: true,
+        fcLeague: {
+          select: { fifaIndexId: true, name: true },
         },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          status: true,
-          maxParticipants: true,
-          createdAt: true,
-          fcLeague: {
-            select: { fifaIndexId: true, name: true },
-          },
-          _count: { select: { participants: true } },
-          matches: {
-            where: { status: "COMPLETED" },
-            select: { round: true },
-            orderBy: { round: "desc" },
-            take: 1,
-          },
+        _count: { select: { participants: true } },
+        matches: {
+          where: { status: "COMPLETED" },
+          select: { round: true },
+          orderBy: { round: "desc" },
+          take: 1,
         },
-        orderBy: { createdAt: "desc" },
-        take: 4,
-      }),
-      prisma.activity.findMany({
-        where: { userId: user.id },
-        select: {
-          id: true,
-          type: true,
-          title: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-      prisma.match.count({
-        where: {
-          status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] },
-          OR: [
-            { homeParticipant: { userId: user.id } },
-            { awayParticipant: { userId: user.id } },
-          ],
-        },
-      }),
-      prisma.tournament.count({
-        where: { status: "REGISTRATION" },
-      }),
-    ]);
+      },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+    }),
+    prisma.activity.findMany({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    prisma.match.count({
+      where: {
+        status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] },
+        OR: [
+          { homeParticipant: { userId: user.id } },
+          { awayParticipant: { userId: user.id } },
+        ],
+      },
+    }),
+  ]);
 
   const activeTournaments = myTournaments.filter((t) => t.status === "ACTIVE");
   const upcomingTournaments = myTournaments.filter(
@@ -146,7 +142,7 @@ export default async function DashboardPage() {
           </p>
           <div className="mt-4 grid grid-cols-3 gap-2">
             <Link
-              href="/tournaments?filter=mine"
+              href="/tournaments"
               className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2.5 transition-colors hover:border-primary/30"
             >
               <Trophy className="mb-1 h-3.5 w-3.5 text-primary" />
@@ -162,14 +158,12 @@ export default async function DashboardPage() {
               <p className="text-[10px] text-muted-foreground">Pendientes</p>
             </Link>
             <Link
-              href="/tournaments?filter=open"
+              href="/tournaments/join"
               className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2.5 transition-colors hover:border-amber-500/30"
             >
-              <UsersRound className="mb-1 h-3.5 w-3.5 text-amber-400" />
-              <p className="text-lg font-bold tabular-nums">
-                {openTournamentsCount}
-              </p>
-              <p className="text-[10px] text-muted-foreground">Abiertos</p>
+              <KeyRound className="mb-1 h-3.5 w-3.5 text-amber-400" />
+              <p className="text-lg font-bold">+</p>
+              <p className="text-[10px] text-muted-foreground">Con código</p>
             </Link>
           </div>
         </section>
@@ -178,7 +172,7 @@ export default async function DashboardPage() {
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">Mis torneos</h2>
             <Link
-              href="/tournaments?filter=mine"
+              href="/tournaments"
               className="flex shrink-0 items-center gap-0.5 text-xs text-primary"
             >
               Ver todos
@@ -194,15 +188,15 @@ export default async function DashboardPage() {
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-card p-5 text-center sm:p-6">
               <p className="text-sm text-muted-foreground">
-                Aún no estás inscrito en ningún torneo
+                Aún no estás inscrito en ningún torneo. Entrá con un código de
+                invitación.
               </p>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
                 <Link
-                  href="/tournaments?filter=open"
+                  href="/tournaments/join"
                   className="text-sm font-medium text-primary"
                 >
-                  Ver torneos abiertos
-                  {openTournamentsCount > 0 ? ` (${openTournamentsCount})` : ""}
+                  Unirme con código
                 </Link>
                 <Link
                   href="/tournaments/create"

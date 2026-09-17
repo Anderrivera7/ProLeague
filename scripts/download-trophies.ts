@@ -32,6 +32,14 @@ const FILES: Array<{ file: string; url: string }> = [
     url: "https://r2.thesportsdb.com/images/media/league/trophy/3v5npc1726462062.png",
   },
   {
+    file: "eredivisie.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/wx9n831722781060.png",
+  },
+  {
+    file: "la-liga.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/vc2z6q1684416521.png",
+  },
+  {
     file: "super-lig.png",
     url: "https://r2.thesportsdb.com/images/media/league/trophy/2oirc41681158648.png",
   },

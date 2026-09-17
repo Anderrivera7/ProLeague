@@ -142,24 +142,23 @@ export class TournamentRepository {
     });
   }
 
-  static async findAll(filters?: {
+  static async findAll(filters: {
     status?: string;
     creatorId?: string;
-    participantUserId?: string;
+    /** Obligatorio: sin esto no se listan torneos públicos. */
+    participantUserId: string;
     limit?: number;
   }) {
     return prisma.tournament.findMany({
       where: {
-        ...(filters?.status && {
+        ...(filters.status && {
           status: filters.status as Prisma.EnumTournamentStatusFilter,
         }),
-        ...(filters?.creatorId && { creatorId: filters.creatorId }),
-        ...(filters?.participantUserId && {
-          OR: [
-            { creatorId: filters.participantUserId },
-            { participants: { some: { userId: filters.participantUserId } } },
-          ],
-        }),
+        ...(filters.creatorId && { creatorId: filters.creatorId }),
+        OR: [
+          { creatorId: filters.participantUserId },
+          { participants: { some: { userId: filters.participantUserId } } },
+        ],
       },
       select: {
         id: true,
@@ -177,7 +176,7 @@ export class TournamentRepository {
         _count: { select: { participants: true, matches: true } },
       },
       orderBy: { createdAt: "desc" },
-      take: filters?.limit ?? 50,
+      take: filters.limit ?? 50,
     });
   }
 
