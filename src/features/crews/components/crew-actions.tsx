@@ -59,25 +59,25 @@ export function CrewActions({
   }
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-[#161616] via-[#111] to-[#0b0b0b]">
-      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <section className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-[#161616] via-[#111] to-[#0b0b0b] sm:rounded-3xl">
+      <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-5">
         <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-2">
-            <Share2 className="h-4 w-4 text-primary" />
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/85">
+          <div className="mb-1.5 flex items-center gap-2">
+            <Share2 className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/85 sm:text-[11px]">
               Invitar amigos
             </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Comparte el código para que se unan al grupo
+          <p className="text-xs text-muted-foreground sm:text-sm">
+            Comparte el código para que se unan
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 sm:mt-3">
             <button
               type="button"
               onClick={copyCode}
-              className="group inline-flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-2.5 transition-colors hover:bg-primary/15"
+              className="group inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 transition-colors active:scale-[0.98] hover:bg-primary/15 sm:rounded-2xl sm:px-4 sm:py-2.5"
             >
-              <span className="font-mono text-lg font-bold tracking-[0.28em] text-primary">
+              <span className="font-mono text-base font-bold tracking-[0.22em] text-primary sm:text-lg sm:tracking-[0.28em]">
                 {joinCode}
               </span>
               {copied ? (

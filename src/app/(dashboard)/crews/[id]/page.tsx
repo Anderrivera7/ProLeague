@@ -29,21 +29,19 @@ export default async function CrewDetailPage({
         title={crew.name}
         subtitle="Arena · títulos · descensos · goleadas"
       />
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-        <div className="mx-auto max-w-3xl space-y-6">
-          <CrewActions
-            crewId={crew.id}
-            joinCode={crew.joinCode}
-            isOwner={isOwner}
-            memberCount={memberCount}
-          />
-          <CrewStatsBoard
-            boards={boardsData.boards}
-            titlesDetail={boardsData.titlesDetail}
-            crewName={crew.name}
-            memberCount={memberCount}
-          />
-        </div>
+      <div className="mx-auto max-w-3xl space-y-4 px-3 py-4 sm:space-y-5 sm:px-4 lg:px-6 lg:py-6">
+        <CrewActions
+          crewId={crew.id}
+          joinCode={crew.joinCode}
+          isOwner={isOwner}
+          memberCount={memberCount}
+        />
+        <CrewStatsBoard
+          boards={boardsData.boards}
+          titlesDetail={boardsData.titlesDetail}
+          crewName={crew.name}
+          memberCount={memberCount}
+        />
       </div>
     </>
   );

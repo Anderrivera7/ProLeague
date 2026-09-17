@@ -10,7 +10,7 @@ export default async function CreateCrewPage() {
   return (
     <>
       <Header title="Crear grupo" subtitle="Arma tu círculo y rivaliza" />
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+      <div className="mx-auto max-w-lg px-3 py-4 sm:px-4 lg:px-6 lg:py-6">
         <CreateCrewForm />
       </div>
     </>

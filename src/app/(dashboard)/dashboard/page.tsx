@@ -124,7 +124,7 @@ export default async function DashboardPage() {
     hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
 
   return (
-    <div className="flex min-h-full flex-col pb-24 lg:pb-6">
+    <div className="flex min-h-full flex-col lg:pb-2">
       <MobileHeader nickname={user.nickname} />
 
       <div className="mx-auto w-full max-w-5xl flex-1 space-y-5 px-3 pb-6 sm:space-y-6 sm:px-4 lg:px-8">

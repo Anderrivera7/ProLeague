@@ -20,6 +20,8 @@ export type CrewPodiumEntry = {
   titlesWon: number;
   wins: number;
   matchesPlayed: number;
+  goalsFor: number;
+  biggestWin: number;
   rank: number;
   isCurrentUser: boolean;
   isOwner: boolean;
@@ -192,6 +194,8 @@ export class CrewService {
       titlesWon: m.user.stats?.titlesWon ?? 0,
       wins: m.user.stats?.wins ?? 0,
       matchesPlayed: m.user.stats?.matchesPlayed ?? 0,
+      goalsFor: m.user.stats?.goalsFor ?? 0,
+      biggestWin: m.user.stats?.biggestWin ?? 0,
       rank: i + 1,
       isCurrentUser: m.user.id === currentUserId,
       isOwner: m.user.id === crew.ownerId,
