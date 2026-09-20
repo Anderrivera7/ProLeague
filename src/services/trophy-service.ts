@@ -297,13 +297,23 @@ export class TrophyService {
       },
     });
 
+    const leagueLabel = input.leagueName ?? input.tournamentName;
     await NotificationService.create(db, {
       userId: input.userId,
       type: "GENERAL",
       title: "¡Nuevo título!",
-      body: `Campeón de ${input.tournamentName}`,
+      body: `¡Campeón de ${leagueLabel}!`,
       href: "/titles",
-      metadata: { tournamentId: input.tournamentId },
+      metadata: {
+        animate: true,
+        kind: "CHAMPION",
+        tournamentId: input.tournamentId,
+        leagueName: leagueLabel,
+        leagueId: input.leagueId ?? null,
+        trophyUrl: imageUrl,
+        tournamentName: input.tournamentName,
+        titlesCount: titlesBefore + 1,
+      },
     });
 
     await this.notifyTitleSurpassed(db, {

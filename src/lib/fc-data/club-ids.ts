@@ -47,8 +47,17 @@ export function parseClubEaId(eaId: string): number | null {
   return Number.isNaN(id) ? null : id;
 }
 
+/**
+ * Escudo de club usable en el navegador.
+ * Sofifa CDN bloquea hotlinking (403 sin Referer sofifa.com); Futbin no.
+ */
 export function getSofifaTeamCrestUrl(clubTeamId: number | string) {
-  return `https://cdn.sofifa.net/teams/${clubTeamId}/60.png`;
+  return `https://cdn.futbin.com/content/fifa25/img/clubs/${clubTeamId}.png`;
+}
+
+function clubIdFromSofifaCrestUrl(url: string): string | null {
+  const match = url.match(/\/teams\/(\d+)\//);
+  return match?.[1] ?? null;
 }
 
 export function getSofifaLeagueLogoUrl(leagueId: number | string) {
@@ -58,18 +67,24 @@ export function getSofifaLeagueLogoUrl(leagueId: number | string) {
   return `https://cdn.sofifa.net/flags/${flag}.png`;
 }
 
-/** Corrige URLs rotas guardadas en BD y reconstruye desde fifaIndexId si hace falta */
+/** Corrige URLs rotas/bloqueadas en BD y reconstruye desde fifaIndexId si hace falta */
 export function resolveTeamCrestUrl(
   crestUrl: string | null | undefined,
   fifaIndexId?: string
 ): string | null {
   if (crestUrl) {
-    if (crestUrl.includes("/teams/") && crestUrl.includes("/26.png")) {
-      return crestUrl.replace("/26.png", "/60.png");
+    // Sofifa club crests → Futbin (Sofifa exige Referer y falla en el cliente)
+    if (crestUrl.includes("sofifa.net/teams/")) {
+      const clubId = clubIdFromSofifaCrestUrl(crestUrl);
+      if (clubId) return getSofifaTeamCrestUrl(clubId);
     }
-    if (crestUrl.includes("/teams/") && !crestUrl.endsWith("/60.png")) {
-      const match = crestUrl.match(/\/teams\/(\d+)\//);
-      if (match) return getSofifaTeamCrestUrl(match[1]);
+    if (crestUrl.includes("/teams/") && crestUrl.includes("/26.png")) {
+      const clubId = clubIdFromSofifaCrestUrl(crestUrl);
+      if (clubId) return getSofifaTeamCrestUrl(clubId);
+    }
+    if (crestUrl.includes("/teams/") && !crestUrl.includes("futbin.com")) {
+      const clubId = clubIdFromSofifaCrestUrl(crestUrl);
+      if (clubId) return getSofifaTeamCrestUrl(clubId);
     }
     return crestUrl;
   }
@@ -214,13 +229,24 @@ export const FEATURED_LEAGUE_IDS = [
   "16",
   "10",
   "308",
+  "32",
   "350",
   "39",
   "353",
   "7",
+  "80",
   "4",
   "50",
   "1",
+  "56",
+  "41",
+  "330",
+  "2012",
+  "2149",
+  "351",
+  "68",
+  "189",
+  "83",
 ] as const;
 
 export function sortLeaguesByPriority<T extends { fifaIndexId: string; name: string }>(

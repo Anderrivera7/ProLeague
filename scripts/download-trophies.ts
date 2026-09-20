@@ -67,6 +67,54 @@ const FILES: Array<{ file: string; url: string }> = [
     file: "taca-portugal.png",
     url: "https://www.thesportsdb.com/images/media/league/trophy/spqxps1422053380.png",
   },
+  {
+    file: "brasileirao.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/02ftjh1684945323.png",
+  },
+  {
+    file: "liga-mx.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/rpqwss1422012934.png",
+  },
+  {
+    file: "saudi-pro-league.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/tkaj2z1747536256.png",
+  },
+  {
+    file: "mls.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/k50lm81684415987.png",
+  },
+  {
+    file: "belgium-pro-league.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/tvuvwy1422267731.png",
+  },
+  {
+    file: "scottish-premiership.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/qsqruv1422282072.png",
+  },
+  {
+    file: "denmark-superliga.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/uqywpu1422281651.png",
+  },
+  {
+    file: "allsvenskan.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/0zpqqm1610917265.png",
+  },
+  {
+    file: "eliteserien.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/uz9kw61778714637.png",
+  },
+  {
+    file: "greece-super-league.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/y96u431716371640.png",
+  },
+  {
+    file: "a-league.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/uxssyx1422266419.png",
+  },
+  {
+    file: "world-cup.png",
+    url: "https://r2.thesportsdb.com/images/media/league/trophy/mmyv4f1724782185.png",
+  },
 ];
 
 async function downloadAsPng(url: string, outFile: string) {
