@@ -88,25 +88,28 @@ export function MatchCard({
         <Link href={`/matches/${match.id}`} className="block">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 flex-col items-end gap-1.5">
-              <Avatar className="h-9 w-9 border-2 border-border">
-                <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
-                  {getInitials(match.homeParticipant.user.nickname)}
-                </AvatarFallback>
-              </Avatar>
+              {homeTeam ? (
+                <TeamCrest
+                  name={homeName}
+                  crestUrl={homeTeam.crestUrl}
+                  fifaIndexId={homeTeam.fifaIndexId ?? undefined}
+                  size={36}
+                />
+              ) : (
+                <Avatar className="h-9 w-9 border-2 border-border">
+                  <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
+                    {getInitials(match.homeParticipant.user.nickname)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
               <p className="truncate text-sm font-semibold">
                 {match.homeParticipant.user.nickname}
               </p>
-              <div className="flex items-center gap-1">
-                <TeamCrest
-                  name={homeName}
-                  crestUrl={homeTeam?.crestUrl}
-                  fifaIndexId={homeTeam?.fifaIndexId ?? undefined}
-                  size={18}
-                />
+              {homeTeam && (
                 <span className="truncate text-[11px] text-muted-foreground">
                   {homeName}
                 </span>
-              </div>
+              )}
             </div>
 
             <div className="flex shrink-0 flex-col items-center gap-0.5">
@@ -134,25 +137,28 @@ export function MatchCard({
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
-              <Avatar className="h-9 w-9 border-2 border-border">
-                <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
-                  {getInitials(match.awayParticipant.user.nickname)}
-                </AvatarFallback>
-              </Avatar>
+              {awayTeam ? (
+                <TeamCrest
+                  name={awayName}
+                  crestUrl={awayTeam.crestUrl}
+                  fifaIndexId={awayTeam.fifaIndexId ?? undefined}
+                  size={36}
+                />
+              ) : (
+                <Avatar className="h-9 w-9 border-2 border-border">
+                  <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
+                    {getInitials(match.awayParticipant.user.nickname)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
               <p className="truncate text-sm font-semibold">
                 {match.awayParticipant.user.nickname}
               </p>
-              <div className="flex items-center gap-1">
-                <TeamCrest
-                  name={awayName}
-                  crestUrl={awayTeam?.crestUrl}
-                  fifaIndexId={awayTeam?.fifaIndexId ?? undefined}
-                  size={18}
-                />
+              {awayTeam && (
                 <span className="truncate text-[11px] text-muted-foreground">
                   {awayName}
                 </span>
-              </div>
+              )}
             </div>
           </div>
 

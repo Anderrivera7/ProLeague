@@ -155,7 +155,8 @@ export function generateTournamentFixture(
     case "GROUPS":
       return generateGroupFixture(participants, groupsCount, twoLegs);
     case "GROUPS_KNOCKOUT":
-      return generateGroupFixture(participants, groupsCount, false);
+      // Fase de grupos respeta ida y vuelta; el bracket se genera después.
+      return generateGroupFixture(participants, groupsCount, twoLegs);
     case "TWO_LEGS":
       return generateKnockoutBracket(participants, true);
     default:

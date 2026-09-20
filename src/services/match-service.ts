@@ -5,6 +5,9 @@ import { isBetterWin } from "@/utils/match-stats";
 import { buildMatchResultMessage } from "@/utils/match-result-message";
 import { AchievementService } from "@/services/achievement-service";
 import { TrophyService } from "@/services/trophy-service";
+import { NotificationService } from "@/services/notification-service";
+import { MomentService } from "@/services/moment-service";
+import { CrewRepository } from "@/repositories/crew-repository";
 import type { MatchResultInput } from "@/types";
 
 function aggregateUserEvents(
@@ -207,6 +210,36 @@ export class MatchService {
     const homeEvents = aggregateUserEvents(input.playerStats, homeUser.id);
     const awayEvents = aggregateUserEvents(input.playerStats, awayUser.id);
 
+    const [homeStatsBefore, awayStatsBefore, h2hHomeBefore, h2hAwayBefore] =
+      await Promise.all([
+        prisma.playerStats.findUnique({
+          where: { userId: homeUser.id },
+          select: { currentStreak: true },
+        }),
+        prisma.playerStats.findUnique({
+          where: { userId: awayUser.id },
+          select: { currentStreak: true },
+        }),
+        prisma.headToHead.findUnique({
+          where: {
+            userId_opponentId: {
+              userId: homeUser.id,
+              opponentId: awayUser.id,
+            },
+          },
+          select: { wins: true },
+        }),
+        prisma.headToHead.findUnique({
+          where: {
+            userId_opponentId: {
+              userId: awayUser.id,
+              opponentId: homeUser.id,
+            },
+          },
+          select: { wins: true },
+        }),
+      ]);
+
     await prisma.$transaction(
       async (tx) => {
         await tx.match.update({
@@ -363,6 +396,124 @@ export class MatchService {
     await AchievementService.syncForUser(homeUser.id, prisma);
     await AchievementService.syncForUser(awayUser.id, prisma);
 
+    const homePrevStreak = homeStatsBefore?.currentStreak ?? 0;
+    const awayPrevStreak = awayStatsBefore?.currentStreak ?? 0;
+    const homeNextStreak = homeWon || isDraw ? homePrevStreak + 1 : 0;
+    const awayNextStreak = awayWon || isDraw ? awayPrevStreak + 1 : 0;
+    const matchHref = `/matches/${input.matchId}`;
+
+    await Promise.all([
+      MomentService.maybeStreakMoments(prisma, {
+        userId: homeUser.id,
+        previousStreak: homePrevStreak,
+        nextStreak: homeNextStreak,
+        lost: awayWon,
+        opponentNickname: awayUser.nickname,
+      }),
+      MomentService.maybeStreakMoments(prisma, {
+        userId: awayUser.id,
+        previousStreak: awayPrevStreak,
+        nextStreak: awayNextStreak,
+        lost: homeWon,
+        opponentNickname: homeUser.nickname,
+      }),
+      MomentService.maybeEloUp(prisma, {
+        userId: homeUser.id,
+        previousElo: homeUser.elo,
+        nextElo: homeNewPoints,
+      }),
+      MomentService.maybeEloUp(prisma, {
+        userId: awayUser.id,
+        previousElo: awayUser.elo,
+        nextElo: awayNewPoints,
+      }),
+      MomentService.maybeMatchHonors(prisma, {
+        userId: homeUser.id,
+        goals: homeEvents.goals,
+        isMvp: input.mvpUserId === homeUser.id,
+        opponentNickname: awayUser.nickname,
+        href: matchHref,
+      }),
+      MomentService.maybeMatchHonors(prisma, {
+        userId: awayUser.id,
+        goals: awayEvents.goals,
+        isMvp: input.mvpUserId === awayUser.id,
+        opponentNickname: homeUser.nickname,
+        href: matchHref,
+      }),
+      MomentService.maybeH2HRivalry(prisma, {
+        userId: homeUser.id,
+        opponentId: awayUser.id,
+        opponentNickname: awayUser.nickname,
+        previousWins: h2hHomeBefore?.wins ?? 0,
+        previousOppWins: h2hAwayBefore?.wins ?? 0,
+        won: homeWon,
+        href: `/players/compare?a=${homeUser.id}&b=${awayUser.id}`,
+      }),
+      MomentService.maybeH2HRivalry(prisma, {
+        userId: awayUser.id,
+        opponentId: homeUser.id,
+        opponentNickname: homeUser.nickname,
+        previousWins: h2hAwayBefore?.wins ?? 0,
+        previousOppWins: h2hHomeBefore?.wins ?? 0,
+        won: awayWon,
+        href: `/players/compare?a=${awayUser.id}&b=${homeUser.id}`,
+      }),
+    ]);
+
+    if (match.tournamentId) {
+      await MomentService.maybeTitleClinched(prisma, {
+        tournamentId: match.tournamentId,
+        tournamentName: match.tournament.name,
+        groupName: match.groupName,
+      });
+    }
+
+    const margin = Math.abs(input.homeScore - input.awayScore);
+    if (margin >= 5 && !isDraw) {
+      const sharedCrewId = await CrewRepository.findSharedCrewId(
+        homeUser.id,
+        awayUser.id
+      );
+      if (sharedCrewId) {
+        const winnerId = homeWon ? homeUser.id : awayUser.id;
+        const loserId = homeWon ? awayUser.id : homeUser.id;
+        const winnerNick = homeWon ? homeUser.nickname : awayUser.nickname;
+        const loserNick = homeWon ? awayUser.nickname : homeUser.nickname;
+        const scoreLabel = homeWon
+          ? `${input.homeScore}-${input.awayScore}`
+          : `${input.awayScore}-${input.homeScore}`;
+        const href = `/crews/${sharedCrewId}`;
+        const metaBase = {
+          animate: true,
+          kind: "THRASHING",
+          margin,
+          scoreLabel,
+          winnerNickname: winnerNick,
+          loserNickname: loserNick,
+          crewId: sharedCrewId,
+        };
+        await Promise.all([
+          NotificationService.create(prisma, {
+            userId: winnerId,
+            type: "GENERAL",
+            title: "¡Humillación!",
+            body: `+${margin} vs ${loserNick} · ${scoreLabel}`,
+            href,
+            metadata: { ...metaBase, youWereThrashed: false },
+          }),
+          NotificationService.create(prisma, {
+            userId: loserId,
+            type: "GENERAL",
+            title: "Humillación",
+            body: `${winnerNick} te goleó +${margin} · ${scoreLabel}`,
+            href,
+            metadata: { ...metaBase, youWereThrashed: true },
+          }),
+        ]);
+      }
+    }
+
     return { success: true };
   }
 
@@ -389,7 +540,9 @@ export class MatchService {
     const stats = await tx.playerStats.findUnique({ where: { userId } });
     if (!stats) return;
 
-    const streak = data.won ? stats.currentStreak + 1 : 0;
+    // Racha = partidos seguidos sin perder (victoria o empate)
+    const streak =
+      data.won || data.drawn ? stats.currentStreak + 1 : 0;
 
     const margin = data.gf - data.ga;
     const isNewBestWin =
@@ -464,7 +617,8 @@ export class MatchService {
         where: { userId_opponentId: { userId: uid, opponentId: oid } },
       });
 
-      const streak = won ? (existing?.currentStreak ?? 0) + 1 : 0;
+      const streak =
+        won || drawn ? (existing?.currentStreak ?? 0) + 1 : 0;
 
       const margin = gf - ga;
       const oldMargin = existing?.biggestWin ?? 0;

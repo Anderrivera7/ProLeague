@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { recordMatchResult } from "@/actions/match-actions";
+import { resolveTeamCrestUrl } from "@/lib/fc-data/club-ids";
 import { Plus, Trash2 } from "lucide-react";
 
 interface SquadPlayer {
@@ -49,10 +50,11 @@ function TeamCrest({
   crestUrl: string | null;
   size?: number;
 }) {
-  if (crestUrl) {
+  const resolved = resolveTeamCrestUrl(crestUrl);
+  if (resolved) {
     return (
       <Image
-        src={crestUrl}
+        src={resolved}
         alt={name}
         width={size}
         height={size}
