@@ -65,7 +65,7 @@ export function NotificationsBell() {
         !Array.isArray(latest.metadata)
           ? (latest.metadata as Record<string, unknown>)
           : {};
-      // El toast no compite con la animación de campeón.
+      // Solo el campeón recibe toast/animación de título.
       if (meta.animate === true && meta.kind === "CHAMPION") return;
 
       sessionStorage.setItem(`notif-seen-${latest.id}`, "1");

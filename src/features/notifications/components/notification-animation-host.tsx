@@ -12,8 +12,8 @@ export function isAnimatableNotification(
   meta: Record<string, unknown>
 ) {
   if (meta.animate !== true) return false;
-  // Solo animación a pantalla completa: equipo campeón.
-  return meta.kind === "CHAMPION";
+  // Solo el campeón ve la animación a pantalla completa.
+  return meta.kind === "CHAMPION" && meta.youAreChampion === true;
 }
 
 type Active = { kind: "CHAMPION"; data: ChampionAnimData };
@@ -22,7 +22,7 @@ export function parseNotificationAnimation(
   _type: string,
   meta: Record<string, unknown>
 ): Active | null {
-  if (meta.kind !== "CHAMPION") return null;
+  if (meta.kind !== "CHAMPION" || meta.youAreChampion !== true) return null;
 
   return {
     kind: "CHAMPION",

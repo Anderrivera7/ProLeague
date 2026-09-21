@@ -355,8 +355,9 @@ export class TrophyService {
             ? "/titles"
             : `/tournaments/${input.tournamentId}`,
           metadata: {
-            animate: true,
-            kind: "CHAMPION",
+            // Animación a pantalla completa solo para quien gana el título.
+            animate: youAreChampion,
+            kind: youAreChampion ? "CHAMPION" : "CHAMPION_ANNOUNCE",
             youAreChampion,
             tournamentId: input.tournamentId,
             leagueName: leagueLabel,
