@@ -22,6 +22,7 @@ const memberInclude = {
           goalsFor: true,
           goalsAgainst: true,
           goalDifference: true,
+          currentStreak: true,
         },
       },
       trophies: {
@@ -114,6 +115,24 @@ export class CrewRepository {
         opponent: { select: { nickname: true } },
       },
     });
+  }
+
+  /** Primer grupo compartido entre dos usuarios (para notifs de Amigos). */
+  static async findSharedCrewId(userIdA: string, userIdB: string) {
+    const rows = await prisma.crewMember.findMany({
+      where: { userId: { in: [userIdA, userIdB] } },
+      select: { crewId: true, userId: true },
+    });
+    const counts = new Map<string, Set<string>>();
+    for (const row of rows) {
+      const set = counts.get(row.crewId) ?? new Set();
+      set.add(row.userId);
+      counts.set(row.crewId, set);
+    }
+    for (const [crewId, users] of counts) {
+      if (users.has(userIdA) && users.has(userIdB)) return crewId;
+    }
+    return null;
   }
 
   static async findByJoinCode(joinCode: string) {
