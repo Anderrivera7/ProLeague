@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
 } from "@/lib/fc-data/league-trophies";
 import { getTeamCrestCandidates } from "@/lib/fc-data/club-ids";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type ChampionAnimData = {
   leagueName: string;
@@ -74,7 +75,10 @@ export function ChampionAnimation({
   data: ChampionAnimData | null;
   onClose: () => void;
 }) {
-  if (!data) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!data || !mounted) return null;
 
   const theme: ChampionTheme = getChampionTheme(
     data.leagueId,
@@ -84,11 +88,11 @@ export function ChampionAnimation({
   const teamName = data.championTeamName ?? data.championNickname ?? "Campeón";
   const youAreChampion = data.youAreChampion === true;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/95 p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden bg-black/95 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -261,6 +265,7 @@ export function ChampionAnimation({
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

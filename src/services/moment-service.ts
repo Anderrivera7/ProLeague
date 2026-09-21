@@ -26,7 +26,7 @@ export class MomentService {
       body: input.body ?? null,
       href: input.href ?? null,
       metadata: {
-        animate: true,
+        animate: false,
         kind: input.kind,
         ...input.metadata,
       },
