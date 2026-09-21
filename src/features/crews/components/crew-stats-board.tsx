@@ -6,9 +6,9 @@ import { useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDownToLine,
   Crown,
+  Flame,
   Medal,
-  Shield,
-  Star,
+  Scale,
   Swords,
   Target,
   Trophy,
@@ -28,6 +28,7 @@ interface CrewStatsBoardProps {
   titlesDetail: CrewPodiumEntry[];
   crewName: string;
   memberCount: number;
+  currentUserId?: string;
 }
 
 const TAB_META: Record<
@@ -223,9 +224,11 @@ function HeroCard({
               </p>
             </div>
             <p className="mt-2 text-xs text-white/55">
-              {entry.rank === 1
-                ? "El esfuerzo también se premia"
-                : `Compites en ${crewName}`}
+              {entry.currentStreak > 0
+                ? `${entry.currentStreak} partido${entry.currentStreak === 1 ? "" : "s"} sin perder`
+                : entry.rank === 1
+                  ? "El esfuerzo también se premia"
+                  : `Compites en ${crewName}`}
             </p>
           </div>
 
@@ -253,9 +256,9 @@ function HeroCard({
             accent
           />
           <MiniStat
-            icon={<Star className="h-3 w-3 text-sky-300" />}
-            label="Partidos"
-            value={entry.matchesPlayed}
+            icon={<Flame className="h-3 w-3 text-orange-300" />}
+            label="Sin perder"
+            value={entry.currentStreak}
           />
           <MiniStat
             icon={<Target className="h-3 w-3 text-amber-300" />}
@@ -263,9 +266,9 @@ function HeroCard({
             value={entry.goalsFor}
           />
           <MiniStat
-            icon={<Shield className="h-3 w-3 text-rose-300" />}
-            label="Goleadas"
-            value={entry.biggestWin}
+            icon={<Swords className="h-3 w-3 text-amber-400" />}
+            label="Goleada"
+            value={entry.biggestWin > 0 ? `+${entry.biggestWin}` : 0}
           />
         </div>
       </div>
@@ -278,12 +281,22 @@ function BoardLeaderRow({
   unitSingular,
   unitPlural,
   highlight,
+  categoryId,
 }: {
   entry: CrewBoardEntry;
   unitSingular: string;
   unitPlural: string;
   highlight?: boolean;
+  categoryId?: CrewBoardCategory["id"];
 }) {
+  const isThrashing = categoryId === "thrashings";
+  const displayValue = isThrashing
+    ? entry.value > 0
+      ? `+${entry.value}`
+      : "0"
+    : entry.value;
+  const humiliation = isThrashing && entry.value >= 5;
+
   return (
     <div
       className={cn(
@@ -307,6 +320,11 @@ function BoardLeaderRow({
               Tú
             </Badge>
           )}
+          {humiliation && (
+            <Badge className="rounded-full bg-amber-500/20 px-1.5 py-0 text-[9px] font-semibold text-amber-300">
+              Humillación
+            </Badge>
+          )}
         </div>
         {entry.detail ? (
           <p className="truncate text-[11px] text-muted-foreground">
@@ -318,14 +336,28 @@ function BoardLeaderRow({
           </p>
         )}
       </div>
-      <p className="text-xl font-black tabular-nums text-white">{entry.value}</p>
+      <p
+        className={cn(
+          "text-xl font-black tabular-nums",
+          isThrashing ? "text-amber-300" : "text-white"
+        )}
+      >
+        {displayValue}
+      </p>
     </div>
   );
 }
 
-function TitlesRankingCard({ entry }: { entry: CrewPodiumEntry }) {
-  const showGallery =
-    entry.isCurrentUser || entry.rank === 1 || entry.recentTrophies.length <= 1;
+function TitlesRankingCard({
+  entry,
+  currentUserId,
+}: {
+  entry: CrewPodiumEntry;
+  currentUserId?: string;
+}) {
+  const canCompare =
+    Boolean(currentUserId) && !entry.isCurrentUser && currentUserId !== entry.userId;
+  const trophies = entry.recentTrophies.slice(0, 8);
 
   return (
     <article
@@ -371,34 +403,40 @@ function TitlesRankingCard({ entry }: { entry: CrewPodiumEntry }) {
         </div>
         <div className="flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/15 px-2.5 py-1">
           <Crown className="h-3 w-3 text-primary" />
-          <span className="text-sm font-bold tabular-nums">{entry.titlesWon}</span>
+          <span className="text-sm font-bold tabular-nums">
+            {entry.titlesWon}
+          </span>
         </div>
       </div>
 
-      {entry.recentTrophies.length > 0 ? (
+      {canCompare && (
+        <Link
+          href={`/players/compare?a=${currentUserId}&b=${entry.userId}`}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/35 bg-primary/10 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+        >
+          <Scale className="h-3.5 w-3.5" />
+          Comparar contigo
+        </Link>
+      )}
+
+      {trophies.length > 0 ? (
         <div className="mt-3">
           <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/40">
             Últimos títulos
           </p>
-          {showGallery ? (
-            <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {entry.recentTrophies.slice(0, 8).map((trophy) => (
-                <TrophyTile key={trophy.id} trophy={trophy} />
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-2">
-              <TrophyTile trophy={entry.recentTrophies[0]} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium">
-                  {shortLabel(entry.recentTrophies[0].title)}
-                </p>
-                <p className="text-[10px] text-white/40">
-                  +{Math.max(0, entry.recentTrophies.length - 1)} más
-                </p>
+          <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {trophies.map((trophy) => (
+              <TrophyTile key={trophy.id} trophy={trophy} />
+            ))}
+            {entry.titlesWon > trophies.length && (
+              <div className="flex w-[5.1rem] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-white/15 bg-[#121212] px-1.5 py-2.5">
+                <span className="text-sm font-bold text-primary">
+                  +{entry.titlesWon - trophies.length}
+                </span>
+                <span className="text-[8px] text-white/45">más</span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ) : (
         <p className="mt-3 text-[11px] text-white/35">Sin títulos todavía</p>
@@ -429,6 +467,7 @@ export function CrewStatsBoard({
   titlesDetail,
   crewName,
   memberCount,
+  currentUserId,
 }: CrewStatsBoardProps) {
   const [activeId, setActiveId] = useState<CrewBoardCategory["id"]>("titles");
   const activeBoard = boards.find((b) => b.id === activeId) ?? boards[0];
@@ -495,7 +534,11 @@ export function CrewStatsBoard({
           {activeId === "titles" ? (
             rankingRows.map((entry, i) =>
               entry ? (
-                <TitlesRankingCard key={entry.userId} entry={entry} />
+                <TitlesRankingCard
+                  key={entry.userId}
+                  entry={entry}
+                  currentUserId={currentUserId}
+                />
               ) : (
                 <VacantCard key={`vacant-${i}`} rank={i + 1} />
               )
@@ -508,6 +551,7 @@ export function CrewStatsBoard({
                 unitSingular={activeBoard.unitSingular}
                 unitPlural={activeBoard.unitPlural}
                 highlight={entry.isCurrentUser || entry.rank === 1}
+                categoryId={activeBoard.id}
               />
             ))
           ) : (

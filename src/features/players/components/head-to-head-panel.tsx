@@ -125,7 +125,7 @@ export function HeadToHeadPanel({
             <Badge variant="outline">Mayor goleada: {biggestWinLabel}</Badge>
           )}
           {streak > 0 && (
-            <Badge variant="outline">Racha: +{streak}</Badge>
+            <Badge variant="outline">Sin perder: {streak}</Badge>
           )}
         </div>
 
