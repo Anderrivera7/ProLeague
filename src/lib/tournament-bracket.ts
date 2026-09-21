@@ -283,7 +283,7 @@ function buildFromKnockoutMatches(
 
     return {
       label: isLastRound ? "Final" : teamsInRound === 4 ? "Semifinal" : `Ronda ${roundNum}`,
-      matches: roundMatches.map(matchFromDb),
+      matches: roundMatches.map((m) => matchFromDb(m)),
     };
   });
 
