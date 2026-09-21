@@ -189,6 +189,24 @@ export class TrophyService {
       if (match.penaltiesHome === match.penaltiesAway) return false;
     }
 
+    // Grupos + eliminatorias: la 1.ª eliminatoria es la semi; no coronar aún.
+    if (match.tournament.type === "GROUPS_KNOCKOUT") {
+      const participants = await db.tournamentParticipant.count({
+        where: { tournamentId: match.tournamentId },
+      });
+      if (participants > 2) {
+        const priorKnockout = await db.match.count({
+          where: {
+            tournamentId: match.tournamentId,
+            groupName: null,
+            id: { not: match.id },
+            status: "COMPLETED",
+          },
+        });
+        if (priorKnockout === 0) return false;
+      }
+    }
+
     const maxRound = await db.match.aggregate({
       where: {
         tournamentId: match.tournamentId,

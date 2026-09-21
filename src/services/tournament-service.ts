@@ -274,8 +274,31 @@ export class TournamentService {
     if (tournament.type !== "GROUPS_KNOCKOUT") {
       return { created: 0, purged: purged.count };
     }
-    if (tournament.status === "COMPLETED" || tournament.status === "CANCELLED") {
+    if (tournament.status === "CANCELLED") {
       return { created: 0, purged: purged.count };
+    }
+
+    // Si se coronó por error en la semi (sin final), reabre el torneo.
+    if (tournament.status === "COMPLETED") {
+      const koDone = tournament.matches.filter(
+        (m) => !m.groupName && m.leg !== 2
+      );
+      if (
+        tournament.participants.length > 2 &&
+        koDone.length < 2
+      ) {
+        await prisma.trophy.deleteMany({
+          where: { tournamentId, placement: 1 },
+        });
+        await prisma.tournamentParticipant.updateMany({
+          where: { tournamentId, placement: 1 },
+          data: { placement: null },
+        });
+        await TournamentRepository.update(tournamentId, { status: "ACTIVE" });
+        tournament.status = "ACTIVE";
+      } else {
+        return { created: 0, purged: purged.count };
+      }
     }
 
     const groupMatches = tournament.matches.filter((m) => m.groupName);
