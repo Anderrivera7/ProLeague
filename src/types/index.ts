@@ -67,6 +67,7 @@ export interface MatchWithParticipants {
   id: string;
   round: number;
   groupName: string | null;
+  leg?: number;
   homeScore: number | null;
   awayScore: number | null;
   proposedHomeScore?: number | null;
