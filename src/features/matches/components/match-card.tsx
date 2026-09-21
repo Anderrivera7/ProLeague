@@ -81,15 +81,25 @@ export function MatchCard({
             ) : (
               <span className="text-xs text-muted-foreground">Partido</span>
             )}
-            {match.leg === 2 ? (
-              <Badge variant="outline" className="text-[10px]">
-                Vuelta
-              </Badge>
-            ) : match.leg === 1 ? (
-              <Badge variant="secondary" className="text-[10px]">
-                Ida
-              </Badge>
-            ) : null}
+            {match.groupName
+              ? match.leg === 2
+                ? (
+                    <Badge variant="outline" className="text-[10px]">
+                      Vuelta
+                    </Badge>
+                  )
+                : match.leg === 1
+                  ? (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Ida
+                      </Badge>
+                    )
+                  : null
+              : (
+                  <Badge variant="outline" className="text-[10px]">
+                    Partido único
+                  </Badge>
+                )}
           </div>
           <Badge variant={statusVariant[match.status]}>
             {statusLabel[match.status]}

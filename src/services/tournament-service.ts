@@ -228,6 +228,8 @@ export class TournamentService {
 
     for (const m of existing) {
       if (m.leg !== 1) continue;
+      // Grupos + eliminatorias: ida/vuelta solo en fase de grupos (semi/final a partido único).
+      if (tournament.type === "GROUPS_KNOCKOUT" && !m.groupName) continue;
       if (hasReturn(m.awayParticipantId, m.homeParticipantId)) {
         continue;
       }
