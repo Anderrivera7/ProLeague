@@ -5,7 +5,7 @@ import { Prisma as PrismaNamespace } from "@prisma/client";
 const userProfileInclude = {
   favoriteTeam: true,
   stats: true,
-  trophies: { orderBy: { wonAt: "desc" as const }, take: 10 },
+  trophies: { orderBy: { wonAt: "desc" as const } },
   achievements: {
     include: { achievement: true },
     orderBy: { unlockedAt: "desc" as const },
@@ -85,7 +85,6 @@ export class UserRepository {
         },
         trophies: {
           orderBy: { wonAt: "desc" },
-          take: 10,
           include: {
             tournament: {
               select: {

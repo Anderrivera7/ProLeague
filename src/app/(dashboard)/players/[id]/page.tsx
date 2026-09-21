@@ -145,9 +145,14 @@ export default async function PlayerProfilePage({ params }: PageProps) {
               <CardTitle className="text-base flex items-center gap-2">
                 <Award className="h-4 w-4 text-primary" />
                 Trofeos
+                {player.trophies.length > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground">
+                    · {player.trophies.length}
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="max-h-[28rem] space-y-2 overflow-y-auto overscroll-contain pr-1">
               {player.trophies.length > 0 ? (
                 player.trophies.map((trophy) => {
                   const league = trophy.tournament?.fcLeague;

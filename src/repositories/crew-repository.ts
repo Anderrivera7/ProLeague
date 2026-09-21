@@ -27,7 +27,7 @@ const memberInclude = {
       },
       trophies: {
         orderBy: { wonAt: "desc" as const },
-        take: 5,
+        take: 24,
         select: {
           id: true,
           title: true,
