@@ -271,12 +271,31 @@ export class TrophyService {
     });
     const titlesBefore = winnerBefore?.titlesWon ?? 0;
 
+    const winnerInfo = await db.tournamentParticipant.findUnique({
+      where: { id: input.participantId },
+      select: {
+        user: { select: { nickname: true } },
+        fcTeam: {
+          select: { name: true, crestUrl: true, fifaIndexId: true },
+        },
+      },
+    });
+
+    const championNickname =
+      winnerInfo?.user.nickname ?? "Campeón";
+    const championTeamName =
+      winnerInfo?.fcTeam?.name ?? championNickname;
+    const championCrestUrl = winnerInfo?.fcTeam?.crestUrl ?? null;
+    const championFifaIndexId = winnerInfo?.fcTeam?.fifaIndexId ?? null;
+
     await db.trophy.create({
       data: {
         userId: input.userId,
         tournamentId: input.tournamentId,
         title,
         imageUrl,
+        clubName: winnerInfo?.fcTeam?.name ?? null,
+        clubCrestUrl: winnerInfo?.fcTeam?.crestUrl ?? null,
         placement: 1,
         seasonName: input.seasonName,
         wonAt: input.wonAt,
@@ -316,23 +335,6 @@ export class TrophyService {
     });
 
     const leagueLabel = input.leagueName ?? input.tournamentName;
-
-    const winnerInfo = await db.tournamentParticipant.findUnique({
-      where: { id: input.participantId },
-      select: {
-        user: { select: { nickname: true } },
-        fcTeam: {
-          select: { name: true, crestUrl: true, fifaIndexId: true },
-        },
-      },
-    });
-
-    const championNickname =
-      winnerInfo?.user.nickname ?? "Campeón";
-    const championTeamName =
-      winnerInfo?.fcTeam?.name ?? championNickname;
-    const championCrestUrl = winnerInfo?.fcTeam?.crestUrl ?? null;
-    const championFifaIndexId = winnerInfo?.fcTeam?.fifaIndexId ?? null;
 
     const participants = await db.tournamentParticipant.findMany({
       where: { tournamentId: input.tournamentId },

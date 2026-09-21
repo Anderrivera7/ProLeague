@@ -19,7 +19,9 @@ import {
   Target,
   TrendingUp,
   Award,
+  Scale,
 } from "lucide-react";
+import Link from "next/link";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -88,11 +90,20 @@ export default async function PlayerProfilePage({ params }: PageProps) {
         </Card>
 
         {!isOwnProfile && currentUser && (
-          <HeadToHeadPanel
-            opponentNickname={player.nickname}
-            stats={h2hStats}
-            recentMatches={h2hMatches}
-          />
+          <div className="flex flex-col gap-3">
+            <Link
+              href={`/players/compare?a=${currentUser.id}&b=${player.id}`}
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
+            >
+              <Scale className="h-4 w-4" />
+              Comparar contigo
+            </Link>
+            <HeadToHeadPanel
+              opponentNickname={player.nickname}
+              stats={h2hStats}
+              recentMatches={h2hMatches}
+            />
+          </div>
         )}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -110,16 +121,16 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           />
           <StatCard
             title="Títulos"
-            value={player.stats?.titlesWon ?? 0}
+            value={player.trophies.length}
             subtitle={`${player.stats?.seasonsPlayed ?? 0} temporadas`}
             icon={Trophy}
           />
           <StatCard
-            title="Racha"
+            title="Sin perder"
             value={player.stats?.bestStreak ?? 0}
             subtitle={
               positiveStreak(player.stats?.currentStreak ?? 0) > 0
-                ? `Actual: +${positiveStreak(player.stats?.currentStreak ?? 0)}`
+                ? `Actual: ${positiveStreak(player.stats?.currentStreak ?? 0)}`
                 : "Sin racha activa"
             }
             icon={TrendingUp}

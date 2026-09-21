@@ -92,7 +92,7 @@ export default async function ProfilePage() {
     },
     {
       label: "Títulos",
-      value: user.stats?.titlesWon ?? 0,
+      value: trophies.length,
       sub: `${user.stats?.seasonsPlayed ?? 0} temporadas`,
       icon: BarChart3,
       accent: "text-violet-400",

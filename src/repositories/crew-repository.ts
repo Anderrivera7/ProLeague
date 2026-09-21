@@ -32,6 +32,8 @@ const memberInclude = {
           id: true,
           title: true,
           imageUrl: true,
+          clubName: true,
+          clubCrestUrl: true,
           wonAt: true,
           tournament: {
             select: {
@@ -40,6 +42,7 @@ const memberInclude = {
           },
         },
       },
+      _count: { select: { trophies: true } },
     },
   },
 } as const;

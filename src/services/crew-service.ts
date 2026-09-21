@@ -22,6 +22,8 @@ export type CrewPodiumEntry = {
   matchesPlayed: number;
   goalsFor: number;
   biggestWin: number;
+  /** Partidos seguidos sin perder (victoria o empate). */
+  currentStreak: number;
   rank: number;
   isCurrentUser: boolean;
   isOwner: boolean;
@@ -141,6 +143,13 @@ export class CrewService {
       )
     );
 
+    const { MomentService } = await import("@/services/moment-service");
+    await MomentService.crewWelcome(prisma, {
+      userId,
+      crewId: crew.id,
+      crewName: crew.name,
+    });
+
     return { success: true, crewId: crew.id };
   }
 
@@ -207,8 +216,8 @@ export class CrewService {
     if (!isMember) return null;
 
     const sorted = [...crew.members].sort((a, b) => {
-      const titlesA = a.user.stats?.titlesWon ?? 0;
-      const titlesB = b.user.stats?.titlesWon ?? 0;
+      const titlesA = a.user._count.trophies;
+      const titlesB = b.user._count.trophies;
       if (titlesB !== titlesA) return titlesB - titlesA;
       const winsA = a.user.stats?.wins ?? 0;
       const winsB = b.user.stats?.wins ?? 0;
@@ -221,11 +230,12 @@ export class CrewService {
       nickname: m.user.nickname,
       avatarUrl: m.user.avatarUrl,
       elo: m.user.elo,
-      titlesWon: m.user.stats?.titlesWon ?? 0,
+      titlesWon: m.user._count.trophies,
       wins: m.user.stats?.wins ?? 0,
       matchesPlayed: m.user.stats?.matchesPlayed ?? 0,
       goalsFor: m.user.stats?.goalsFor ?? 0,
       biggestWin: m.user.stats?.biggestWin ?? 0,
+      currentStreak: m.user.stats?.currentStreak ?? 0,
       rank: i + 1,
       isCurrentUser: m.user.id === currentUserId,
       isOwner: m.user.id === crew.ownerId,
@@ -262,6 +272,7 @@ export class CrewService {
       isOwner: m.user.id === crew.ownerId,
       isCurrentUser: m.user.id === currentUserId,
       stats: m.user.stats,
+      trophyCount: m.user._count.trophies,
     }));
 
     const [computedRelegations, thrashings, titlesDetail] = await Promise.all([
@@ -279,13 +290,17 @@ export class CrewService {
     for (const row of thrashings) {
       const prev = bestThrashByUser.get(row.userId);
       if (!prev || row.biggestWin > prev.margin) {
+        const score = formatBiggestWin(
+          row.biggestWinFor,
+          row.biggestWinAgainst,
+          row.opponent.nickname
+        );
         bestThrashByUser.set(row.userId, {
           margin: row.biggestWin,
-          detail: formatBiggestWin(
-            row.biggestWinFor,
-            row.biggestWinAgainst,
-            row.opponent.nickname
-          ),
+          detail:
+            row.biggestWin >= 5
+              ? `${score} · Humillación`
+              : score,
         });
       }
     }
@@ -293,7 +308,7 @@ export class CrewService {
     const titlesBoard = rankByValue(
       base.map((m) => ({
         ...m,
-        value: m.stats?.titlesWon ?? 0,
+        value: m.trophyCount,
       }))
     );
 
@@ -347,7 +362,7 @@ export class CrewService {
       {
         id: "thrashings",
         title: "Mayor goleada",
-        subtitle: "Entre ustedes",
+        subtitle: "+5 o más = humillación",
         unitSingular: "gol de diferencia",
         unitPlural: "goles de diferencia",
         entries: thrashingsBoard,
