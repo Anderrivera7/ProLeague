@@ -316,23 +316,60 @@ export class TrophyService {
     });
 
     const leagueLabel = input.leagueName ?? input.tournamentName;
-    await NotificationService.create(db, {
-      userId: input.userId,
-      type: "GENERAL",
-      title: "¡Nuevo título!",
-      body: `¡Campeón de ${leagueLabel}!`,
-      href: "/titles",
-      metadata: {
-        animate: true,
-        kind: "CHAMPION",
-        tournamentId: input.tournamentId,
-        leagueName: leagueLabel,
-        leagueId: input.leagueId ?? null,
-        trophyUrl: imageUrl,
-        tournamentName: input.tournamentName,
-        titlesCount: titlesBefore + 1,
+
+    const winnerInfo = await db.tournamentParticipant.findUnique({
+      where: { id: input.participantId },
+      select: {
+        user: { select: { nickname: true } },
+        fcTeam: {
+          select: { name: true, crestUrl: true, fifaIndexId: true },
+        },
       },
     });
+
+    const championNickname =
+      winnerInfo?.user.nickname ?? "Campeón";
+    const championTeamName =
+      winnerInfo?.fcTeam?.name ?? championNickname;
+    const championCrestUrl = winnerInfo?.fcTeam?.crestUrl ?? null;
+    const championFifaIndexId = winnerInfo?.fcTeam?.fifaIndexId ?? null;
+
+    const participants = await db.tournamentParticipant.findMany({
+      where: { tournamentId: input.tournamentId },
+      select: { userId: true },
+    });
+
+    await Promise.all(
+      participants.map((p) => {
+        const youAreChampion = p.userId === input.userId;
+        return NotificationService.create(db, {
+          userId: p.userId,
+          type: "GENERAL",
+          title: youAreChampion ? "¡Nuevo título!" : "¡Hay campeón!",
+          body: youAreChampion
+            ? `¡${championTeamName} es campeón de ${leagueLabel}!`
+            : `${championTeamName} (${championNickname}) es campeón de ${leagueLabel}`,
+          href: youAreChampion
+            ? "/titles"
+            : `/tournaments/${input.tournamentId}`,
+          metadata: {
+            animate: true,
+            kind: "CHAMPION",
+            youAreChampion,
+            tournamentId: input.tournamentId,
+            leagueName: leagueLabel,
+            leagueId: input.leagueId ?? null,
+            trophyUrl: imageUrl,
+            tournamentName: input.tournamentName,
+            titlesCount: youAreChampion ? titlesBefore + 1 : undefined,
+            championNickname,
+            championTeamName,
+            championCrestUrl,
+            championFifaIndexId,
+          },
+        });
+      })
+    );
 
     await this.notifyTitleSurpassed(db, {
       winnerId: input.userId,

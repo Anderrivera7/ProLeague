@@ -14,13 +14,11 @@ import {
 } from "@/actions/notification-actions";
 import { formatDateTime, cn } from "@/lib/utils";
 import {
-  RelegationAnimation,
-  type RelegationAnimData,
-} from "@/features/notifications/components/relegation-animation";
-import {
-  TitleSurpassedAnimation,
-  type TitleSurpassedAnimData,
-} from "@/features/notifications/components/title-surpassed-animation";
+  NotificationAnimationHost,
+  isAnimatableNotification,
+  parseNotificationAnimation,
+  type NotificationActiveAnim,
+} from "@/features/notifications/components/notification-animation-host";
 
 type Notif = {
   id: string;
@@ -34,7 +32,7 @@ type Notif = {
   deletable: boolean;
 };
 
-const POLL_MS = 60_000;
+const POLL_MS = 15_000;
 const SEEN_KEY = "proleague-notif-anim-seen";
 
 function getMeta(n: Notif): Record<string, unknown> {
@@ -45,11 +43,7 @@ function getMeta(n: Notif): Record<string, unknown> {
 }
 
 function shouldAnimate(n: Notif) {
-  const meta = getMeta(n);
-  return (
-    meta.animate === true &&
-    (n.type === "RELEGATION" || n.type === "TITLE_SURPASSED")
-  );
+  return isAnimatableNotification(n.type, getMeta(n));
 }
 
 export function NotificationsBell() {
@@ -57,8 +51,7 @@ export function NotificationsBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notif[]>([]);
   const [pending, startTransition] = useTransition();
-  const [relegation, setRelegation] = useState<RelegationAnimData | null>(null);
-  const [titleBeat, setTitleBeat] = useState<TitleSurpassedAnimData | null>(
+  const [activeAnim, setActiveAnim] = useState<NotificationActiveAnim | null>(
     null
   );
   const toastedRef = useRef<Set<string>>(new Set());
@@ -102,27 +95,8 @@ export function NotificationsBell() {
 
     markAnimSeen(next.id);
     void markNotificationRead(next.id);
-    const meta = getMeta(next);
-
-    if (next.type === "RELEGATION") {
-      setRelegation({
-        previousDivision: Number(meta.previousDivision ?? 1),
-        currentDivision: Number(meta.currentDivision ?? 2),
-        tournamentName:
-          typeof meta.tournamentName === "string"
-            ? meta.tournamentName
-            : undefined,
-      });
-      return;
-    }
-
-    if (next.type === "TITLE_SURPASSED") {
-      setTitleBeat({
-        byNickname:
-          typeof meta.byNickname === "string" ? meta.byNickname : "Rival",
-        titles: Number(meta.titles ?? 1),
-      });
-    }
+    const parsed = parseNotificationAnimation(next.type, getMeta(next));
+    if (parsed) setActiveAnim(parsed);
   }
 
   useEffect(() => {
@@ -221,17 +195,21 @@ export function NotificationsBell() {
         >
           <Bell className="h-5 w-5" />
           {unread > 0 && (
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+              {unread > 9 ? "9+" : unread}
+            </span>
           )}
         </Button>
 
         {open && (
           <>
-            <div
-              className="fixed inset-0 z-40"
+            <button
+              type="button"
+              className="fixed inset-0 z-40 bg-black/50 lg:bg-transparent"
+              aria-label="Cerrar"
               onClick={() => setOpen(false)}
             />
-            <div className="absolute right-0 top-full z-50 mt-2 w-[min(100vw-2rem,22rem)] overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+            <div className="fixed inset-x-3 bottom-20 z-50 max-h-[70vh] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-12 lg:w-96">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <p className="text-sm font-semibold">Notificaciones</p>
                 {notifications.some((n) => n.deletable) && (
@@ -245,7 +223,7 @@ export function NotificationsBell() {
                   </button>
                 )}
               </div>
-              <div className="max-h-[min(22rem,55vh)] overflow-y-auto overscroll-contain">
+              <div className="max-h-[55vh] overflow-y-auto">
                 {notifications.length === 0 ? (
                   <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                     Sin notificaciones
@@ -331,18 +309,9 @@ export function NotificationsBell() {
         )}
       </div>
 
-      <RelegationAnimation
-        open={!!relegation}
-        data={relegation}
-        onClose={() => setRelegation(null)}
-      />
-      <TitleSurpassedAnimation
-        open={!!titleBeat}
-        data={titleBeat}
-        onClose={() => {
-          setTitleBeat(null);
-          router.push("/crews");
-        }}
+      <NotificationAnimationHost
+        active={activeAnim}
+        onClose={() => setActiveAnim(null)}
       />
     </>
   );
