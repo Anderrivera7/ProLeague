@@ -63,10 +63,12 @@ type StandingInput = {
 
 function participantToSlot(
   participant: BracketParticipant,
-  seed?: number
+  seed?: number | null
 ): BracketSlot {
   return {
-    seed: seed ?? participant.seed ?? undefined,
+    // Solo mostrar seed de clasificación si se pasa explícitamente
+    // (no el seed de inscripción del participante).
+    seed: seed ?? undefined,
     nickname: participant.nickname,
     teamName: participant.teamName,
     teamCrestUrl: participant.teamCrestUrl,
@@ -87,14 +89,23 @@ function getMatchWinner(match: BracketMatchView): BracketSlot | null {
   return null;
 }
 
-function matchFromDb(match: MatchInput): BracketMatchView {
+function matchFromDb(
+  match: MatchInput,
+  rankByParticipantId?: Map<string, number>
+): BracketMatchView {
   return {
     id: match.id,
     status: match.status,
     homeScore: match.homeScore,
     awayScore: match.awayScore,
-    home: participantToSlot(match.homeParticipant),
-    away: participantToSlot(match.awayParticipant),
+    home: participantToSlot(
+      match.homeParticipant,
+      rankByParticipantId?.get(match.homeParticipant.id) ?? null
+    ),
+    away: participantToSlot(
+      match.awayParticipant,
+      rankByParticipantId?.get(match.awayParticipant.id) ?? null
+    ),
   };
 }
 
@@ -102,11 +113,7 @@ function resolveSeededParticipants(
   participants: BracketParticipant[],
   standings: StandingInput[]
 ): BracketParticipant[] {
-  const hasSeeds = participants.every((p) => p.seed != null && p.seed > 0);
-  if (hasSeeds) {
-    return [...participants].sort((a, b) => (a.seed ?? 999) - (b.seed ?? 999));
-  }
-
+  // Prioriza tabla de posiciones (fase de grupos) sobre seed de inscripción.
   if (standings.length > 0) {
     const ranked = [...standings].sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
@@ -121,7 +128,12 @@ function resolveSeededParticipants(
         seeded.push({ ...participant, seed: index + 1 });
       }
     });
-    return seeded;
+    if (seeded.length > 0) return seeded;
+  }
+
+  const hasSeeds = participants.every((p) => p.seed != null && p.seed > 0);
+  if (hasSeeds) {
+    return [...participants].sort((a, b) => (a.seed ?? 999) - (b.seed ?? 999));
   }
 
   return participants.map((p, index) => ({ ...p, seed: p.seed ?? index + 1 }));
@@ -134,6 +146,9 @@ function buildSeededByeBracket(
   standings: StandingInput[] = []
 ): { rounds: BracketRoundView[]; champion: BracketChampion } {
   const sorted = resolveSeededParticipants(participants, standings);
+  const rankByParticipantId = new Map(
+    sorted.map((p, index) => [p.id, index + 1])
+  );
 
   const clasificadoSlots: BracketSlot[] = Array.from(
     { length: maxParticipants },
@@ -182,17 +197,32 @@ function buildSeededByeBracket(
     knockoutMatches.find((m) => m.id !== semiFromDb?.id && m.round === 2);
 
   const semiMatch: BracketMatchView = semiFromDb
-    ? matchFromDb(semiFromDb)
+    ? matchFromDb(semiFromDb, rankByParticipantId)
     : { home: seed2, away: seed3 };
 
   const semiWinner = getMatchWinner(semiMatch);
 
-  const finalAway: BracketSlot = semiWinner ?? {
-    placeholder: "Ganador semifinal",
-  };
+  // Ganador de semi: sin número de clasificación en la final.
+  const finalAway: BracketSlot = semiWinner
+    ? { ...semiWinner, seed: undefined }
+    : { placeholder: "Ganador semifinal" };
 
   const finalMatch: BracketMatchView = finalFromDb
-    ? matchFromDb(finalFromDb)
+    ? (() => {
+        const m = matchFromDb(finalFromDb, rankByParticipantId);
+        // En final solo el 1.º (bye) lleva número; el otro es ganador de semi.
+        if (m.home.participantId === seed1Id) {
+          return { ...m, home: { ...m.home, seed: 1 }, away: { ...m.away, seed: undefined } };
+        }
+        if (m.away.participantId === seed1Id) {
+          return { ...m, away: { ...m.away, seed: 1 }, home: { ...m.home, seed: undefined } };
+        }
+        return {
+          ...m,
+          home: { ...m.home, seed: undefined },
+          away: { ...m.away, seed: undefined },
+        };
+      })()
     : { home: seed1, away: finalAway };
 
   const championWinner = getMatchWinner(finalMatch);
