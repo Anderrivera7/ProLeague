@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { resolveTeamCrestUrl } from "@/lib/fc-data/club-ids";
+import { getTeamCrestCandidates } from "@/lib/fc-data/club-ids";
 import { cn } from "@/lib/utils";
 import { Shield } from "lucide-react";
 
@@ -20,10 +20,11 @@ function TeamCrestInner({
   size = 36,
   className,
 }: TeamCrestProps) {
-  const [failed, setFailed] = useState(false);
-  const src = resolveTeamCrestUrl(crestUrl, fifaIndexId);
+  const candidates = getTeamCrestCandidates(crestUrl, fifaIndexId);
+  const [index, setIndex] = useState(0);
+  const src = candidates[index] ?? null;
 
-  if (!src || failed) {
+  if (!src) {
     return (
       <span
         className={cn(
@@ -48,8 +49,9 @@ function TeamCrestInner({
       loading="lazy"
       decoding="async"
       className={cn("object-contain", className)}
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (index < candidates.length - 1) setIndex((i) => i + 1);
+      }}
     />
   );
 }

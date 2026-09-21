@@ -116,11 +116,20 @@ export class TournamentService {
       seed: p.seed ?? undefined,
     }));
 
+    // Con pocos jugadores, un solo grupo evita fixtures vacíos.
+    const groupsCount =
+      tournament.type === "GROUPS" || tournament.type === "GROUPS_KNOCKOUT"
+        ? Math.min(
+            tournament.groupsCount ?? 4,
+            Math.max(1, Math.floor(participants.length / 2))
+          )
+        : (tournament.groupsCount ?? 4);
+
     const matches = generateTournamentFixture(
       tournament.type,
       participants,
       {
-        groupsCount: tournament.groupsCount ?? 4,
+        groupsCount,
         twoLegs: tournament.twoLegs,
       }
     );
@@ -133,12 +142,12 @@ export class TournamentService {
       tournament.type === "GROUPS_KNOCKOUT"
     ) {
       if (tournament.type === "GROUPS" || tournament.type === "GROUPS_KNOCKOUT") {
-        const groupsCount = tournament.groupsCount ?? 4;
         for (let i = 0; i < groupsCount; i++) {
           const groupName = String.fromCharCode(65 + i);
           const groupParticipants = participants.filter(
             (_, idx) => idx % groupsCount === i
           );
+          if (groupParticipants.length === 0) continue;
           const standings = initializeStandings(groupParticipants, groupName);
           await TournamentRepository.createStandings(
             tournamentId,
@@ -154,6 +163,63 @@ export class TournamentService {
     await TournamentRepository.update(tournamentId, { status: "ACTIVE" });
 
     return { matchCount: matches.length };
+  }
+
+  /**
+   * Completa partidos de vuelta faltantes cuando twoLegs=true
+   * (torneos creados antes del fix o fixture incompleto).
+   */
+  static async ensureReturnLegs(tournamentId: string) {
+    const tournament = await TournamentRepository.findById(tournamentId);
+    if (!tournament) return { created: 0 };
+    if (!tournament.twoLegs) return { created: 0 };
+    if (
+      tournament.type !== "LEAGUE" &&
+      tournament.type !== "GROUPS" &&
+      tournament.type !== "GROUPS_KNOCKOUT" &&
+      tournament.type !== "TWO_LEGS"
+    ) {
+      return { created: 0 };
+    }
+
+    const existing = tournament.matches;
+    const hasReturn = (homeId: string, awayId: string) =>
+      existing.some(
+        (m) =>
+          m.leg === 2 &&
+          m.homeParticipantId === homeId &&
+          m.awayParticipantId === awayId
+      );
+
+    const maxRound = existing.reduce((max, m) => Math.max(max, m.round), 0);
+    const toCreate: {
+      round: number;
+      groupName?: string;
+      leg: number;
+      bracketPosition?: number;
+      homeParticipantId: string;
+      awayParticipantId: string;
+    }[] = [];
+
+    for (const m of existing) {
+      if (m.leg !== 1) continue;
+      if (hasReturn(m.awayParticipantId, m.homeParticipantId)) {
+        continue;
+      }
+      toCreate.push({
+        round: m.round + maxRound,
+        groupName: m.groupName ?? undefined,
+        leg: 2,
+        bracketPosition: m.bracketPosition ?? undefined,
+        homeParticipantId: m.awayParticipantId,
+        awayParticipantId: m.homeParticipantId,
+      });
+    }
+
+    if (toCreate.length === 0) return { created: 0 };
+
+    await TournamentRepository.createMatches(tournamentId, toCreate);
+    return { created: toCreate.length };
   }
 
   static async delete(tournamentId: string, userId: string) {

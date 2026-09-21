@@ -49,15 +49,50 @@ export function parseClubEaId(eaId: string): number | null {
 
 /**
  * Escudo de club usable en el navegador.
- * Sofifa CDN bloquea hotlinking (403 sin Referer sofifa.com); Futbin no.
+ * Sofifa CDN bloquea hotlinking (403); Futbin suele funcionar.
  */
 export function getSofifaTeamCrestUrl(clubTeamId: number | string) {
   return `https://cdn.futbin.com/content/fifa25/img/clubs/${clubTeamId}.png`;
 }
 
 function clubIdFromSofifaCrestUrl(url: string): string | null {
-  const match = url.match(/\/teams\/(\d+)\//);
+  const match = url.match(/\/teams\/(\d+)/);
   return match?.[1] ?? null;
+}
+
+function clubIdFromAnyCrestUrl(url: string): string | null {
+  return (
+    clubIdFromSofifaCrestUrl(url) ??
+    url.match(/\/clubs\/(\d+)\.png/)?.[1] ??
+    null
+  );
+}
+
+/** Candidatos de escudo (el cliente prueba en orden si uno falla). */
+export function getTeamCrestCandidates(
+  crestUrl: string | null | undefined,
+  fifaIndexId?: string
+): string[] {
+  const candidates: string[] = [];
+  const push = (url: string | null | undefined) => {
+    if (url && !candidates.includes(url)) candidates.push(url);
+  };
+
+  const clubId =
+    (fifaIndexId && isClubEaId(fifaIndexId)
+      ? parseClubEaId(fifaIndexId)?.toString()
+      : null) ?? (crestUrl ? clubIdFromAnyCrestUrl(crestUrl) : null);
+
+  if (clubId) {
+    push(`https://cdn.futbin.com/content/fifa25/img/clubs/${clubId}.png`);
+    push(`https://cdn.futbin.com/content/fifa26/img/clubs/${clubId}.png`);
+    push(`https://cdn.sofifa.net/teams/${clubId}/60.png`);
+  }
+
+  if (crestUrl?.startsWith("/")) push(crestUrl);
+  else if (crestUrl && !crestUrl.includes("sofifa.net")) push(crestUrl);
+
+  return candidates;
 }
 
 export function getSofifaLeagueLogoUrl(leagueId: number | string) {
@@ -72,29 +107,7 @@ export function resolveTeamCrestUrl(
   crestUrl: string | null | undefined,
   fifaIndexId?: string
 ): string | null {
-  if (crestUrl) {
-    // Sofifa club crests → Futbin (Sofifa exige Referer y falla en el cliente)
-    if (crestUrl.includes("sofifa.net/teams/")) {
-      const clubId = clubIdFromSofifaCrestUrl(crestUrl);
-      if (clubId) return getSofifaTeamCrestUrl(clubId);
-    }
-    if (crestUrl.includes("/teams/") && crestUrl.includes("/26.png")) {
-      const clubId = clubIdFromSofifaCrestUrl(crestUrl);
-      if (clubId) return getSofifaTeamCrestUrl(clubId);
-    }
-    if (crestUrl.includes("/teams/") && !crestUrl.includes("futbin.com")) {
-      const clubId = clubIdFromSofifaCrestUrl(crestUrl);
-      if (clubId) return getSofifaTeamCrestUrl(clubId);
-    }
-    return crestUrl;
-  }
-
-  if (fifaIndexId && isClubEaId(fifaIndexId)) {
-    const clubId = parseClubEaId(fifaIndexId);
-    if (clubId != null) return getSofifaTeamCrestUrl(clubId);
-  }
-
-  return null;
+  return getTeamCrestCandidates(crestUrl, fifaIndexId)[0] ?? null;
 }
 
 /** Imagen hero de la competición (archivos en /public/leagues/) */

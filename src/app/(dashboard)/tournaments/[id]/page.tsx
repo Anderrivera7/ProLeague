@@ -1,16 +1,17 @@
 import { notFound, redirect } from "next/navigation";
+import { connection } from "next/server";
 import Link from "next/link";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MatchCard } from "@/features/matches/components/match-card";
 import { JoinCodeCard } from "@/features/tournaments/components/join-code-card";
 import { TournamentStatsPanel } from "@/features/tournaments/components/tournament-stats-panel";
 import { TournamentBracketPanel } from "@/features/tournaments/components/tournament-bracket-panel";
 import { TournamentAlertsPanel } from "@/features/tournaments/components/tournament-alerts-panel";
 import { TournamentParticipantsPanel } from "@/features/tournaments/components/tournament-participants-panel";
 import { TournamentMyTeamCard } from "@/features/tournaments/components/tournament-my-team-card";
+import { TournamentMatchesPanel } from "@/features/tournaments/components/tournament-matches-panel";
 import { TournamentRepository } from "@/repositories/tournament-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { TournamentService } from "@/services/tournament-service";
@@ -30,7 +31,12 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+/** Siempre fresco: partidos de ida/vuelta pueden crearse al cargar. */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TournamentDetailPage({ params }: PageProps) {
+  await connection();
   const { id } = await params;
   const [user, initialTournament] = await Promise.all([
     getCurrentUser(),
@@ -39,6 +45,15 @@ export default async function TournamentDetailPage({ params }: PageProps) {
 
   let tournament = initialTournament;
   if (!tournament) notFound();
+
+  // Completa partidos de vuelta faltantes (ida y vuelta).
+  if (tournament.twoLegs) {
+    const { created } = await TournamentService.ensureReturnLegs(id);
+    if (created > 0) {
+      tournament = await TournamentRepository.findByIdForDetail(id);
+      if (!tournament) notFound();
+    }
+  }
 
   const isCreator = user?.id === tournament.creatorId;
   if (isCreator && user && !tournament.participants.some((p) => p.userId === user.id)) {
@@ -157,8 +172,6 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     fcTeamId: p.fcTeamId,
   }));
 
-  const recentMatches = tournament.matches.slice(0, 5);
-
   return (
     <>
       {!coverUrl && (
@@ -200,8 +213,9 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               </span>
               {isCreator && " (tú)"}
             </span>
-            <span className="text-sm text-muted-foreground">
-              {tournament._count.matches} partidos
+              <span className="text-sm text-muted-foreground">
+              {tournament.matches.length} partidos
+              {tournament.twoLegs ? " · ida y vuelta" : ""}
             </span>
             {isCreator && tournament._count.matches === 0 && (
               <GenerateFixtureButton tournamentId={tournament.id} />
@@ -300,41 +314,14 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             )}
 
             <div className={showStatsPanel ? "lg:col-span-2" : "lg:col-span-3"}>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Partidos</h2>
-                {tournament.matches.length > 5 && (
-                  <span className="text-xs text-muted-foreground">
-                    Mostrando los últimos 5
-                  </span>
-                )}
-              </div>
-              {recentMatches.length > 0 ? (
-                <div className="space-y-3">
-                  {recentMatches.map((match) => {
-                    const canReportMatch =
-                      isCreator ||
-                      match.homeParticipant.userId === user?.id ||
-                      match.awayParticipant.userId === user?.id;
-
-                    return (
-                      <MatchCard
-                        key={match.id}
-                        match={match as never}
-                        tournament={{ id: tournament.id, name: tournament.name }}
-                        canReport={canReportMatch}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <Card className="glass">
-                  <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                    {isCreator
-                      ? "Genera el fixture para crear los partidos"
-                      : "El organizador aún no ha generado el fixture"}
-                  </CardContent>
-                </Card>
-              )}
+              <TournamentMatchesPanel
+                tournamentId={tournament.id}
+                tournamentName={tournament.name}
+                twoLegs={tournament.twoLegs}
+                matches={tournament.matches}
+                currentUserId={user?.id}
+                isCreator={isCreator}
+              />
             </div>
           </div>
 

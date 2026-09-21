@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
   experimental: {
+    staleTimes: {
+      dynamic: 0,
+      static: 30,
+    },
     optimizePackageImports: [
       "lucide-react",
       "framer-motion",
@@ -25,6 +29,7 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
       { protocol: "https", hostname: "cdn.sofifa.net", pathname: "/**" },
+      { protocol: "https", hostname: "cdn.futbin.com", pathname: "/**" },
       { protocol: "https", hostname: "ratings-images-prod.pulse.ea.com", pathname: "/**" },
       { protocol: "https", hostname: "drop-assets.ea.com", pathname: "/**" },
       { protocol: "https", hostname: "**.fifaindex.com", pathname: "/**" },

@@ -69,17 +69,28 @@ export function MatchCard({
   return (
     <Card className="glass overflow-hidden transition-all hover:border-primary/20">
       <CardContent className="p-4">
-        <div className="mb-4 flex items-center justify-between">
-          {t ? (
-            <Link
-              href={`/tournaments/${t.id}`}
-              className="text-xs text-muted-foreground transition-colors hover:text-primary"
-            >
-              {t.name}
-            </Link>
-          ) : (
-            <span className="text-xs text-muted-foreground">Partido</span>
-          )}
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            {t ? (
+              <Link
+                href={`/tournaments/${t.id}`}
+                className="truncate text-xs text-muted-foreground transition-colors hover:text-primary"
+              >
+                {t.name}
+              </Link>
+            ) : (
+              <span className="text-xs text-muted-foreground">Partido</span>
+            )}
+            {match.leg === 2 ? (
+              <Badge variant="outline" className="text-[10px]">
+                Vuelta
+              </Badge>
+            ) : match.leg === 1 ? (
+              <Badge variant="secondary" className="text-[10px]">
+                Ida
+              </Badge>
+            ) : null}
+          </div>
           <Badge variant={statusVariant[match.status]}>
             {statusLabel[match.status]}
           </Badge>
