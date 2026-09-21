@@ -5,18 +5,25 @@ import { Plus, LogIn, Calendar, UsersRound } from "lucide-react";
 
 const actions = [
   {
+    href: "/crews",
+    label: "Amigos",
+    fullLabel: "Mis grupos",
+    icon: UsersRound,
+    color: "bg-primary/15 text-primary",
+  },
+  {
     href: "/tournaments/create",
     label: "Crear",
     fullLabel: "Crear torneo",
     icon: Plus,
-    color: "bg-primary/15 text-primary",
+    color: "bg-emerald-500/15 text-emerald-400",
   },
   {
     href: "/tournaments/join",
-    label: "Unirse",
-    fullLabel: "Código invitación",
+    label: "Código",
+    fullLabel: "Con código",
     icon: LogIn,
-    color: "bg-secondary/15 text-secondary",
+    color: "bg-amber-500/15 text-amber-400",
   },
   {
     href: "/matches",
@@ -24,13 +31,6 @@ const actions = [
     fullLabel: "Mis partidos",
     icon: Calendar,
     color: "bg-sky-500/15 text-sky-400",
-  },
-  {
-    href: "/crews",
-    label: "Amigos",
-    fullLabel: "Grupos",
-    icon: UsersRound,
-    color: "bg-violet-500/15 text-violet-400",
   },
 ];
 

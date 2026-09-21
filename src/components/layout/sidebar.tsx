@@ -24,6 +24,7 @@ import { NAV_ITEMS, APP_NAME } from "@/constants";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/shared/app-logo";
+import { NotificationsBell } from "@/components/layout/notifications-bell";
 
 const iconMap = {
   LayoutDashboard,
@@ -72,12 +73,15 @@ export function Sidebar({ user }: SidebarProps) {
         <AppLogo size={32} className="shrink-0" />
         <div
           className={cn(
-            "min-w-0 overflow-hidden transition-opacity duration-200",
+            "min-w-0 flex-1 overflow-hidden transition-opacity duration-200",
             collapsed ? "opacity-0 w-0" : "opacity-100"
           )}
         >
           <p className="truncate text-sm font-bold text-gradient">{APP_NAME}</p>
           <p className="text-xs text-muted-foreground">eSports Platform</p>
+        </div>
+        <div className={cn("shrink-0", collapsed && "mx-auto")}>
+          <NotificationsBell />
         </div>
       </div>
 

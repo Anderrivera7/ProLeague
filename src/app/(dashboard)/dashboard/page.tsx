@@ -5,6 +5,8 @@ import { MobileHeader } from "@/components/layout/mobile-header";
 import { TournamentSlide } from "@/components/home/tournament-slide";
 import { QuickActions } from "@/components/home/quick-actions";
 import { ActivityItem } from "@/components/home/activity-item";
+import { PendingMatchesReminder } from "@/components/home/pending-matches-reminder";
+import { OnboardingChecklist } from "@/components/home/onboarding-checklist";
 import { RealFootballSection } from "@/features/football/components/real-football-section";
 import { prisma } from "@/lib/prisma";
 import { ChevronRight, KeyRound, Swords, Trophy } from "lucide-react";
@@ -15,62 +17,128 @@ export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) return null;
 
-  const [myTournaments, activities, pendingMatches] = await Promise.all([
-    prisma.tournament.findMany({
-      where: {
-        OR: [
-          { creatorId: user.id },
-          { participants: { some: { userId: user.id } } },
-        ],
-        status: { in: ["ACTIVE", "REGISTRATION"] },
-      },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        status: true,
-        maxParticipants: true,
-        createdAt: true,
-        fcLeague: {
-          select: { fifaIndexId: true, name: true },
-        },
-        _count: { select: { participants: true } },
-        matches: {
-          where: { status: "COMPLETED" },
-          select: { round: true },
-          orderBy: { round: "desc" },
-          take: 1,
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 4,
-    }),
-    prisma.activity.findMany({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        type: true,
-        title: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    prisma.match.count({
-      where: {
-        status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] },
-        OR: [
-          { homeParticipant: { userId: user.id } },
-          { awayParticipant: { userId: user.id } },
-        ],
-      },
-    }),
-  ]);
+  const tournamentSelect = {
+    id: true,
+    name: true,
+    type: true,
+    status: true,
+    maxParticipants: true,
+    createdAt: true,
+    fcLeague: {
+      select: { fifaIndexId: true, name: true },
+    },
+    _count: { select: { participants: true } },
+    matches: {
+      where: { status: "COMPLETED" as const },
+      select: { round: true },
+      orderBy: { round: "desc" as const },
+      take: 1,
+    },
+  };
 
-  const activeTournaments = myTournaments.filter((t) => t.status === "ACTIVE");
-  const upcomingTournaments = myTournaments.filter(
+  const myTournamentWhere = {
+    OR: [
+      { creatorId: user.id },
+      { participants: { some: { userId: user.id } } },
+    ],
+  };
+
+  const [
+    openTournaments,
+    finishedTournaments,
+    activities,
+    pendingMatchRows,
+    crewMemberships,
+  ] = await Promise.all([
+      prisma.tournament.findMany({
+        where: {
+          ...myTournamentWhere,
+          status: { in: ["ACTIVE", "REGISTRATION"] },
+        },
+        select: tournamentSelect,
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      }),
+      prisma.tournament.findMany({
+        where: {
+          ...myTournamentWhere,
+          status: "COMPLETED",
+        },
+        select: tournamentSelect,
+        orderBy: { createdAt: "desc" },
+        take: 4,
+      }),
+      prisma.activity.findMany({
+        where: { userId: user.id },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      prisma.match.findMany({
+        where: {
+          status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] },
+          OR: [
+            { homeParticipant: { userId: user.id } },
+            { awayParticipant: { userId: user.id } },
+          ],
+        },
+        select: {
+          id: true,
+          status: true,
+          homeScore: true,
+          awayScore: true,
+          proposedByUserId: true,
+          tournament: { select: { name: true } },
+          homeParticipant: {
+            select: { user: { select: { nickname: true } } },
+          },
+          awayParticipant: {
+            select: { user: { select: { nickname: true } } },
+          },
+        },
+        orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
+        take: 5,
+      }),
+      prisma.crewMember.findMany({
+        where: { userId: user.id },
+        select: {
+          crew: { select: { id: true, joinCode: true } },
+        },
+        take: 1,
+      }),
+    ]);
+
+  const myTournaments = [...openTournaments, ...finishedTournaments];
+
+  const pendingMatches = pendingMatchRows.length;
+  const hasCrew = crewMemberships.length > 0;
+  const firstCrew = crewMemberships[0]?.crew ?? null;
+
+  const pendingReminders = pendingMatchRows.map((m) => ({
+    id: m.id,
+    status: m.status,
+    homeScore: m.homeScore,
+    awayScore: m.awayScore,
+    proposedByUserId: m.proposedByUserId,
+    tournamentName: m.tournament.name,
+    homeNickname: m.homeParticipant.user.nickname,
+    awayNickname: m.awayParticipant.user.nickname,
+    needsConfirm:
+      m.status === "PENDING_CONFIRMATION" &&
+      m.proposedByUserId !== null &&
+      m.proposedByUserId !== user.id,
+  }));
+
+  const activeTournaments = openTournaments.filter((t) => t.status === "ACTIVE");
+  const upcomingTournaments = openTournaments.filter(
     (t) => t.status === "REGISTRATION"
   );
+  const completedTournaments = finishedTournaments;
 
   const slides: Array<{
     id: string;
@@ -78,8 +146,8 @@ export default async function DashboardPage() {
     type: TournamentType;
     participants: number;
     maxParticipants: number;
-    status: "ACTIVE" | "REGISTRATION";
-    variant: "active" | "upcoming";
+    status: "ACTIVE" | "REGISTRATION" | "COMPLETED";
+    variant: "active" | "upcoming" | "completed";
     roundLabel?: string;
     coverUrl?: string | null;
     leagueName?: string;
@@ -87,8 +155,8 @@ export default async function DashboardPage() {
 
   function slideFromTournament(
     t: (typeof myTournaments)[number],
-    variant: "active" | "upcoming",
-    status: "ACTIVE" | "REGISTRATION",
+    variant: "active" | "upcoming" | "completed",
+    status: "ACTIVE" | "REGISTRATION" | "COMPLETED",
     roundLabel?: string
   ) {
     return {
@@ -107,7 +175,7 @@ export default async function DashboardPage() {
     };
   }
 
-  for (const t of activeTournaments.slice(0, 2)) {
+  for (const t of activeTournaments.slice(0, 3)) {
     const currentRound = t.matches?.[0]?.round ?? 1;
     slides.push(
       slideFromTournament(t, "active", "ACTIVE", `Jornada ${currentRound}`)
@@ -117,6 +185,11 @@ export default async function DashboardPage() {
   for (const t of upcomingTournaments.slice(0, 2)) {
     if (slides.some((s) => s.id === t.id)) continue;
     slides.push(slideFromTournament(t, "upcoming", "REGISTRATION"));
+  }
+
+  for (const t of completedTournaments.slice(0, 3)) {
+    if (slides.some((s) => s.id === t.id)) continue;
+    slides.push(slideFromTournament(t, "completed", "COMPLETED", "Finalizado"));
   }
 
   const hour = new Date().getHours();
@@ -146,7 +219,7 @@ export default async function DashboardPage() {
               className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2.5 transition-colors hover:border-primary/30"
             >
               <Trophy className="mb-1 h-3.5 w-3.5 text-primary" />
-              <p className="text-lg font-bold tabular-nums">{slides.length}</p>
+              <p className="text-lg font-bold tabular-nums">{myTournaments.length}</p>
               <p className="text-[10px] text-muted-foreground">Mis torneos</p>
             </Link>
             <Link
@@ -167,6 +240,14 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </section>
+
+        <OnboardingChecklist
+          hasCrew={hasCrew}
+          crewInviteHref={firstCrew ? `/crews/${firstCrew.id}` : null}
+          hasTournament={slides.length > 0 || myTournaments.length > 0}
+        />
+
+        <PendingMatchesReminder matches={pendingReminders} />
 
         <section>
           <div className="mb-3 flex items-center justify-between gap-2">

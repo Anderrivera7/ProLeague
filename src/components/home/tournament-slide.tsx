@@ -12,7 +12,7 @@ interface TournamentSlideProps {
   maxParticipants: number;
   status: "ACTIVE" | "REGISTRATION" | "DRAFT" | "COMPLETED" | "CANCELLED";
   roundLabel?: string;
-  variant?: "active" | "upcoming";
+  variant?: "active" | "upcoming" | "completed";
   coverUrl?: string | null;
   leagueName?: string;
 }
@@ -31,14 +31,26 @@ export function TournamentSlide({
 }: TournamentSlideProps) {
   const typeLabel = TOURNAMENT_TYPES[type]?.label ?? "Torneo";
   const isActive = variant === "active" || status === "ACTIVE";
+  const isCompleted = variant === "completed" || status === "COMPLETED";
   const hasCover = !!coverUrl;
+
+  const badgeLabel = isCompleted
+    ? "Finalizado"
+    : isActive
+      ? "En curso"
+      : "Próximo";
 
   return (
     <Link
       href={`/tournaments/${id}`}
       className={cn(
         "relative flex h-36 min-w-[min(85vw,280px)] shrink-0 flex-col justify-end overflow-hidden rounded-2xl border border-border p-3 transition-transform active:scale-[0.98] sm:h-40 sm:min-w-[280px] sm:p-4",
-        !hasCover && (isActive ? "tournament-card-active" : "tournament-card-upcoming")
+        !hasCover &&
+          (isCompleted
+            ? "bg-gradient-to-br from-amber-500/20 via-card to-background"
+            : isActive
+              ? "tournament-card-active"
+              : "tournament-card-upcoming")
       )}
     >
       <LeagueCover coverUrl={coverUrl ?? null} alt={leagueName ?? name} />
@@ -47,13 +59,17 @@ export function TournamentSlide({
       )}
       <div className="relative z-10 space-y-2">
         <Badge
-          variant={isActive ? "default" : "outline"}
+          variant={isActive && !isCompleted ? "default" : "outline"}
           className={cn(
             "text-[10px] uppercase tracking-wider",
-            isActive ? "bg-primary text-primary-foreground" : "border-primary/50 text-primary"
+            isCompleted
+              ? "border-amber-400/60 text-amber-300"
+              : isActive
+                ? "bg-primary text-primary-foreground"
+                : "border-primary/50 text-primary"
           )}
         >
-          {isActive ? "En curso" : "Próximo"}
+          {badgeLabel}
         </Badge>
         <div>
           <h3 className="text-lg font-bold leading-tight">{name}</h3>
@@ -62,7 +78,7 @@ export function TournamentSlide({
           </p>
           <p className="text-xs text-white/50">{typeLabel}</p>
         </div>
-        {isActive && roundLabel && (
+        {isActive && !isCompleted && roundLabel && (
           <div className="space-y-1">
             <div className="flex justify-between text-[10px] text-white/60">
               <span>{roundLabel}</span>
@@ -72,7 +88,10 @@ export function TournamentSlide({
             </div>
           </div>
         )}
-        {!isActive && (
+        {isCompleted && (
+          <p className="text-xs font-medium text-amber-300">Ver campeón</p>
+        )}
+        {!isActive && !isCompleted && (
           <p className="text-xs font-medium text-primary">Inscripción abierta</p>
         )}
       </div>
