@@ -46,18 +46,18 @@ export default async function TournamentDetailPage({ params }: PageProps) {
   let tournament = initialTournament;
   if (!tournament) notFound();
 
-  // Completa partidos de vuelta faltantes (ida y vuelta).
-  if (tournament.twoLegs) {
-    const { created } = await TournamentService.ensureReturnLegs(id);
-    if (created > 0) {
+  // Semi/final a partido único + generación de bracket; luego ida/vuelta solo de grupos.
+  if (tournament.type === "GROUPS_KNOCKOUT") {
+    const { created, purged } =
+      await TournamentService.ensureKnockoutProgress(id);
+    if (created > 0 || purged > 0) {
       tournament = await TournamentRepository.findByIdForDetail(id);
       if (!tournament) notFound();
     }
   }
 
-  // Genera semi/final cuando la fase de grupos terminó.
-  if (tournament.type === "GROUPS_KNOCKOUT") {
-    const { created } = await TournamentService.ensureKnockoutProgress(id);
+  if (tournament.twoLegs) {
+    const { created } = await TournamentService.ensureReturnLegs(id);
     if (created > 0) {
       tournament = await TournamentRepository.findByIdForDetail(id);
       if (!tournament) notFound();

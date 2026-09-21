@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { TournamentRepository } from "@/repositories/tournament-repository";
 import {
   generateTournamentFixture,
@@ -226,10 +227,13 @@ export class TournamentService {
       awayParticipantId: string;
     }[] = [];
 
-    for (const m of existing) {
-      if (m.leg !== 1) continue;
-      // Grupos + eliminatorias: ida/vuelta solo en fase de grupos (semi/final a partido único).
-      if (tournament.type === "GROUPS_KNOCKOUT" && !m.groupName) continue;
+    // En GROUPS_KNOCKOUT la vuelta solo aplica a partidos de grupo.
+    const legOneCandidates =
+      tournament.type === "GROUPS_KNOCKOUT"
+        ? existing.filter((m) => m.leg === 1 && m.groupName)
+        : existing.filter((m) => m.leg === 1);
+
+    for (const m of legOneCandidates) {
       if (hasReturn(m.awayParticipantId, m.homeParticipantId)) {
         continue;
       }
@@ -256,17 +260,28 @@ export class TournamentService {
    * - al terminar la final, marca el torneo como COMPLETED
    */
   static async ensureKnockoutProgress(tournamentId: string) {
+    // Semi/final siempre a partido único: borra vueltas de eliminatoria si existen.
+    const purged = await prisma.match.deleteMany({
+      where: {
+        tournamentId,
+        groupName: null,
+        leg: 2,
+      },
+    });
+
     const tournament = await TournamentRepository.findById(tournamentId);
-    if (!tournament) return { created: 0 };
-    if (tournament.type !== "GROUPS_KNOCKOUT") return { created: 0 };
+    if (!tournament) return { created: 0, purged: purged.count };
+    if (tournament.type !== "GROUPS_KNOCKOUT") {
+      return { created: 0, purged: purged.count };
+    }
     if (tournament.status === "COMPLETED" || tournament.status === "CANCELLED") {
-      return { created: 0 };
+      return { created: 0, purged: purged.count };
     }
 
     const groupMatches = tournament.matches.filter((m) => m.groupName);
-    if (groupMatches.length === 0) return { created: 0 };
+    if (groupMatches.length === 0) return { created: 0, purged: purged.count };
     if (!groupMatches.every((m) => m.status === "COMPLETED")) {
-      return { created: 0 };
+      return { created: 0, purged: purged.count };
     }
 
     const ranked = [...tournament.standings].sort((a, b) => {
@@ -276,12 +291,12 @@ export class TournamentService {
       return 0;
     });
 
-    if (ranked.length < 2) return { created: 0 };
+    if (ranked.length < 2) return { created: 0, purged: purged.count };
 
     const seed1 = ranked[0]?.participantId;
     const seed2 = ranked[1]?.participantId;
     const seed3 = ranked[2]?.participantId;
-    if (!seed1 || !seed2) return { created: 0 };
+    if (!seed1 || !seed2) return { created: 0, purged: purged.count };
 
     let created = 0;
     const maxRound = tournament.matches.reduce(
@@ -289,7 +304,10 @@ export class TournamentService {
       0
     );
 
-    const knockoutMatches = tournament.matches.filter((m) => !m.groupName);
+    // Solo partido único (leg 1) en eliminatorias.
+    const knockoutMatches = tournament.matches.filter(
+      (m) => !m.groupName && m.leg !== 2
+    );
 
     const pairMatch = (
       a: string,
@@ -304,7 +322,7 @@ export class TournamentService {
 
     // 2 jugadores: final directa
     if (!seed3) {
-      let final = pairMatch(seed1, seed2);
+      const final = pairMatch(seed1, seed2);
       if (!final) {
         await TournamentRepository.createMatches(tournamentId, [
           {
@@ -316,16 +334,16 @@ export class TournamentService {
           },
         ]);
         created++;
-        return { created };
+        return { created, purged: purged.count };
       }
       if (final.status === "COMPLETED") {
         await TournamentRepository.update(tournamentId, { status: "COMPLETED" });
       }
-      return { created };
+      return { created, purged: purged.count };
     }
 
     // 3+ (formato bye): semi 2º vs 3º, final 1º vs ganador
-    let semi = pairMatch(seed2, seed3);
+    const semi = pairMatch(seed2, seed3);
     if (!semi) {
       await TournamentRepository.createMatches(tournamentId, [
         {
@@ -337,17 +355,19 @@ export class TournamentService {
         },
       ]);
       created++;
-      return { created };
+      return { created, purged: purged.count };
     }
 
-    if (semi.status !== "COMPLETED") return { created };
+    if (semi.status !== "COMPLETED") {
+      return { created, purged: purged.count };
+    }
 
     const winnerId = knockoutWinnerParticipantId(semi);
-    if (!winnerId) return { created };
+    if (!winnerId) return { created, purged: purged.count };
 
     let final = knockoutMatches.find(
       (m) =>
-        m.id !== semi!.id &&
+        m.id !== semi.id &&
         (m.homeParticipantId === seed1 || m.awayParticipantId === seed1)
     );
     if (!final) {
@@ -365,14 +385,14 @@ export class TournamentService {
         },
       ]);
       created++;
-      return { created };
+      return { created, purged: purged.count };
     }
 
     if (final.status === "COMPLETED") {
       await TournamentRepository.update(tournamentId, { status: "COMPLETED" });
     }
 
-    return { created };
+    return { created, purged: purged.count };
   }
 
   static async delete(tournamentId: string, userId: string) {
