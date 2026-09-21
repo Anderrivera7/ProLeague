@@ -101,6 +101,8 @@ export class TournamentRepository {
             status: true,
             homeScore: true,
             awayScore: true,
+            penaltiesHome: true,
+            penaltiesAway: true,
             scheduledAt: true,
             homeParticipantId: true,
             awayParticipantId: true,

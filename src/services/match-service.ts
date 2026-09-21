@@ -8,6 +8,7 @@ import { TrophyService } from "@/services/trophy-service";
 import { NotificationService } from "@/services/notification-service";
 import { MomentService } from "@/services/moment-service";
 import { CrewRepository } from "@/repositories/crew-repository";
+import { TournamentService } from "@/services/tournament-service";
 import type { MatchResultInput } from "@/types";
 
 function aggregateUserEvents(
@@ -395,6 +396,14 @@ export class MatchService {
 
     await AchievementService.syncForUser(homeUser.id, prisma);
     await AchievementService.syncForUser(awayUser.id, prisma);
+
+    if (match.tournamentId) {
+      try {
+        await TournamentService.ensureKnockoutProgress(match.tournamentId);
+      } catch {
+        // No bloquea el resultado si falla la generación del bracket
+      }
+    }
 
     const homePrevStreak = homeStatsBefore?.currentStreak ?? 0;
     const awayPrevStreak = awayStatsBefore?.currentStreak ?? 0;

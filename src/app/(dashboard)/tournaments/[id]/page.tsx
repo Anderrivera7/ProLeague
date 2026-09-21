@@ -55,6 +55,15 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     }
   }
 
+  // Genera semi/final cuando la fase de grupos terminó.
+  if (tournament.type === "GROUPS_KNOCKOUT") {
+    const { created } = await TournamentService.ensureKnockoutProgress(id);
+    if (created > 0) {
+      tournament = await TournamentRepository.findByIdForDetail(id);
+      if (!tournament) notFound();
+    }
+  }
+
   const isCreator = user?.id === tournament.creatorId;
   if (isCreator && user && !tournament.participants.some((p) => p.userId === user.id)) {
     await TournamentService.ensureCreatorEnrolled(id, user.id);
@@ -156,6 +165,8 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             participantId: s.participantId,
             points: s.points,
             played: s.played,
+            gd: s.gd,
+            gf: s.gf,
           })),
         }
       )

@@ -4,6 +4,7 @@ type MatchRow = {
   id: string;
   leg: number;
   round: number;
+  groupName?: string | null;
   homeParticipant: { userId: string };
   awayParticipant: { userId: string };
 };
@@ -31,8 +32,12 @@ export function TournamentMatchesPanel({
     return a.id.localeCompare(b.id);
   });
 
-  const ida = sorted.filter((m) => m.leg !== 2);
-  const vuelta = sorted.filter((m) => m.leg === 2);
+  const groupMatches = sorted.filter((m) => m.groupName);
+  const knockoutMatches = sorted.filter((m) => !m.groupName);
+  const phaseMatches = groupMatches.length > 0 ? groupMatches : sorted;
+
+  const ida = phaseMatches.filter((m) => m.leg !== 2);
+  const vuelta = phaseMatches.filter((m) => m.leg === 2);
 
   function canReport(match: MatchRow) {
     return (
@@ -40,6 +45,17 @@ export function TournamentMatchesPanel({
       match.homeParticipant.userId === currentUserId ||
       match.awayParticipant.userId === currentUserId
     );
+  }
+
+  function renderList(list: MatchRow[]) {
+    return list.map((match) => (
+      <MatchCard
+        key={match.id}
+        match={match as never}
+        tournament={{ id: tournamentId, name: tournamentName }}
+        canReport={canReport(match)}
+      />
+    ));
   }
 
   if (sorted.length === 0) {
@@ -59,25 +75,23 @@ export function TournamentMatchesPanel({
         <span className="text-xs font-medium text-primary">
           {twoLegs
             ? `Ida y vuelta · ${ida.length} ida · ${vuelta.length} vuelta`
-            : `${sorted.length} partidos`}
+            : `${phaseMatches.length} partidos`}
+          {knockoutMatches.length > 0
+            ? ` · ${knockoutMatches.length} eliminatoria`
+            : ""}
         </span>
       </div>
 
-      <section className="space-y-3">
-        {twoLegs && (
-          <h3 className="text-sm font-semibold text-primary">
-            Ida · {ida.length} partidos
-          </h3>
-        )}
-        {ida.map((match) => (
-          <MatchCard
-            key={match.id}
-            match={match as never}
-            tournament={{ id: tournamentId, name: tournamentName }}
-            canReport={canReport(match)}
-          />
-        ))}
-      </section>
+      {ida.length > 0 && (
+        <section className="space-y-3">
+          {twoLegs && (
+            <h3 className="text-sm font-semibold text-primary">
+              Ida · {ida.length} partidos
+            </h3>
+          )}
+          {renderList(ida)}
+        </section>
+      )}
 
       {twoLegs && (
         <section className="space-y-3">
@@ -89,15 +103,17 @@ export function TournamentMatchesPanel({
               Aún no hay partidos de vuelta.
             </p>
           ) : (
-            vuelta.map((match) => (
-              <MatchCard
-                key={match.id}
-                match={match as never}
-                tournament={{ id: tournamentId, name: tournamentName }}
-                canReport={canReport(match)}
-              />
-            ))
+            renderList(vuelta)
           )}
+        </section>
+      )}
+
+      {knockoutMatches.length > 0 && (
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-primary">
+            Eliminatorias · {knockoutMatches.length} partidos
+          </h3>
+          {renderList(knockoutMatches)}
         </section>
       )}
     </div>

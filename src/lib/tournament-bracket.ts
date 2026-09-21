@@ -57,6 +57,8 @@ type StandingInput = {
   participantId: string;
   points: number;
   played: number;
+  gd?: number;
+  gf?: number;
 };
 
 function participantToSlot(
@@ -81,7 +83,7 @@ function getMatchWinner(match: BracketMatchView): BracketSlot | null {
   if (match.status !== "COMPLETED") return null;
   if (match.homeScore == null || match.awayScore == null) return null;
   if (match.homeScore > match.awayScore) return match.home;
-  if (match.awayScore > match.awayScore) return match.away;
+  if (match.awayScore > match.homeScore) return match.away;
   return null;
 }
 
@@ -106,7 +108,12 @@ function resolveSeededParticipants(
   }
 
   if (standings.length > 0) {
-    const ranked = [...standings].sort((a, b) => b.points - a.points);
+    const ranked = [...standings].sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if ((b.gd ?? 0) !== (a.gd ?? 0)) return (b.gd ?? 0) - (a.gd ?? 0);
+      if ((b.gf ?? 0) !== (a.gf ?? 0)) return (b.gf ?? 0) - (a.gf ?? 0);
+      return 0;
+    });
     const seeded: BracketParticipant[] = [];
     ranked.forEach((row, index) => {
       const participant = participants.find((p) => p.id === row.participantId);
@@ -142,12 +149,37 @@ function buildSeededByeBracket(
   const seed2 = clasificadoSlots[1] ?? emptySlot(2);
   const seed3 = clasificadoSlots[2] ?? emptySlot(3);
 
-  const semiFromDb = knockoutMatches.find(
-    (m) => m.bracketPosition === 1 || m.round === 1
-  );
-  const finalFromDb = knockoutMatches.find(
-    (m) => m.bracketPosition === 1 && m.round > (semiFromDb?.round ?? 0)
-  ) ?? knockoutMatches.find((m) => m.round === 2);
+  const seed2Id = seed2.participantId;
+  const seed3Id = seed3.participantId;
+  const seed1Id = seed1.participantId;
+
+  const semiFromDb =
+    (seed2Id &&
+      seed3Id &&
+      knockoutMatches.find(
+        (m) =>
+          (m.homeParticipant.id === seed2Id &&
+            m.awayParticipant.id === seed3Id) ||
+          (m.homeParticipant.id === seed3Id &&
+            m.awayParticipant.id === seed2Id)
+      )) ||
+    knockoutMatches.find((m) => m.bracketPosition === 1 || m.round === 1);
+
+  const finalFromDb =
+    (seed1Id &&
+      knockoutMatches.find(
+        (m) =>
+          m.id !== semiFromDb?.id &&
+          (m.homeParticipant.id === seed1Id ||
+            m.awayParticipant.id === seed1Id)
+      )) ||
+    knockoutMatches.find(
+      (m) =>
+        m.id !== semiFromDb?.id &&
+        m.bracketPosition === 1 &&
+        m.round > (semiFromDb?.round ?? 0)
+    ) ||
+    knockoutMatches.find((m) => m.id !== semiFromDb?.id && m.round === 2);
 
   const semiMatch: BracketMatchView = semiFromDb
     ? matchFromDb(semiFromDb)
@@ -255,7 +287,8 @@ export function buildTournamentBracket(
   );
   const knockoutMatches = matches.filter((m) => !m.groupName);
 
-  if (options.maxParticipants === 4) {
+  // 3–4 jugadores: 1.º bye a final, semifinal 2.º vs 3.º
+  if (options.maxParticipants <= 4) {
     return buildSeededByeBracket(
       seeded,
       options.maxParticipants,

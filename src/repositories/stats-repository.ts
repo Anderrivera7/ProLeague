@@ -280,8 +280,7 @@ export class StatsRepository {
         select: {
           type: true,
           matches: {
-            where: { groupName: { not: null } },
-            select: { status: true },
+            select: { status: true, groupName: true },
           },
         },
       }),
@@ -333,19 +332,37 @@ export class StatsRepository {
     }
 
     if (tournament?.type === "GROUPS_KNOCKOUT") {
-      const groupMatches = tournament.matches;
-      const allDone =
+      const groupMatches = tournament.matches.filter((m) => m.groupName);
+      const knockoutMatches = tournament.matches.filter((m) => !m.groupName);
+      const groupsDone =
         groupMatches.length > 0 &&
         groupMatches.every((m) => m.status === "COMPLETED");
 
-      if (!allDone) {
+      if (!groupsDone) {
         alerts.push({
           id: "info-knockout",
           type: "info",
           title: "Próximo partido",
           description:
-            "Las semifinales se jugarán cuando todos los jugadores estén listos",
+            "Las semifinales se jugarán cuando termine la fase de grupos",
         });
+      } else if (knockoutMatches.length === 0) {
+        alerts.push({
+          id: "info-knockout-ready",
+          type: "info",
+          title: "Eliminatorias",
+          description: "Fase de grupos terminada: se genera la semifinal",
+        });
+      } else {
+        const pendingKo = knockoutMatches.find((m) => m.status !== "COMPLETED");
+        if (pendingKo) {
+          alerts.push({
+            id: "info-knockout-live",
+            type: "info",
+            title: "Eliminatorias en curso",
+            description: "Juega el siguiente partido del bracket",
+          });
+        }
       }
     }
 

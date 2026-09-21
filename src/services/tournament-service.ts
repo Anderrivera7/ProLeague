@@ -6,6 +6,31 @@ import {
 import type { TournamentCreateInput } from "@/schemas";
 import type { TournamentType } from "@prisma/client";
 
+function knockoutWinnerParticipantId(match: {
+  status: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  penaltiesHome?: number | null;
+  penaltiesAway?: number | null;
+  homeParticipantId: string;
+  awayParticipantId: string;
+}): string | null {
+  if (match.status !== "COMPLETED") return null;
+  if (match.homeScore == null || match.awayScore == null) return null;
+  if (match.homeScore > match.awayScore) return match.homeParticipantId;
+  if (match.awayScore > match.homeScore) return match.awayParticipantId;
+  if (
+    match.penaltiesHome != null &&
+    match.penaltiesAway != null &&
+    match.penaltiesHome !== match.penaltiesAway
+  ) {
+    return match.penaltiesHome > match.penaltiesAway
+      ? match.homeParticipantId
+      : match.awayParticipantId;
+  }
+  return null;
+}
+
 export class TournamentService {
   static async create(input: TournamentCreateInput, creatorId: string) {
     const joinCode = await TournamentRepository.createUniqueJoinCode();
@@ -220,6 +245,132 @@ export class TournamentService {
 
     await TournamentRepository.createMatches(tournamentId, toCreate);
     return { created: toCreate.length };
+  }
+
+  /**
+   * Tras completar la fase de grupos en GROUPS_KNOCKOUT:
+   * - crea semifinal (2.º vs 3.º; 1.º bye)
+   * - al terminar la semi, crea la final (1.º vs ganador)
+   * - al terminar la final, marca el torneo como COMPLETED
+   */
+  static async ensureKnockoutProgress(tournamentId: string) {
+    const tournament = await TournamentRepository.findById(tournamentId);
+    if (!tournament) return { created: 0 };
+    if (tournament.type !== "GROUPS_KNOCKOUT") return { created: 0 };
+    if (tournament.status === "COMPLETED" || tournament.status === "CANCELLED") {
+      return { created: 0 };
+    }
+
+    const groupMatches = tournament.matches.filter((m) => m.groupName);
+    if (groupMatches.length === 0) return { created: 0 };
+    if (!groupMatches.every((m) => m.status === "COMPLETED")) {
+      return { created: 0 };
+    }
+
+    const ranked = [...tournament.standings].sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.gd !== a.gd) return b.gd - a.gd;
+      if (b.gf !== a.gf) return b.gf - a.gf;
+      return 0;
+    });
+
+    if (ranked.length < 2) return { created: 0 };
+
+    const seed1 = ranked[0]?.participantId;
+    const seed2 = ranked[1]?.participantId;
+    const seed3 = ranked[2]?.participantId;
+    if (!seed1 || !seed2) return { created: 0 };
+
+    let created = 0;
+    const maxRound = tournament.matches.reduce(
+      (max, m) => Math.max(max, m.round),
+      0
+    );
+
+    const knockoutMatches = tournament.matches.filter((m) => !m.groupName);
+
+    const pairMatch = (
+      a: string,
+      b: string,
+      list = knockoutMatches
+    ) =>
+      list.find(
+        (m) =>
+          (m.homeParticipantId === a && m.awayParticipantId === b) ||
+          (m.homeParticipantId === b && m.awayParticipantId === a)
+      );
+
+    // 2 jugadores: final directa
+    if (!seed3) {
+      let final = pairMatch(seed1, seed2);
+      if (!final) {
+        await TournamentRepository.createMatches(tournamentId, [
+          {
+            round: maxRound + 1,
+            leg: 1,
+            bracketPosition: 1,
+            homeParticipantId: seed1,
+            awayParticipantId: seed2,
+          },
+        ]);
+        created++;
+        return { created };
+      }
+      if (final.status === "COMPLETED") {
+        await TournamentRepository.update(tournamentId, { status: "COMPLETED" });
+      }
+      return { created };
+    }
+
+    // 3+ (formato bye): semi 2º vs 3º, final 1º vs ganador
+    let semi = pairMatch(seed2, seed3);
+    if (!semi) {
+      await TournamentRepository.createMatches(tournamentId, [
+        {
+          round: maxRound + 1,
+          leg: 1,
+          bracketPosition: 1,
+          homeParticipantId: seed2,
+          awayParticipantId: seed3,
+        },
+      ]);
+      created++;
+      return { created };
+    }
+
+    if (semi.status !== "COMPLETED") return { created };
+
+    const winnerId = knockoutWinnerParticipantId(semi);
+    if (!winnerId) return { created };
+
+    let final = knockoutMatches.find(
+      (m) =>
+        m.id !== semi!.id &&
+        (m.homeParticipantId === seed1 || m.awayParticipantId === seed1)
+    );
+    if (!final) {
+      final = pairMatch(seed1, winnerId);
+    }
+
+    if (!final) {
+      await TournamentRepository.createMatches(tournamentId, [
+        {
+          round: semi.round + 1,
+          leg: 1,
+          bracketPosition: 1,
+          homeParticipantId: seed1,
+          awayParticipantId: winnerId,
+        },
+      ]);
+      created++;
+      return { created };
+    }
+
+    if (final.status === "COMPLETED") {
+      await TournamentRepository.update(tournamentId, { status: "COMPLETED" });
+    }
+
+    return { created };
   }
 
   static async delete(tournamentId: string, userId: string) {
