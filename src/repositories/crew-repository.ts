@@ -8,6 +8,14 @@ const memberInclude = {
       avatarUrl: true,
       elo: true,
       level: true,
+      favoriteTeam: {
+        select: {
+          id: true,
+          name: true,
+          crestUrl: true,
+          fifaIndexId: true,
+        },
+      },
       stats: {
         select: {
           titlesWon: true,
@@ -38,6 +46,22 @@ const memberInclude = {
           tournament: {
             select: {
               fcLeague: { select: { fifaIndexId: true, name: true } },
+            },
+          },
+        },
+      },
+      participations: {
+        orderBy: { createdAt: "desc" as const },
+        take: 1,
+        select: {
+          fcTeamId: true,
+          tournamentId: true,
+          fcTeam: {
+            select: {
+              id: true,
+              name: true,
+              crestUrl: true,
+              fifaIndexId: true,
             },
           },
         },
