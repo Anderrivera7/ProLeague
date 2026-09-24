@@ -63,18 +63,29 @@ export default async function PlayerProfilePage({ params }: PageProps) {
       />
       <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
         <Card className="glass overflow-hidden">
-          <div className="h-24 bg-gradient-to-r from-primary/20 via-secondary/10 to-transparent" />
+          <div className="relative h-28 overflow-hidden sm:h-36">
+            <Image
+              src="/banners/stadium-night.png"
+              alt=""
+              fill
+              priority
+              className="object-cover object-center"
+              sizes="(max-width: 768px) 100vw, 768px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/20" />
+          </div>
           <CardContent className="relative px-6 pb-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 -mt-10">
-              <Avatar className="h-20 w-20 border-4 border-card">
+            <div className="flex flex-col items-start gap-4 -mt-10 sm:flex-row sm:items-end">
+              <Avatar className="h-20 w-20 border-4 border-card shadow-lg">
                 <AvatarImage src={player.avatarUrl ?? undefined} />
                 <AvatarFallback className="text-xl">
                   {getInitials(player.nickname)}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 pt-2 sm:pt-0 sm:pb-1">
+              <div className="flex-1 pt-2 sm:pb-1 sm:pt-0">
                 <h2 className="text-2xl font-bold">{player.nickname}</h2>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <div className="mt-1 flex flex-wrap gap-2">
                   <Badge variant="outline">Nivel {player.level}</Badge>
                   <Badge>{player.elo} pts</Badge>
                   {player.country && (
