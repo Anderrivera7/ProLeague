@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 const crest = (id: number) => `/api/crest/${id}`;
 const localCrest = (path: string) => path;
-const nationFlag = (code: string) => `https://cdn.sofifa.net/flags/${code}.png`;
+const nationFlag = (code: string) => `/api/flag/${code}`;
 
 /** Escudos estables vía proxy local o assets en /public. */
 const CLUB_CREST: Record<string, string> = {

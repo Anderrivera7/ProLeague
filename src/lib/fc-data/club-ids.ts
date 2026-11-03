@@ -116,8 +116,12 @@ export const NATION_NAME_TO_FLAG: Record<string, string> = {
   Chile: "cl",
 };
 
+export function localNationFlagPath(isoCode: string): string {
+  return `/api/flag/${isoCode}`;
+}
+
 export function nationFlagUrl(isoCode: string): string {
-  return `https://cdn.sofifa.net/flags/${isoCode}.png`;
+  return localNationFlagPath(isoCode);
 }
 
 function resolveClubNumericId(
@@ -153,8 +157,22 @@ export function getTeamCrestCandidates(
   };
 
   if (clubName && NATION_NAME_TO_FLAG[clubName]) {
-    push(nationFlagUrl(NATION_NAME_TO_FLAG[clubName]));
-    if (crestUrl?.includes("/flags/")) push(crestUrl);
+    const code = NATION_NAME_TO_FLAG[clubName];
+    push(localNationFlagPath(code));
+    if (crestUrl?.startsWith("/api/flag/")) push(crestUrl);
+    if (crestUrl?.startsWith("/flags/")) {
+      const legacy = crestUrl.match(/\/flags\/([a-z0-9-]+)\.png/i)?.[1];
+      if (legacy) push(localNationFlagPath(legacy));
+    }
+    return candidates;
+  }
+
+  const flagFromCrest =
+    crestUrl?.match(/\/api\/flag\/([a-z0-9-]+)/i)?.[1] ??
+    crestUrl?.match(/\/flags\/([a-z0-9-]+)\.png/i)?.[1];
+  if (flagFromCrest) {
+    push(localNationFlagPath(flagFromCrest));
+    if (crestUrl?.startsWith("/")) push(crestUrl);
     return candidates;
   }
 

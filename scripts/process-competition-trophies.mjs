@@ -28,8 +28,8 @@ const MAP = [
   },
   {
     out: "liga-chile.png",
-    src: "c__Users_User_AppData_Roaming_Cursor_User_workspaceStorage_625a766b24ff156271486631d256fdb6_images_images-172e995a-d2d1-4007-98e0-425165fcaa6a.png",
-    mode: "white",
+    src: "c__Users_User_AppData_Roaming_Cursor_User_workspaceStorage_625a766b24ff156271486631d256fdb6_images_5250792-8ff2b539-91fa-43fc-9a01-bfa5ed4ca141.png",
+    mode: "black",
   },
   {
     out: "conference-league.png",

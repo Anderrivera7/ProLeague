@@ -17,9 +17,9 @@ const OVERRIDES: Record<string, number> = {
 };
 
 const NATION_FLAGS: Record<string, string> = {
-  France: "https://cdn.sofifa.net/flags/fr.png",
-  Morocco: "https://cdn.sofifa.net/flags/ma.png",
-  Argentina: "https://cdn.sofifa.net/flags/ar.png",
+  France: "/api/flag/fr",
+  Morocco: "/api/flag/ma",
+  Argentina: "/api/flag/ar",
 };
 
 const TROPHY_FIX: Array<{ titleContains: string; imageUrl: string }> = [

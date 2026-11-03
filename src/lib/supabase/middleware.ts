@@ -41,6 +41,7 @@ export async function updateSession(request: NextRequest) {
     pathname === "/" ||
     pathname.startsWith("/dev/") ||
     pathname.startsWith("/api/crest/") ||
+    pathname.startsWith("/api/flag/") ||
     isAuthRoute ||
     isOAuthRoute ||
     isPasswordResetRoute;
