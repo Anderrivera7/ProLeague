@@ -49,6 +49,7 @@ export const FC27_COMPETITIONS: Array<{
   { id: "europa_league", name: "UEFA Europa League", kind: "continental" },
   { id: "eurocopa", name: "Eurocopa", kind: "intl" },
   { id: "copa_africana", name: "Copa Africana de Naciones", kind: "intl" },
+  { id: "copa_america", name: "Copa América", kind: "intl" },
   { id: "chile", name: "Primera División Chile", kind: "league" },
   { id: "conference_league", name: "UEFA Conference League", kind: "continental" },
 ];
@@ -93,6 +94,7 @@ const LOCAL_TROPHY_BY_ID: Record<string, string> = {
   europa_league: "/trophies/europa-league.png",
   eurocopa: "/trophies/eurocopa.png",
   copa_africana: "/trophies/copa-africana.png",
+  copa_america: "/trophies/world-cup.png",
   chile: "/trophies/liga-chile.png",
   conference_league: "/trophies/conference-league.png",
 };
@@ -166,6 +168,10 @@ const NAME_TO_LEAGUE_ID: Array<{ pattern: RegExp; id: string }> = [
   { pattern: /europa\s*league|uefa\s*europa(?!\s*conference)/i, id: "europa_league" },
   { pattern: /conference\s*league|uefa\s*conference/i, id: "conference_league" },
   { pattern: /eurocopa|european\s*championship|euro\s*20\d{2}/i, id: "eurocopa" },
+  {
+    pattern: /copa\s*am[eé]rica/i,
+    id: "copa_america",
+  },
   {
     pattern: /africana|afcon|naciones\s*africanas|copa\s*africana/i,
     id: "copa_africana",

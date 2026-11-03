@@ -87,6 +87,7 @@ export const CLUB_NAME_TO_TEAM_ID: Record<string, number> = {
   "Sporting CP": 237,
   Inter: 44,
   "FC Bayern München": 21,
+  "Borussia Dortmund": 22,
   "FC Barcelona": 241,
   "Atlético Madrid": 240,
   Palmeiras: 383,
@@ -99,6 +100,7 @@ export const CLUB_NAME_TO_TEAM_ID: Record<string, number> = {
   Universitario: 111017,
   "LDU Quito": 110740,
   "Inter Miami": 112893,
+  Toluca: 1882,
 };
 
 /** Selecciones / palmarés por país → bandera Sofifa (ISO). */
