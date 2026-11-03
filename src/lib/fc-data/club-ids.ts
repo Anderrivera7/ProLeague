@@ -1,3 +1,8 @@
+import {
+  cachedCrestPathForClubId,
+  localCrestPathForClubId,
+} from "./local-crests";
+
 const CLUB_PREFIX = "club:";
 
 export const INTL_LEAGUE_EA_ID = "intl";
@@ -49,10 +54,10 @@ export function parseClubEaId(eaId: string): number | null {
 
 /**
  * Escudo de club usable en el navegador.
- * Sofifa CDN bloquea hotlinking (403); Futbin suele funcionar.
+ * Preferimos proxy local (evita 403 de Sofifa/Futbin por hotlink).
  */
 export function getSofifaTeamCrestUrl(clubTeamId: number | string) {
-  return `https://cdn.futbin.com/content/fifa25/img/clubs/${clubTeamId}.png`;
+  return `/api/crest/${clubTeamId}`;
 }
 
 function clubIdFromSofifaCrestUrl(url: string): string | null {
@@ -64,33 +69,96 @@ function clubIdFromAnyCrestUrl(url: string): string | null {
   return (
     clubIdFromSofifaCrestUrl(url) ??
     url.match(/\/clubs\/(\d+)\.png/)?.[1] ??
+    url.match(/\/api\/crest\/(\d+)/)?.[1] ??
     null
   );
+}
+
+/** EA / Sofifa team id por nombre de club (palmarés manual). */
+export const CLUB_NAME_TO_TEAM_ID: Record<string, number> = {
+  "Manchester United": 11,
+  "Manchester City": 10,
+  Liverpool: 9,
+  Feyenoord: 247,
+  PSV: 246,
+  "FC Porto": 236,
+  Benfica: 234,
+  "Sporting CP": 237,
+  Inter: 44,
+  "FC Bayern München": 21,
+  "FC Barcelona": 241,
+  Palmeiras: 383,
+  Flamengo: 1041,
+  "River Plate": 1876,
+  "Boca Juniors": 1877,
+  "Colo-Colo": 110980,
+  Rangers: 100409,
+  "Olympique de Marseille": 181,
+  Universitario: 111017,
+  "LDU Quito": 110740,
+  "Inter Miami": 112893,
+};
+
+function resolveClubNumericId(
+  fifaIndexId?: string | null,
+  crestUrl?: string | null,
+  clubName?: string | null
+): string | null {
+  if (fifaIndexId && isClubEaId(fifaIndexId)) {
+    const id = parseClubEaId(fifaIndexId);
+    if (id != null) return String(id);
+  }
+  if (fifaIndexId && /^\d+$/.test(fifaIndexId)) return fifaIndexId;
+  if (crestUrl) {
+    const fromUrl = clubIdFromAnyCrestUrl(crestUrl);
+    if (fromUrl) return fromUrl;
+  }
+  if (clubName && CLUB_NAME_TO_TEAM_ID[clubName] != null) {
+    return String(CLUB_NAME_TO_TEAM_ID[clubName]);
+  }
+  return null;
 }
 
 /** Candidatos de escudo (el cliente prueba en orden si uno falla). */
 export function getTeamCrestCandidates(
   crestUrl: string | null | undefined,
-  fifaIndexId?: string
+  fifaIndexId?: string,
+  clubName?: string | null
 ): string[] {
   const candidates: string[] = [];
   const push = (url: string | null | undefined) => {
     if (url && !candidates.includes(url)) candidates.push(url);
   };
 
-  const clubId =
-    (fifaIndexId && isClubEaId(fifaIndexId)
-      ? parseClubEaId(fifaIndexId)?.toString()
-      : null) ?? (crestUrl ? clubIdFromAnyCrestUrl(crestUrl) : null);
+  const clubId = resolveClubNumericId(fifaIndexId, crestUrl, clubName);
+
+  const cached = cachedCrestPathForClubId(clubId);
+  if (cached) push(cached);
 
   if (clubId) {
-    push(`https://cdn.futbin.com/content/fifa25/img/clubs/${clubId}.png`);
-    push(`https://cdn.futbin.com/content/fifa26/img/clubs/${clubId}.png`);
-    push(`https://cdn.sofifa.net/teams/${clubId}/60.png`);
+    push(`/api/crest/${clubId}`);
   }
 
-  if (crestUrl?.startsWith("/")) push(crestUrl);
-  else if (crestUrl && !crestUrl.includes("sofifa.net")) push(crestUrl);
+  const localPath = localCrestPathForClubId(clubId);
+  if (localPath) push(localPath);
+
+  if (crestUrl?.startsWith("/crests/")) push(crestUrl);
+
+  if (crestUrl?.startsWith("/api/crest/")) push(crestUrl);
+
+  if (
+    crestUrl?.startsWith("/") &&
+    !crestUrl.startsWith("/crests/") &&
+    !crestUrl.startsWith("/api/crest/")
+  ) {
+    push(crestUrl);
+  } else if (
+    crestUrl &&
+    !crestUrl.includes("sofifa.net") &&
+    !crestUrl.includes("futbin.com")
+  ) {
+    push(crestUrl);
+  }
 
   return candidates;
 }
@@ -105,9 +173,10 @@ export function getSofifaLeagueLogoUrl(leagueId: number | string) {
 /** Corrige URLs rotas/bloqueadas en BD y reconstruye desde fifaIndexId si hace falta */
 export function resolveTeamCrestUrl(
   crestUrl: string | null | undefined,
-  fifaIndexId?: string
+  fifaIndexId?: string,
+  clubName?: string | null
 ): string | null {
-  return getTeamCrestCandidates(crestUrl, fifaIndexId)[0] ?? null;
+  return getTeamCrestCandidates(crestUrl, fifaIndexId, clubName)[0] ?? null;
 }
 
 /** Imagen hero de la competición (archivos en /public/leagues/) */

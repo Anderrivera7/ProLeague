@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
+import { CrestBadgeClient } from "@/components/ui/crest-badge-client";
 import { cn } from "@/lib/utils";
 import type {
   CrewBoardCategory,
@@ -140,13 +141,12 @@ function TrophyTile({
     trophy.title
   );
   const label = shortLabel(trophy.title);
-
   return (
     <div
-      title={label}
+      title={trophy.clubName ? `${label} · ${trophy.clubName}` : label}
       className="flex w-[5.1rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-[#121212] px-1.5 py-2.5"
     >
-      <div className="flex h-11 w-11 items-center justify-center">
+      <div className="relative flex h-11 w-11 items-center justify-center">
         {url ? (
           <Image
             src={url}
@@ -159,9 +159,19 @@ function TrophyTile({
         ) : (
           <Trophy className="h-5 w-5 text-primary" />
         )}
+        {trophy.clubCrestUrl && (
+          <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-white/20 bg-black/80 p-0.5">
+            <CrestBadgeClient
+              crestUrl={trophy.clubCrestUrl}
+              clubName={trophy.clubName}
+              size={12}
+              className="h-3 w-3"
+            />
+          </div>
+        )}
       </div>
       <span className="line-clamp-2 w-full text-center text-[8px] leading-tight text-white/55">
-        {label}
+        {trophy.clubName ?? label}
       </span>
     </div>
   );

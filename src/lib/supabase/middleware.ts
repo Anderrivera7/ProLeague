@@ -39,6 +39,8 @@ export async function updateSession(request: NextRequest) {
 
   const isPublicRoute =
     pathname === "/" ||
+    pathname.startsWith("/dev/") ||
+    pathname.startsWith("/api/crest/") ||
     isAuthRoute ||
     isOAuthRoute ||
     isPasswordResetRoute;
@@ -96,7 +98,20 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthRoute && !isPasswordResetRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    const redirectTo = url.searchParams.get("redirect");
+    url.searchParams.delete("redirect");
+    if (
+      redirectTo &&
+      redirectTo.startsWith("/") &&
+      !redirectTo.startsWith("//")
+    ) {
+      // Conserva query del destino si viene en el redirect.
+      const dest = new URL(redirectTo, request.url);
+      url.pathname = dest.pathname;
+      url.search = dest.search;
+    } else {
+      url.pathname = "/dashboard";
+    }
     return NextResponse.redirect(url);
   }
 

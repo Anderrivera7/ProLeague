@@ -31,6 +31,8 @@ export type CrewPodiumEntry = {
     id: string;
     title: string;
     imageUrl: string | null;
+    clubName: string | null;
+    clubCrestUrl: string | null;
     wonAt: Date;
     leagueFifaId: string | null;
     leagueName: string | null;
@@ -243,6 +245,8 @@ export class CrewService {
         id: t.id,
         title: t.title,
         imageUrl: t.imageUrl,
+        clubName: t.clubName,
+        clubCrestUrl: t.clubCrestUrl,
         wonAt: t.wonAt,
         leagueFifaId: t.tournament?.fcLeague?.fifaIndexId ?? null,
         leagueName: t.tournament?.fcLeague?.name ?? null,

@@ -46,6 +46,11 @@ export const FC27_COMPETITIONS: Array<{
   { id: "club_world_cup", name: "Mundial de Clubes", kind: "intl" },
   { id: "intercontinental", name: "Intercontinental", kind: "intl" },
   { id: "confederations", name: "Confederaciones", kind: "intl" },
+  { id: "europa_league", name: "UEFA Europa League", kind: "continental" },
+  { id: "eurocopa", name: "Eurocopa", kind: "intl" },
+  { id: "copa_africana", name: "Copa Africana de Naciones", kind: "intl" },
+  { id: "chile", name: "Primera División Chile", kind: "league" },
+  { id: "conference_league", name: "UEFA Conference League", kind: "continental" },
 ];
 
 /**
@@ -85,6 +90,11 @@ const LOCAL_TROPHY_BY_ID: Record<string, string> = {
   confederations: "/trophies/confederations.png",
   club_world_cup: "/trophies/club-world-cup.png",
   intercontinental: "/trophies/intercontinental.png",
+  europa_league: "/trophies/europa-league.png",
+  eurocopa: "/trophies/eurocopa.png",
+  copa_africana: "/trophies/copa-africana.png",
+  chile: "/trophies/liga-chile.png",
+  conference_league: "/trophies/conference-league.png",
 };
 
 const REMOTE_TROPHY_BY_ID: Record<string, string> = {
@@ -153,6 +163,17 @@ const NAME_TO_LEAGUE_ID: Array<{ pattern: RegExp; id: string }> = [
   { pattern: /ekstraklasa|polon/i, id: "189" },
   { pattern: /j[\s-]*league|j1|japon/i, id: "83" },
   { pattern: /champions\s*league|uefa\s*champions/i, id: "ucl" },
+  { pattern: /europa\s*league|uefa\s*europa(?!\s*conference)/i, id: "europa_league" },
+  { pattern: /conference\s*league|uefa\s*conference/i, id: "conference_league" },
+  { pattern: /eurocopa|european\s*championship|euro\s*20\d{2}/i, id: "eurocopa" },
+  {
+    pattern: /africana|afcon|naciones\s*africanas|copa\s*africana/i,
+    id: "copa_africana",
+  },
+  {
+    pattern: /chile|chilena|colo[\s-]?colo|anfp/i,
+    id: "chile",
+  },
   { pattern: /libertadores/i, id: "libertadores" },
   {
     pattern: /liga\s*pro|ecuador|ldu|quito|serie\s*a\s*ecuador/i,
@@ -686,6 +707,8 @@ export function resolveTrophyImage(
   fifaIndexId?: string | null,
   leagueOrTitle?: string | null
 ): string | null {
-  if (imageUrl) return imageUrl;
-  return getLeagueTrophyUrl(fifaIndexId, leagueOrTitle);
+  const fromMeta = getLeagueTrophyUrl(fifaIndexId, leagueOrTitle);
+  if (imageUrl?.startsWith("/trophies/")) return imageUrl;
+  if (fromMeta?.startsWith("/trophies/")) return fromMeta;
+  return imageUrl ?? fromMeta;
 }

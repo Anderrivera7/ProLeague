@@ -1,9 +1,10 @@
-import Image from "next/image";
+import { TrophyPicture } from "@/components/ui/trophy-picture";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Crown, Shield, Sparkles, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
+import { CrestBadgeClient } from "@/components/ui/crest-badge-client";
 import {
   competitionLabel,
   recentTrophies,
@@ -140,7 +141,7 @@ function FeaturedTrophyCard({
   const trophyUrl = resolveTrophyImage(
     trophy.imageUrl,
     trophy.tournament?.fcLeague?.fifaIndexId,
-    label
+    trophy.title ?? label
   );
 
   return (
@@ -151,12 +152,11 @@ function FeaturedTrophyCard({
 
       {trophy.clubCrestUrl && (
         <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/95 p-1 shadow-lg">
-          <Image
-            src={trophy.clubCrestUrl}
-            alt={trophy.clubName ?? "Escudo"}
-            width={32}
-            height={32}
-            className="h-7 w-7 object-contain"
+          <CrestBadgeClient
+            crestUrl={trophy.clubCrestUrl}
+            clubName={trophy.clubName}
+            size={28}
+            className="h-7 w-7"
           />
         </div>
       )}
@@ -164,13 +164,11 @@ function FeaturedTrophyCard({
       <div className="relative mb-3 flex h-36 w-full items-end justify-center">
         <div className="pointer-events-none absolute bottom-2 h-8 w-28 rounded-[100%] bg-primary/20 blur-xl transition-colors group-hover:bg-primary/30" />
         {trophyUrl ? (
-          <Image
+          <TrophyPicture
             src={trophyUrl}
-            alt={`Trofeo ${label}`}
             width={120}
             height={144}
-            className="relative z-10 h-36 w-auto object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)] transition-transform duration-300 group-hover:-translate-y-1"
-            unoptimized={trophyUrl.startsWith("http")}
+            className="relative z-10 h-36 w-auto max-h-36 object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)] transition-transform duration-300 group-hover:-translate-y-1"
           />
         ) : (
           <Trophy className="relative z-10 h-20 w-20 text-primary" />
@@ -195,7 +193,7 @@ function TitleCard({ trophy }: { trophy: TrophyWithTournament }) {
   const trophyUrl = resolveTrophyImage(
     trophy.imageUrl,
     trophy.tournament?.fcLeague?.fifaIndexId,
-    label
+    trophy.title ?? label
   );
 
   return (
@@ -203,25 +201,22 @@ function TitleCard({ trophy }: { trophy: TrophyWithTournament }) {
       <div className="relative flex h-20 w-16 shrink-0 items-end justify-center">
         <div className="pointer-events-none absolute bottom-1 h-4 w-12 rounded-[100%] bg-primary/15 blur-md" />
         {trophyUrl ? (
-          <Image
+          <TrophyPicture
             src={trophyUrl}
-            alt={`Trofeo ${label}`}
             width={64}
             height={80}
-            className="relative z-10 h-20 w-auto object-contain"
-            unoptimized={trophyUrl.startsWith("http")}
+            className="relative z-10 h-20 w-auto max-w-16 object-contain"
           />
         ) : (
           <Trophy className="relative z-10 h-10 w-10 text-primary" />
         )}
         {trophy.clubCrestUrl && (
           <div className="absolute -bottom-0.5 -right-1 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background p-0.5 shadow-md">
-            <Image
-              src={trophy.clubCrestUrl}
-              alt={trophy.clubName ?? ""}
-              width={24}
-              height={24}
-              className="h-5 w-5 object-contain"
+            <CrestBadgeClient
+              crestUrl={trophy.clubCrestUrl}
+              clubName={trophy.clubName}
+              size={20}
+              className="h-5 w-5"
             />
           </div>
         )}

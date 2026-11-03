@@ -11,6 +11,8 @@ import { UserRepository } from "@/repositories/user-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { getCurrentUser } from "@/lib/auth/session";
 import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
+import { CrestBadgeClient } from "@/components/ui/crest-badge-client";
+import { TrophyPicture } from "@/components/ui/trophy-picture";
 import { getInitials } from "@/lib/utils";
 import { positiveStreak } from "@/utils/match-stats";
 import {
@@ -170,7 +172,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                   const url = resolveTrophyImage(
                     trophy.imageUrl,
                     league?.fifaIndexId,
-                    league?.name ?? trophy.tournament?.name ?? trophy.title
+                    trophy.title ?? league?.name ?? trophy.tournament?.name
                   );
                   return (
                     <div
@@ -179,25 +181,22 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                     >
                       <div className="relative flex h-14 w-12 shrink-0 items-end justify-center">
                         {url ? (
-                          <Image
+                          <TrophyPicture
                             src={url}
-                            alt={trophy.title}
                             width={48}
                             height={56}
-                            className="h-14 w-auto object-contain"
-                            unoptimized={url.startsWith("http")}
+                            className="h-14 w-auto max-w-12 object-contain"
                           />
                         ) : (
                           <Trophy className="h-8 w-8 text-primary" />
                         )}
                         {trophy.clubCrestUrl && (
                           <div className="absolute -bottom-0.5 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card p-0.5">
-                            <Image
-                              src={trophy.clubCrestUrl}
-                              alt={trophy.clubName ?? ""}
-                              width={16}
-                              height={16}
-                              className="h-4 w-4 object-contain"
+                            <CrestBadgeClient
+                              crestUrl={trophy.clubCrestUrl}
+                              clubName={trophy.clubName}
+                              size={16}
+                              className="h-4 w-4"
                             />
                           </div>
                         )}

@@ -9,10 +9,9 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const crest = (clubId: number) =>
-  `https://cdn.futbin.com/content/fifa25/img/clubs/${clubId}.png`;
-const nation = (id: number) =>
-  `https://cdn.futbin.com/content/fifa25/img/nation/${id}.png`;
+const crest = (clubId: number) => `/api/crest/${clubId}`;
+const nationFlag = (code: string) =>
+  `https://cdn.sofifa.net/flags/${code}.png`;
 
 type TitleSeed = {
   title: string;
@@ -72,7 +71,7 @@ const ANDERR: TitleSeed[] = [
     title: "Campeón · Liga 1 Perú",
     imageUrl: "/trophies/liga-1-peru.png",
     clubName: "Universitario",
-    clubCrestUrl: crest(111017),
+    clubCrestUrl: "/crests/universitario.png",
     wonAt: "2026-01-10",
   },
   {
@@ -93,12 +92,12 @@ const ANDERR: TitleSeed[] = [
     title: "Campeón · Copa Libertadores",
     imageUrl: "/trophies/libertadores.png",
     clubName: "River Plate",
-    clubCrestUrl: crest(1876),
+    clubCrestUrl: "/crests/river-plate.png",
     wonAt: "2026-01-13",
   },
   {
     title: "Campeón · UEFA Europa League",
-    imageUrl: "/trophies/ucl.png",
+    imageUrl: "/trophies/europa-league.png",
     clubName: "FC Porto",
     clubCrestUrl: crest(236),
     wonAt: "2026-01-14",
@@ -110,6 +109,13 @@ const ANDERR: TitleSeed[] = [
     clubCrestUrl: crest(234),
     wonAt: "2026-01-15",
   },
+  {
+    title: "Campeón · Scottish Premiership",
+    imageUrl: "/trophies/scottish-premiership.png",
+    clubName: "Rangers",
+    clubCrestUrl: crest(342),
+    wonAt: "2026-04-03",
+  },
 ];
 
 const SERGIO: TitleSeed[] = [
@@ -117,7 +123,7 @@ const SERGIO: TitleSeed[] = [
     title: "Campeón · Copa del Mundo",
     imageUrl: "/trophies/world-cup.png",
     clubName: "France",
-    clubCrestUrl: nation(18),
+    clubCrestUrl: nationFlag("fr"),
     wonAt: "2026-02-01",
   },
 ];
@@ -135,16 +141,16 @@ const YOSSEF: TitleSeed[] = [
 const LEONEL: TitleSeed[] = [
   {
     title: "Campeón · Eurocopa",
-    imageUrl: "/trophies/world-cup.png",
+    imageUrl: "/trophies/eurocopa.png",
     clubName: "France",
-    clubCrestUrl: nation(18),
+    clubCrestUrl: nationFlag("fr"),
     wonAt: "2026-03-01",
   },
   {
     title: "Campeón · Eurocopa",
-    imageUrl: "/trophies/world-cup.png",
+    imageUrl: "/trophies/eurocopa.png",
     clubName: "France",
-    clubCrestUrl: nation(18),
+    clubCrestUrl: nationFlag("fr"),
     wonAt: "2026-03-02",
   },
   {
@@ -156,9 +162,9 @@ const LEONEL: TitleSeed[] = [
   },
   {
     title: "Campeón · Copa Africana de Naciones",
-    imageUrl: "/trophies/world-cup.png",
+    imageUrl: "/trophies/copa-africana.png",
     clubName: "Morocco",
-    clubCrestUrl: nation(129),
+    clubCrestUrl: nationFlag("ma"),
     wonAt: "2026-03-04",
   },
   {
@@ -172,7 +178,7 @@ const LEONEL: TitleSeed[] = [
     title: "Campeón · Premier League",
     imageUrl: "/trophies/premier-league.png",
     clubName: "Liverpool",
-    clubCrestUrl: crest(9),
+    clubCrestUrl: "/crests/liverpool.png",
     wonAt: "2026-03-06",
   },
   {
@@ -184,7 +190,7 @@ const LEONEL: TitleSeed[] = [
   },
   {
     title: "Campeón · Primera División Chile",
-    imageUrl: "/trophies/liga-ecuador.png",
+    imageUrl: "/trophies/liga-chile.png",
     clubName: "Colo-Colo",
     clubCrestUrl: crest(110980),
     wonAt: "2026-03-08",
@@ -202,6 +208,13 @@ const LEONEL: TitleSeed[] = [
     clubName: "Olympique de Marseille",
     clubCrestUrl: crest(179),
     wonAt: "2026-03-10",
+  },
+  {
+    title: "Campeón · UEFA Conference League",
+    imageUrl: "/trophies/conference-league.png",
+    clubName: "Olympique de Marseille",
+    clubCrestUrl: crest(179),
+    wonAt: "2026-04-02",
   },
 ];
 
