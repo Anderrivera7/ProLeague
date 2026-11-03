@@ -12,9 +12,31 @@ export default async function RecordsPage() {
     <>
       <Header
         title="Records"
-        subtitle="Marcas de palmarés. Una por competición."
+        subtitle="Los carteles de la liga"
       />
-      <div className="space-y-3 p-4 lg:p-6">
+      <div className="space-y-6 p-4 lg:p-6">
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+            Sala de records
+          </h2>
+          <div className="flex flex-col gap-4">
+            {[
+              { src: "/records/tridente.png", alt: "El mejor tridente" },
+              { src: "/records/mejor-final.png", alt: "La mejor final, el derby" },
+              { src: "/records/subcampeonatos.png", alt: "Más subcampeonatos" },
+              { src: "/records/goleada-final.png", alt: "Mayor goleada en una final" },
+              { src: "/records/primer-descendido.png", alt: "Primer descendido a la B" },
+            ].map((poster) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={poster.src}
+                src={poster.src}
+                alt={poster.alt}
+                className="w-full rounded-2xl border border-white/10"
+              />
+            ))}
+          </div>
+        </section>
         {(mostClubs || mostCompetitions) && (
           <div className="grid gap-3 sm:grid-cols-2">
             {mostClubs && (
