@@ -94,7 +94,7 @@ const LOCAL_TROPHY_BY_ID: Record<string, string> = {
   europa_league: "/trophies/europa-league.png",
   eurocopa: "/trophies/eurocopa.png",
   copa_africana: "/trophies/copa-africana.png",
-  copa_america: "/trophies/world-cup.png",
+  copa_america: "/trophies/copa-america.png",
   chile: "/trophies/liga-chile.png",
   conference_league: "/trophies/conference-league.png",
 };

@@ -25,7 +25,7 @@ const TITLES = [
   },
   {
     title: "Campeón · Copa América",
-    imageUrl: "/trophies/world-cup.png",
+    imageUrl: "/trophies/copa-america.png",
     clubName: "Brazil",
     clubCrestUrl: "/api/flag/br",
     wonAt: "2026-05-03",
