@@ -14,6 +14,7 @@ import {
   User,
   UsersRound,
   Globe,
+  Medal,
   ChevronLeft,
   ChevronRight,
   X,
@@ -37,6 +38,7 @@ const iconMap = {
   User,
   UsersRound,
   Globe,
+  Medal,
 };
 
 interface SidebarProps {

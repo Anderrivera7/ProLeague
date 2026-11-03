@@ -26,7 +26,7 @@ export const TOURNAMENT_TYPES = {
   GROUPS: { label: "Grupos", description: "Fase de grupos" },
   GROUPS_KNOCKOUT: {
     label: "Grupos + Eliminación",
-    description: "Grupos seguidos de bracket",
+    description: "Grupos ida/vuelta + eliminatoria",
   },
   TWO_LEGS: {
     label: "Ida y Vuelta",
@@ -42,6 +42,7 @@ export const NAV_ITEMS = [
   { href: "/football", label: "Fútbol real", icon: "Globe" },
   { href: "/matches", label: "Partidos", icon: "Swords" },
   { href: "/rankings", label: "Rankings", icon: "BarChart3" },
+  { href: "/records", label: "Records", icon: "Medal" },
   { href: "/stats", label: "Estadísticas", icon: "TrendingUp" },
   { href: "/players", label: "Jugadores", icon: "Users" },
   { href: "/profile", label: "Mi Perfil", icon: "User" },

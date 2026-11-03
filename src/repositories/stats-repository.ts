@@ -61,6 +61,99 @@ export class StatsRepository {
     });
   }
 
+  /** Récords de palmarés: quién tiene la marca en cada competición. */
+  static async getCompetitionRecords() {
+    const trophies = await prisma.trophy.findMany({
+      select: {
+        title: true,
+        clubName: true,
+        user: {
+          select: { id: true, nickname: true, avatarUrl: true },
+        },
+      },
+    });
+
+    type Holder = {
+      id: string;
+      nickname: string;
+      avatarUrl: string | null;
+    };
+    type Bucket = {
+      user: Holder;
+      count: number;
+      clubs: Set<string>;
+    };
+
+    const byCompetition = new Map<string, Map<string, Bucket>>();
+    const byUser = new Map<
+      string,
+      { user: Holder; titles: number; clubs: Set<string>; comps: Set<string> }
+    >();
+
+    for (const trophy of trophies) {
+      const competition =
+        trophy.title.replace(/^Campeón\s*·\s*/i, "").trim() || "Competición";
+      const user = trophy.user;
+      let comps = byCompetition.get(competition);
+      if (!comps) {
+        comps = new Map();
+        byCompetition.set(competition, comps);
+      }
+      let bucket = comps.get(user.id);
+      if (!bucket) {
+        bucket = { user, count: 0, clubs: new Set() };
+        comps.set(user.id, bucket);
+      }
+      bucket.count += 1;
+      if (trophy.clubName) bucket.clubs.add(trophy.clubName);
+
+      let career = byUser.get(user.id);
+      if (!career) {
+        career = { user, titles: 0, clubs: new Set(), comps: new Set() };
+        byUser.set(user.id, career);
+      }
+      career.titles += 1;
+      career.comps.add(competition);
+      if (trophy.clubName) career.clubs.add(trophy.clubName);
+    }
+
+    const competitionRecords = [...byCompetition.entries()]
+      .map(([competition, holders]) => {
+        const ranked = [...holders.values()].sort((a, b) => b.count - a.count);
+        const best = ranked[0];
+        if (!best || best.count < 1) return null;
+        return {
+          competition,
+          count: best.count,
+          user: best.user,
+          clubs: [...best.clubs],
+          shared: ranked.filter((h) => h.count === best.count).length > 1,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => Boolean(row))
+      .sort((a, b) => b.count - a.count || a.competition.localeCompare(b.competition, "es"));
+
+    const careers = [...byUser.values()];
+    const mostClubs = careers.sort((a, b) => b.clubs.size - a.clubs.size)[0];
+    const mostComps = [...byUser.values()].sort(
+      (a, b) => b.comps.size - a.comps.size
+    )[0];
+
+    return {
+      competitionRecords,
+      mostClubs: mostClubs
+        ? {
+            user: mostClubs.user,
+            count: mostClubs.clubs.size,
+            names: [...mostClubs.clubs],
+          }
+        : null,
+      mostCompetitions: mostComps
+        ? { user: mostComps.user, count: mostComps.comps.size }
+        : null,
+    };
+  }
+
   static async getEloRanking(limit = 50) {
     return prisma.user.findMany({
       orderBy: { elo: "desc" },
