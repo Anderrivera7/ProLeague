@@ -60,7 +60,7 @@ const TITLES: TitleSeed[] = [
     title: "Campeón · Eredivisie",
     imageUrl: "/trophies/eredivisie.png",
     clubName: "PSV",
-    clubCrestUrl: crest(246),
+    clubCrestUrl: crest(247),
     wonAt: "2024-06-15",
   },
   {

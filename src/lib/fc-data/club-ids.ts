@@ -79,8 +79,9 @@ export const CLUB_NAME_TO_TEAM_ID: Record<string, number> = {
   "Manchester United": 11,
   "Manchester City": 10,
   Liverpool: 9,
-  Feyenoord: 247,
-  PSV: 246,
+  Feyenoord: 246,
+  PSV: 247,
+  Bologna: 189,
   "FC Porto": 236,
   Benfica: 234,
   "Sporting CP": 237,
@@ -100,6 +101,25 @@ export const CLUB_NAME_TO_TEAM_ID: Record<string, number> = {
   "Inter Miami": 112893,
 };
 
+/** Selecciones / palmarés por país → bandera Sofifa (ISO). */
+export const NATION_NAME_TO_FLAG: Record<string, string> = {
+  France: "fr",
+  Morocco: "ma",
+  Argentina: "ar",
+  Brazil: "br",
+  England: "gb-eng",
+  Spain: "es",
+  Germany: "de",
+  Italy: "it",
+  Portugal: "pt",
+  Netherlands: "nl",
+  Chile: "cl",
+};
+
+export function nationFlagUrl(isoCode: string): string {
+  return `https://cdn.sofifa.net/flags/${isoCode}.png`;
+}
+
 function resolveClubNumericId(
   fifaIndexId?: string | null,
   crestUrl?: string | null,
@@ -110,12 +130,13 @@ function resolveClubNumericId(
     if (id != null) return String(id);
   }
   if (fifaIndexId && /^\d+$/.test(fifaIndexId)) return fifaIndexId;
+  if (clubName && NATION_NAME_TO_FLAG[clubName]) return null;
+  if (clubName && CLUB_NAME_TO_TEAM_ID[clubName] != null) {
+    return String(CLUB_NAME_TO_TEAM_ID[clubName]);
+  }
   if (crestUrl) {
     const fromUrl = clubIdFromAnyCrestUrl(crestUrl);
     if (fromUrl) return fromUrl;
-  }
-  if (clubName && CLUB_NAME_TO_TEAM_ID[clubName] != null) {
-    return String(CLUB_NAME_TO_TEAM_ID[clubName]);
   }
   return null;
 }
@@ -130,6 +151,12 @@ export function getTeamCrestCandidates(
   const push = (url: string | null | undefined) => {
     if (url && !candidates.includes(url)) candidates.push(url);
   };
+
+  if (clubName && NATION_NAME_TO_FLAG[clubName]) {
+    push(nationFlagUrl(NATION_NAME_TO_FLAG[clubName]));
+    if (crestUrl?.includes("/flags/")) push(crestUrl);
+    return candidates;
+  }
 
   const clubId = resolveClubNumericId(fifaIndexId, crestUrl, clubName);
 

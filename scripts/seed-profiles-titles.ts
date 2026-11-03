@@ -212,8 +212,8 @@ const LEONEL: TitleSeed[] = [
   {
     title: "Campeón · UEFA Conference League",
     imageUrl: "/trophies/conference-league.png",
-    clubName: "Olympique de Marseille",
-    clubCrestUrl: crest(219),
+    clubName: "Bologna",
+    clubCrestUrl: crest(189),
     wonAt: "2026-04-02",
   },
 ];

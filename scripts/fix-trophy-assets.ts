@@ -12,7 +12,9 @@ const nationFlag = (code: string) => `https://cdn.sofifa.net/flags/${code}.png`;
 
 /** Escudos estables vía proxy local o assets en /public. */
 const CLUB_CREST: Record<string, string> = {
-  Feyenoord: crest(247),
+  Feyenoord: crest(246),
+  PSV: crest(247),
+  Bologna: crest(189),
   "FC Porto": crest(236),
   Benfica: crest(234),
   "Manchester United": crest(11),
@@ -24,7 +26,6 @@ const CLUB_CREST: Record<string, string> = {
   "FC Bayern München": crest(21),
   Palmeiras: crest(383),
   Inter: crest(44),
-  PSV: crest(246),
   "Olympique de Marseille": crest(219),
   "Sporting CP": crest(237),
   "Colo-Colo": crest(110980),

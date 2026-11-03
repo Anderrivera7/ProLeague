@@ -11,8 +11,15 @@ const crest = (id: number) => `/api/crest/${id}`;
 
 const OVERRIDES: Record<string, number> = {
   ...CLUB_NAME_TO_TEAM_ID,
-  PSV: 246,
-  "Olympique de Marseille": 219,
+  PSV: 247,
+  Feyenoord: 246,
+  Bologna: 189,
+};
+
+const NATION_FLAGS: Record<string, string> = {
+  France: "https://cdn.sofifa.net/flags/fr.png",
+  Morocco: "https://cdn.sofifa.net/flags/ma.png",
+  Argentina: "https://cdn.sofifa.net/flags/ar.png",
 };
 
 const TROPHY_FIX: Array<{ titleContains: string; imageUrl: string }> = [
@@ -35,7 +42,8 @@ async function main() {
 
   for (const t of trophies) {
     const club = t.clubName ?? "";
-    const teamId = OVERRIDES[club];
+    const nationCrest = NATION_FLAGS[club];
+    const teamId = nationCrest ? undefined : OVERRIDES[club];
     let imageUrl = t.imageUrl;
     for (const fix of TROPHY_FIX) {
       if (t.title.toLowerCase().includes(fix.titleContains)) {
@@ -44,8 +52,21 @@ async function main() {
       }
     }
 
-    const data: { clubCrestUrl?: string; imageUrl?: string | null } = {};
-    if (teamId) data.clubCrestUrl = crest(teamId);
+    const data: {
+      clubCrestUrl?: string;
+      clubName?: string;
+      imageUrl?: string | null;
+    } = {};
+    if (nationCrest) data.clubCrestUrl = nationCrest;
+    else if (teamId) data.clubCrestUrl = crest(teamId);
+
+    if (
+      t.title.toLowerCase().includes("conference") &&
+      club === "Olympique de Marseille"
+    ) {
+      data.clubName = "Bologna";
+      data.clubCrestUrl = crest(189);
+    }
     if (imageUrl && imageUrl !== t.imageUrl) data.imageUrl = imageUrl;
 
     if (Object.keys(data).length) {
@@ -55,9 +76,17 @@ async function main() {
   }
 
   for (const [clubName, id] of Object.entries(OVERRIDES)) {
+    if (NATION_FLAGS[clubName]) continue;
     await prisma.trophy.updateMany({
       where: { clubName },
       data: { clubCrestUrl: crest(id) },
+    });
+  }
+
+  for (const [clubName, url] of Object.entries(NATION_FLAGS)) {
+    await prisma.trophy.updateMany({
+      where: { clubName },
+      data: { clubCrestUrl: url },
     });
   }
 }
