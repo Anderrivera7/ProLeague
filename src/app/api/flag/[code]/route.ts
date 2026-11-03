@@ -19,7 +19,7 @@ export async function GET(
   const local = path.join(process.cwd(), "public", "flags", `${code}.png`);
   try {
     const buf = await readFile(local);
-    if (buf.byteLength > 200) {
+    if (buf.byteLength > 80) {
       return new NextResponse(buf, {
         headers: {
           "Content-Type": "image/png",
@@ -50,7 +50,7 @@ export async function GET(
       });
       if (!res.ok) continue;
       const buf = await res.arrayBuffer();
-      if (buf.byteLength < 200) continue;
+      if (buf.byteLength < 80) continue;
       return new NextResponse(buf, {
         headers: {
           "Content-Type": "image/png",
