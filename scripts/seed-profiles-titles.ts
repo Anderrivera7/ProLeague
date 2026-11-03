@@ -206,14 +206,14 @@ const LEONEL: TitleSeed[] = [
     title: "Campeón · Ligue 1",
     imageUrl: "/trophies/ligue-1.png",
     clubName: "Olympique de Marseille",
-    clubCrestUrl: crest(179),
+    clubCrestUrl: crest(219),
     wonAt: "2026-03-10",
   },
   {
     title: "Campeón · UEFA Conference League",
     imageUrl: "/trophies/conference-league.png",
     clubName: "Olympique de Marseille",
-    clubCrestUrl: crest(179),
+    clubCrestUrl: crest(219),
     wonAt: "2026-04-02",
   },
 ];

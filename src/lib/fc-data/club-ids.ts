@@ -94,7 +94,7 @@ export const CLUB_NAME_TO_TEAM_ID: Record<string, number> = {
   "Boca Juniors": 1877,
   "Colo-Colo": 110980,
   Rangers: 86,
-  "Olympique de Marseille": 181,
+  "Olympique de Marseille": 219,
   Universitario: 111017,
   "LDU Quito": 110740,
   "Inter Miami": 112893,
