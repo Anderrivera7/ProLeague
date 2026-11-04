@@ -6,6 +6,13 @@ const POSTERS = [
     alt: "La mejor final, el derby",
     featured: true,
   },
+  {
+    src: "/records/maximo-goleador.png",
+    alt: "Máximo goleador, Mbappé",
+    featured: true,
+  },
+  { src: "/records/goles-picada.png", alt: "Más goles de picada, Facundo Castro" },
+  { src: "/records/el-mas-remontado.png", alt: "El más remontado, DT Yosef" },
   { src: "/records/tridente.png", alt: "El mejor tridente" },
   { src: "/records/goleada-final.png", alt: "Mayor goleada en una final" },
   { src: "/records/subcampeonatos.png", alt: "Más subcampeonatos" },
