@@ -6,6 +6,8 @@ const POSTERS = [
   { src: "/records/mejor-final.png", alt: "La mejor final, el derby", span: "full" },
   { src: "/records/goleada-partido.png", alt: "Mayor goleada en un partido, 11-0", span: "pair" },
   { src: "/records/mas-tarjetas.png", alt: "Partido con más tarjetas", span: "pair" },
+  { src: "/records/primer-campeon-quito.png", alt: "Primer campeón con 1 punto, Liga de Quito", span: "tile" },
+  { src: "/records/cambios-arquero.png", alt: "Más cambios de arquero en un torneo", span: "tile" },
   { src: "/records/goles-picada.png", alt: "Más goles de picada, Facundo Castro", span: "tile" },
   { src: "/records/el-clasico.png", alt: "El clásico, DT Yosef vs DT Jeje", span: "tile" },
   { src: "/records/maximo-goleador.png", alt: "Máximo goleador, Mbappé", span: "pair" },
