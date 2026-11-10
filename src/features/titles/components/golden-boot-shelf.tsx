@@ -22,7 +22,7 @@ export async function GoldenBootShelf({
           Cara, goles y equipo del jugador que más anotó. No cuenta como título.
         </p>
       </div>
-      <div className="flex flex-col gap-3 p-3 sm:p-4">
+      <div className="flex flex-wrap justify-center gap-4 p-4 sm:justify-start">
         {faces.map((face) => (
           <GoldenBootAward
             key={face.id}
