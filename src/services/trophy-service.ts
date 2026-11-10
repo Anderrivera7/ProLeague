@@ -6,11 +6,11 @@ import {
 } from "@/lib/fc-data/league-trophies";
 import { calculateLevel } from "@/utils/points";
 import { NotificationService } from "@/services/notification-service";
+import { resolvePlayerImageUrl } from "@/lib/fc-data/player-image";
 import {
   GOLDEN_BOOT_IMAGE,
   GOLDEN_BOOT_PREFIX,
   goldenBootGoalCount,
-  goldenBootPlayerLabel,
   goldenBootTitle,
 } from "@/lib/awards/golden-boot";
 
@@ -591,6 +591,8 @@ export class TrophyService {
               fcPlayer: {
                 select: {
                   name: true,
+                  imageUrl: true,
+                  fifaIndexId: true,
                   team: { select: { name: true, crestUrl: true } },
                 },
               },
@@ -603,6 +605,7 @@ export class TrophyService {
       {
         goals: number;
         name: string;
+        portraitUrl: string | null;
         crestUrl: string | null;
         clubName: string | null;
       }
@@ -613,6 +616,10 @@ export class TrophyService {
       summed.set(key, {
         goals: (prev?.goals ?? 0) + stat.goals,
         name: stat.fcPlayer.name,
+        portraitUrl: resolvePlayerImageUrl(
+          stat.fcPlayer.fifaIndexId,
+          stat.fcPlayer.imageUrl
+        ),
         crestUrl: stat.fcPlayer.team?.crestUrl ?? prev?.crestUrl ?? null,
         clubName: stat.fcPlayer.team?.name ?? prev?.clubName ?? null,
       });
@@ -622,6 +629,7 @@ export class TrophyService {
       {
         goals: number;
         name: string;
+        portraitUrl: string | null;
         crestUrl: string | null;
         clubName: string | null;
       }
@@ -634,11 +642,11 @@ export class TrophyService {
 
     return boots.map((boot) => {
       const face = best.get(`${boot.userId}\0${boot.tournamentId ?? ""}`);
-      const goals = goldenBootGoalCount(boot.seasonName) ?? face?.goals ?? 0;
       return {
         ...boot,
-        playerName: face ? goldenBootPlayerLabel(face.name) : "GOLEADOR",
-        goals,
+        playerName: face?.name ?? "Goleador",
+        portraitUrl: face?.portraitUrl ?? null,
+        goals: face?.goals ?? goldenBootGoalCount(boot.seasonName) ?? 0,
         crestUrl: face?.crestUrl ?? boot.clubCrestUrl,
         faceClubName: face?.clubName ?? boot.clubName,
       };

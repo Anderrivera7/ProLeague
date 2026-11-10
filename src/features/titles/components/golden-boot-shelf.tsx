@@ -1,4 +1,4 @@
-import { GoldenBootCard } from "@/features/titles/components/golden-boot-card";
+import { GoldenBootAward } from "@/features/titles/components/golden-boot-award";
 import type { TrophyWithTournament } from "@/features/titles/lib/title-utils";
 import { TrophyService } from "@/services/trophy-service";
 
@@ -19,14 +19,15 @@ export async function GoldenBootShelf({
         </p>
         <h2 className="text-base font-semibold sm:text-lg">Botas de oro</h2>
         <p className="text-xs text-muted-foreground">
-          El jugador que hizo los goles. No cuenta como título.
+          Cara, goles y equipo del jugador que más anotó. No cuenta como título.
         </p>
       </div>
-      <div className="flex flex-wrap justify-center gap-4 px-3 py-4 sm:justify-start sm:px-5">
+      <div className="flex flex-col gap-3 p-3 sm:p-4">
         {faces.map((face) => (
-          <GoldenBootCard
+          <GoldenBootAward
             key={face.id}
             playerName={face.playerName}
+            portraitUrl={face.portraitUrl}
             goals={face.goals}
             crestUrl={face.crestUrl}
             clubName={face.faceClubName}
