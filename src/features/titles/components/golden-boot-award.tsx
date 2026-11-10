@@ -23,23 +23,23 @@ export function GoldenBootAward({
   const initials = playerName.slice(0, 2).toUpperCase();
 
   return (
-    <article className="inline-flex max-w-full items-center gap-2.5 rounded-2xl border border-white/10 bg-black/40 py-1.5 pl-1 pr-3 sm:gap-3 sm:pr-4">
+    <article className="inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-black/40 py-3 pl-1.5 pr-4 sm:gap-3.5 sm:py-3.5 sm:pr-5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={GOLDEN_BOOT_IMAGE}
         alt=""
         className="shrink-0 object-contain"
-        style={{ height: 68, width: "auto", maxHeight: 68, maxWidth: 76 }}
+        style={{ height: 96, width: "auto", maxHeight: 96, maxWidth: 104 }}
         draggable={false}
       />
-      <Avatar className="h-12 w-12 shrink-0 border-2 border-amber-400/60">
+      <Avatar className="h-16 w-16 shrink-0 border-2 border-amber-400/60">
         {portraitUrl ? <AvatarImage src={portraitUrl} alt={playerName} /> : null}
         <AvatarFallback className="bg-amber-950 text-xs text-amber-100">
           {initials}
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 max-w-[9.5rem]">
-        <p className="truncate text-sm font-semibold">{playerName}</p>
+        <p className="truncate text-base font-semibold">{playerName}</p>
         <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
           {crestUrl ? (
             <CrestBadgeClient
@@ -64,7 +64,7 @@ export function GoldenBootAward({
         ) : null}
       </div>
       <div className="shrink-0 pl-1 text-right">
-        <p className="text-3xl font-black leading-none tabular-nums text-amber-300">
+        <p className="text-4xl font-black leading-none tabular-nums text-amber-300">
           {goals}
         </p>
         <p className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-amber-200/70">
