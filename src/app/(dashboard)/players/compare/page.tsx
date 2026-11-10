@@ -23,9 +23,9 @@ async function loadPlayer(id: string) {
         select: {
           trophies: {
             where: {
-              NOT: [
-                { title: { startsWith: "Bota de Oro" } },
-                { title: { startsWith: "Balón de Oro" } },
+              AND: [
+                { title: { not: { startsWith: "Bota de Oro" } } },
+                { title: { not: { startsWith: "Balón de Oro" } } },
               ],
             },
           },

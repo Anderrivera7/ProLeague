@@ -35,9 +35,9 @@ const memberInclude = {
       },
       trophies: {
         where: {
-          NOT: [
-            { title: { startsWith: "Bota de Oro" } },
-            { title: { startsWith: "Balón de Oro" } },
+          AND: [
+            { title: { not: { startsWith: "Bota de Oro" } } },
+            { title: { not: { startsWith: "Balón de Oro" } } },
           ],
         },
         orderBy: { wonAt: "desc" as const },
@@ -76,9 +76,9 @@ const memberInclude = {
         select: {
           trophies: {
             where: {
-              NOT: [
-                { title: { startsWith: "Bota de Oro" } },
-                { title: { startsWith: "Balón de Oro" } },
+              AND: [
+                { title: { not: { startsWith: "Bota de Oro" } } },
+                { title: { not: { startsWith: "Balón de Oro" } } },
               ],
             },
           },
@@ -86,7 +86,7 @@ const memberInclude = {
       },
     },
   },
-} as const;
+};
 
 export class CrewRepository {
   /** Descensos: puestos de cola en ligas completadas + eliminaciones. */
