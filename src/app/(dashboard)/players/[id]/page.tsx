@@ -159,7 +159,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           />
         </div>
 
-        <GoldenBootShelf boots={bootTrophies} playerName={player.nickname} />
+        <GoldenBootShelf boots={bootTrophies} />
 
         <div className="grid gap-6 lg:grid-cols-2">
           <PerformanceChart data={performanceData} />

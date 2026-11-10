@@ -9,6 +9,8 @@ import { NotificationService } from "@/services/notification-service";
 import {
   GOLDEN_BOOT_IMAGE,
   GOLDEN_BOOT_PREFIX,
+  goldenBootGoalCount,
+  goldenBootPlayerLabel,
   goldenBootTitle,
 } from "@/lib/awards/golden-boot";
 
@@ -548,6 +550,99 @@ export class TrophyService {
       clubName: participant.fcTeam?.name ?? null,
       crestUrl: participant.fcTeam?.crestUrl ?? null,
     }));
+  }
+
+  /** Jugador de FC que más goles aportó a cada bota, para la carta. */
+  static async goldenBootFaces<
+    T extends {
+      id: string;
+      userId: string;
+      tournamentId: string | null;
+      title: string;
+      seasonName: string | null;
+      clubName: string | null;
+      clubCrestUrl: string | null;
+      tournament?: { id: string; name: string } | null;
+    },
+  >(boots: T[]) {
+    const tournamentIds = [
+      ...new Set(
+        boots
+          .map((boot) => boot.tournamentId)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+    const userIds = [...new Set(boots.map((boot) => boot.userId))];
+    const stats =
+      tournamentIds.length === 0
+        ? []
+        : await prisma.matchPlayerStat.findMany({
+            where: {
+              userId: { in: userIds },
+              goals: { gt: 0 },
+              match: {
+                tournamentId: { in: tournamentIds },
+                status: "COMPLETED",
+              },
+            },
+            select: {
+              userId: true,
+              goals: true,
+              fcPlayer: {
+                select: {
+                  name: true,
+                  team: { select: { name: true, crestUrl: true } },
+                },
+              },
+              match: { select: { tournamentId: true } },
+            },
+          });
+
+    const summed = new Map<
+      string,
+      {
+        goals: number;
+        name: string;
+        crestUrl: string | null;
+        clubName: string | null;
+      }
+    >();
+    for (const stat of stats) {
+      const key = `${stat.userId}\0${stat.match.tournamentId}\0${stat.fcPlayer.name}`;
+      const prev = summed.get(key);
+      summed.set(key, {
+        goals: (prev?.goals ?? 0) + stat.goals,
+        name: stat.fcPlayer.name,
+        crestUrl: stat.fcPlayer.team?.crestUrl ?? prev?.crestUrl ?? null,
+        clubName: stat.fcPlayer.team?.name ?? prev?.clubName ?? null,
+      });
+    }
+    const best = new Map<
+      string,
+      {
+        goals: number;
+        name: string;
+        crestUrl: string | null;
+        clubName: string | null;
+      }
+    >();
+    for (const [key, face] of summed) {
+      const bootKey = key.split("\0").slice(0, 2).join("\0");
+      const current = best.get(bootKey);
+      if (!current || face.goals > current.goals) best.set(bootKey, face);
+    }
+
+    return boots.map((boot) => {
+      const face = best.get(`${boot.userId}\0${boot.tournamentId ?? ""}`);
+      const goals = goldenBootGoalCount(boot.seasonName) ?? face?.goals ?? 0;
+      return {
+        ...boot,
+        playerName: face ? goldenBootPlayerLabel(face.name) : "GOLEADOR",
+        goals,
+        crestUrl: face?.crestUrl ?? boot.clubCrestUrl,
+        faceClubName: face?.clubName ?? boot.clubName,
+      };
+    });
   }
 
   static async listForUser(userId: string) {
