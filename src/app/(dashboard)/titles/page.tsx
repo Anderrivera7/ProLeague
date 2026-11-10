@@ -30,7 +30,7 @@ export default async function TitlesPage() {
       />
 
       <div className="mx-auto w-full max-w-5xl space-y-6 px-3 py-5 sm:px-4 lg:px-8">
-        <GoldenBootShelf boots={boots} />
+        <GoldenBootShelf boots={boots} playerName={session.nickname} />
         <TitlesCabinet trophies={trophies} />
       </div>
     </div>

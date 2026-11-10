@@ -186,7 +186,7 @@ export default async function ProfilePage() {
           })}
         </div>
 
-        <GoldenBootShelf boots={bootTrophies} />
+        <GoldenBootShelf boots={bootTrophies} playerName={user.nickname} />
         <TitlesShowcase trophies={titleTrophies} />
 
         <div className="grid gap-4 sm:grid-cols-2">
