@@ -132,14 +132,22 @@ export function AdminRosterFields({
 }
 
 export function rosterPayload(seats: RosterSeat[], currentUserId: string) {
-  const filled = seats.filter((seat) => seat.userId || seat.fcTeamId);
-  if (filled.length === 0) return { json: "" as const };
-  const incomplete = filled.some((seat) => !seat.userId || !seat.fcTeamId);
-  if (incomplete) {
+  const creator = seats[0];
+  const others = seats
+    .slice(1)
+    .filter((seat) => seat.userId || seat.fcTeamId);
+  const creatorChosen = Boolean(creator?.fcTeamId);
+  if (!creatorChosen && others.length === 0) return { json: "" as const };
+  if (others.some((seat) => !seat.userId || !seat.fcTeamId)) {
     return { error: "Cada jugador del plantel necesita usuario y equipo" };
   }
-  if (!filled.some((seat) => seat.userId === currentUserId)) {
+  if (!creatorChosen) {
     return { error: "Elige también tu equipo" };
   }
-  return { json: JSON.stringify(filled) };
+  return {
+    json: JSON.stringify([
+      { userId: currentUserId, fcTeamId: creator.fcTeamId },
+      ...others,
+    ]),
+  };
 }
