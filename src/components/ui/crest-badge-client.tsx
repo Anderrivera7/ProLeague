@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Shield } from "lucide-react";
 import { getTeamCrestCandidates } from "@/lib/fc-data/club-ids";
 import { cn } from "@/lib/utils";
@@ -25,11 +25,14 @@ export function CrestBadgeClient({
   );
   const [index, setIndex] = useState(0);
   const [exhausted, setExhausted] = useState(false);
+  const failedSrc = useRef<string | null>(null);
+  const candidateKey = candidates.join("|");
 
   useEffect(() => {
     setIndex(0);
     setExhausted(false);
-  }, [candidates]);
+    failedSrc.current = null;
+  }, [candidateKey]);
 
   const src = candidates[index];
 
@@ -54,7 +57,9 @@ export function CrestBadgeClient({
       decoding="async"
       className={cn("shrink-0 object-contain", className)}
       onError={() => {
-        if (index + 1 < candidates.length) setIndex((i) => i + 1);
+        if (!src || failedSrc.current === src) return;
+        failedSrc.current = src;
+        if (index + 1 < candidates.length) setIndex(index + 1);
         else setExhausted(true);
       }}
     />

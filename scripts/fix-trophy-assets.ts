@@ -31,6 +31,8 @@ const CLUB_CREST: Record<string, string> = {
   "Colo-Colo": crest(110980),
   Rangers: crest(86),
   "Atlético Madrid": crest(240),
+  "Real Madrid": localCrest("/crests/real-madrid.png"),
+  Anderlecht: localCrest("/crests/anderlecht.png"),
   France: nationFlag("fr"),
   Argentina: nationFlag("ar"),
   Morocco: nationFlag("ma"),

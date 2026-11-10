@@ -90,6 +90,8 @@ export const CLUB_NAME_TO_TEAM_ID: Record<string, number> = {
   "Borussia Dortmund": 22,
   "FC Barcelona": 241,
   "Atlético Madrid": 240,
+  "Real Madrid": 243,
+  Anderlecht: 229,
   Palmeiras: 383,
   Flamengo: 1041,
   "River Plate": 1876,
@@ -180,15 +182,19 @@ export function getTeamCrestCandidates(
 
   const clubId = resolveClubNumericId(fifaIndexId, crestUrl, clubName);
 
+  if (crestUrl?.startsWith("/crests/") && !crestUrl.includes("/cache/")) {
+    push(crestUrl);
+  }
+
+  const localPath = localCrestPathForClubId(clubId);
+  if (localPath) push(localPath);
+
   const cached = cachedCrestPathForClubId(clubId);
   if (cached) push(cached);
 
   if (clubId) {
     push(`/api/crest/${clubId}`);
   }
-
-  const localPath = localCrestPathForClubId(clubId);
-  if (localPath) push(localPath);
 
   if (crestUrl?.startsWith("/crests/")) push(crestUrl);
 

@@ -5,9 +5,10 @@ export const LOCAL_CREST_BY_CLUB_ID: Record<number, string> = {
   11: "/crests/man-utd.png",
   44: "/crests/milan.png",
   179: "/crests/monaco.png",
+  229: "/crests/anderlecht.png",
   234: "/crests/benfica.png",
   236: "/crests/porto.png",
-  241: "/crests/real-madrid.png",
+  243: "/crests/real-madrid.png",
   1876: "/crests/river-plate.png",
   111017: "/crests/universitario.png",
 };
