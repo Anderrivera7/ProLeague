@@ -16,7 +16,7 @@ import { TournamentRepository } from "@/repositories/tournament-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { TournamentService } from "@/services/tournament-service";
 import { TrophyService } from "@/services/trophy-service";
-import { GoldenBootStage } from "@/features/titles/components/golden-boot-stage";
+import { GoldenBootAward } from "@/features/titles/components/golden-boot-award";
 import { prisma } from "@/lib/prisma";
 import { TOURNAMENT_TYPES } from "@/constants";
 import { Shield, Trophy, UserPlus } from "lucide-react";
@@ -86,6 +86,20 @@ export default async function TournamentDetailPage({ params }: PageProps) {
   const goldenBoot =
     tournament.status === "COMPLETED"
       ? await TrophyService.ensureGoldenBoot(prisma, tournament.id)
+      : [];
+  const bootFaces =
+    goldenBoot.length > 0
+      ? await TrophyService.goldenBootFaces(
+          await prisma.trophy.findMany({
+            where: {
+              tournamentId: tournament.id,
+              title: { startsWith: "Bota de Oro" },
+            },
+            include: {
+              tournament: { select: { id: true, name: true } },
+            },
+          })
+        )
       : [];
 
   const [scorers, cards, alerts] = await Promise.all([
@@ -242,26 +256,19 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             {isCreator && <DeleteTournamentButton tournamentId={tournament.id} />}
           </div>
 
-          {goldenBoot.length > 0 && (
-            <Card className="overflow-hidden border-amber-500/30 bg-gradient-to-r from-[#1a1408] to-card">
-              <CardContent className="flex flex-col items-center gap-3 py-4 sm:flex-row sm:items-center">
-                <GoldenBootStage compact className="shrink-0" />
-                <div className="min-w-0 text-center sm:text-left">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-300">
-                    Bota de Oro
-                  </p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {goldenBoot.map((winner) => winner.nickname).join(" · ")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {goldenBoot[0]?.goals} goles
-                    {goldenBoot[0]?.clubName
-                      ? ` · ${goldenBoot.map((winner) => winner.clubName).filter(Boolean).join(", ")}`
-                      : ""}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+          {bootFaces.length > 0 && (
+            <div className="flex flex-wrap gap-4">
+              {bootFaces.map((face) => (
+                <GoldenBootAward
+                  key={face.id}
+                  playerName={face.playerName}
+                  portraitUrl={face.portraitUrl}
+                  goals={face.goals}
+                  crestUrl={face.crestUrl}
+                  clubName={face.faceClubName}
+                />
+              ))}
+            </div>
           )}
 
           {!coverUrl && (
