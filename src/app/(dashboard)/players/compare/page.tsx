@@ -19,7 +19,13 @@ async function loadPlayer(id: string) {
       avatarUrl: true,
       elo: true,
       level: true,
-      _count: { select: { trophies: true } },
+      _count: {
+        select: {
+          trophies: {
+            where: { title: { not: { startsWith: "Bota de Oro" } } },
+          },
+        },
+      },
       stats: {
         select: {
           titlesWon: true,

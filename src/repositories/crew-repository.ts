@@ -34,6 +34,7 @@ const memberInclude = {
         },
       },
       trophies: {
+        where: { title: { not: { startsWith: "Bota de Oro" } } },
         orderBy: { wonAt: "desc" as const },
         take: 24,
         select: {
@@ -66,7 +67,13 @@ const memberInclude = {
           },
         },
       },
-      _count: { select: { trophies: true } },
+      _count: {
+        select: {
+          trophies: {
+            where: { title: { not: { startsWith: "Bota de Oro" } } },
+          },
+        },
+      },
     },
   },
 } as const;

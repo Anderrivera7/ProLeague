@@ -11,6 +11,8 @@ import { UserRepository } from "@/repositories/user-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { getCurrentUser } from "@/lib/auth/session";
 import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
+import { isGoldenBootTitle } from "@/lib/awards/golden-boot";
+import { GoldenBootShelf } from "@/features/titles/components/golden-boot-shelf";
 import { CrestBadgeClient } from "@/components/ui/crest-badge-client";
 import { TrophyPicture } from "@/components/ui/trophy-picture";
 import { getInitials } from "@/lib/utils";
@@ -37,6 +39,13 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   ]);
 
   if (!player) notFound();
+
+  const titleTrophies = player.trophies.filter(
+    (trophy) => !isGoldenBootTitle(trophy.title)
+  );
+  const bootTrophies = player.trophies.filter((trophy) =>
+    isGoldenBootTitle(trophy.title)
+  );
 
   const isOwnProfile = currentUser?.id === player.id;
 
@@ -134,7 +143,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           />
           <StatCard
             title="Títulos"
-            value={player.trophies.length}
+            value={titleTrophies.length}
             subtitle={`${player.stats?.seasonsPlayed ?? 0} temporadas`}
             icon={Trophy}
           />
@@ -150,6 +159,8 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           />
         </div>
 
+        <GoldenBootShelf boots={bootTrophies} />
+
         <div className="grid gap-6 lg:grid-cols-2">
           <PerformanceChart data={performanceData} />
 
@@ -158,16 +169,16 @@ export default async function PlayerProfilePage({ params }: PageProps) {
               <CardTitle className="text-base flex items-center gap-2">
                 <Award className="h-4 w-4 text-primary" />
                 Trofeos
-                {player.trophies.length > 0 && (
+                {titleTrophies.length > 0 && (
                   <span className="text-xs font-normal text-muted-foreground">
-                    · {player.trophies.length}
+                    · {titleTrophies.length}
                   </span>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent className="max-h-[28rem] space-y-2 overflow-y-auto overscroll-contain pr-1">
-              {player.trophies.length > 0 ? (
-                player.trophies.map((trophy) => {
+              {titleTrophies.length > 0 ? (
+                titleTrophies.map((trophy) => {
                   const league = trophy.tournament?.fcLeague;
                   const url = resolveTrophyImage(
                     trophy.imageUrl,

@@ -6,6 +6,11 @@ import {
 } from "@/lib/fc-data/league-trophies";
 import { calculateLevel } from "@/utils/points";
 import { NotificationService } from "@/services/notification-service";
+import {
+  GOLDEN_BOOT_IMAGE,
+  GOLDEN_BOOT_PREFIX,
+  goldenBootTitle,
+} from "@/lib/awards/golden-boot";
 
 type Db = typeof prisma | Prisma.TransactionClient;
 
@@ -316,6 +321,12 @@ export class TrophyService {
       data: { status: "COMPLETED" },
     });
 
+    try {
+      await TrophyService.ensureGoldenBoot(db, input.tournamentId);
+    } catch (error) {
+      console.error("[golden-boot]", error);
+    }
+
     await db.tournamentParticipant.update({
       where: { id: input.participantId },
       data: { placement: 1 },
@@ -455,6 +466,88 @@ export class TrophyService {
         },
       });
     }
+  }
+
+  /** Bota de oro del máximo goleador. No suma títulos. Idempotente. */
+  static async ensureGoldenBoot(db: Db, tournamentId: string) {
+    const tournament = await db.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { id: true, name: true, status: true },
+    });
+    if (!tournament || tournament.status !== "COMPLETED") return [];
+
+    const rows = await db.matchPlayerStat.findMany({
+      where: {
+        goals: { gt: 0 },
+        match: { tournamentId, status: "COMPLETED" },
+      },
+      select: { userId: true, goals: true },
+    });
+    const totals = new Map<string, number>();
+    for (const row of rows) {
+      totals.set(row.userId, (totals.get(row.userId) ?? 0) + row.goals);
+    }
+    const top = Math.max(0, ...totals.values());
+    if (top <= 0) return [];
+
+    const winnerIds = [...totals.entries()]
+      .filter(([, goals]) => goals === top)
+      .map(([userId]) => userId);
+
+    const existing = await db.trophy.findMany({
+      where: {
+        tournamentId,
+        title: { startsWith: GOLDEN_BOOT_PREFIX },
+      },
+      select: { userId: true },
+    });
+    const already = new Set(existing.map((row) => row.userId));
+
+    const participants = await db.tournamentParticipant.findMany({
+      where: { tournamentId, userId: { in: winnerIds } },
+      select: {
+        userId: true,
+        user: { select: { nickname: true } },
+        fcTeam: { select: { name: true, crestUrl: true } },
+      },
+    });
+
+    for (const participant of participants) {
+      if (already.has(participant.userId)) continue;
+      await db.trophy.create({
+        data: {
+          userId: participant.userId,
+          tournamentId,
+          title: goldenBootTitle(tournament.name),
+          imageUrl: GOLDEN_BOOT_IMAGE,
+          clubName: participant.fcTeam?.name ?? null,
+          clubCrestUrl: participant.fcTeam?.crestUrl ?? null,
+          placement: 0,
+          seasonName: `${top} goles`,
+          wonAt: new Date(),
+        },
+      });
+      await NotificationService.create(db, {
+        userId: participant.userId,
+        type: "GENERAL",
+        title: "Bota de Oro",
+        body: `Eres el máximo goleador de ${tournament.name} con ${top} goles.`,
+        href: "/titles",
+        metadata: {
+          kind: "GOLDEN_BOOT",
+          tournamentId,
+          goals: top,
+        },
+      });
+    }
+
+    return participants.map((participant) => ({
+      userId: participant.userId,
+      nickname: participant.user.nickname,
+      goals: top,
+      clubName: participant.fcTeam?.name ?? null,
+      crestUrl: participant.fcTeam?.crestUrl ?? null,
+    }));
   }
 
   static async listForUser(userId: string) {

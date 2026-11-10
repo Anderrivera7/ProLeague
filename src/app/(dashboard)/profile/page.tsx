@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { TrophyService } from "@/services/trophy-service";
 import { TitlesShowcase } from "@/features/titles/components/titles-showcase";
+import { GoldenBootShelf } from "@/features/titles/components/golden-boot-shelf";
+import { isGoldenBootTitle } from "@/lib/awards/golden-boot";
 
 const menuItems = [
   { href: "/titles", label: "Títulos", icon: Crown, color: "text-amber-400 bg-amber-400/15" },
@@ -58,6 +60,13 @@ export default async function ProfilePage() {
   ]);
 
   if (!user) redirect("/login");
+
+  const titleTrophies = trophies.filter(
+    (trophy) => !isGoldenBootTitle(trophy.title)
+  );
+  const bootTrophies = trophies.filter((trophy) =>
+    isGoldenBootTitle(trophy.title)
+  );
 
   const progress = getLevelProgress(user.elo);
   const matches = user.stats?.matchesPlayed ?? 0;
@@ -92,7 +101,7 @@ export default async function ProfilePage() {
     },
     {
       label: "Títulos",
-      value: trophies.length,
+      value: titleTrophies.length,
       sub: `${user.stats?.seasonsPlayed ?? 0} temporadas`,
       icon: BarChart3,
       accent: "text-violet-400",
@@ -177,7 +186,8 @@ export default async function ProfilePage() {
           })}
         </div>
 
-        <TitlesShowcase trophies={trophies} />
+        <GoldenBootShelf boots={bootTrophies} />
+        <TitlesShowcase trophies={titleTrophies} />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="glass">
