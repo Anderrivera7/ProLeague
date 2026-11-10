@@ -126,7 +126,7 @@ export function SelectTeamView({
     <div className="space-y-6 pb-20">
       {(source === "csv" || source === "cache") && (
         <p className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-center text-xs text-primary">
-          Plantilla FC26 desde CSV (formaciones nation_position) · cache permanente
+          Plantilla FC27 desde CSV (formaciones nation_position) · cache permanente
         </p>
       )}
 

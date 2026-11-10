@@ -94,6 +94,15 @@ export const tournamentCreateSchema = z.object({
     .optional()
     .transform((v) => (v === "" ? undefined : v)),
   fcLeagueId: z.string().uuid().optional(),
+  roster: z
+    .array(
+      z.object({
+        userId: z.string().uuid(),
+        fcTeamId: z.string().uuid(),
+      })
+    )
+    .max(128)
+    .optional(),
   pointsWin: z.coerce.number().min(1).default(3),
   pointsDraw: z.coerce.number().min(0).default(1),
   pointsLoss: z.coerce.number().min(0).default(0),

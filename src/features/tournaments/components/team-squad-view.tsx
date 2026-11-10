@@ -72,7 +72,7 @@ export function TeamSquadView({
             <h1 className="text-2xl font-bold">{team.name}</h1>
           )}
           <p className="text-sm text-muted-foreground">
-            {subtitle ?? team.league?.name ?? "EA SPORTS FC 26"} ·{" "}
+            {subtitle ?? team.league?.name ?? "EA SPORTS FC 27"} ·{" "}
             {team.players.length} jugadores
           </p>
         </div>

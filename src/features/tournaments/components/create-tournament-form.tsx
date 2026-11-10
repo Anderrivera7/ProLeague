@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createTournament } from "@/actions/tournament-actions";
+import {
+  AdminRosterFields,
+  rosterPayload,
+  type RosterSeat,
+  type RosterUser,
+} from "@/features/tournaments/components/admin-roster-fields";
 import { TOURNAMENT_TYPES } from "@/constants";
 import {
   getLeagueCoverUrl,
@@ -27,14 +33,34 @@ interface LeagueOption {
 
 interface CreateTournamentFormProps {
   leagues: LeagueOption[];
+  isAdmin?: boolean;
+  currentUserId?: string;
+  currentNickname?: string;
+  users?: RosterUser[];
 }
 
-export function CreateTournamentForm({ leagues }: CreateTournamentFormProps) {
+export function CreateTournamentForm({
+  leagues,
+  isAdmin = false,
+  currentUserId = "",
+  currentNickname = "",
+  users = [],
+}: CreateTournamentFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedLeagueId, setSelectedLeagueId] = useState(
     leagues[0]?.id ?? ""
   );
+  const [tournamentType, setTournamentType] = useState("LEAGUE");
+  const [maxParticipants, setMaxParticipants] = useState(16);
+  const [seats, setSeats] = useState<RosterSeat[]>(() =>
+    Array.from({ length: 16 }, (_, index) => ({
+      userId: index === 0 ? currentUserId : "",
+      fcTeamId: "",
+    }))
+  );
+  const forceTwoLegs =
+    tournamentType === "GROUPS_KNOCKOUT" || tournamentType === "TWO_LEGS";
 
   const selectedLeague = leagues.find((l) => l.id === selectedLeagueId);
   const coverUrl = selectedLeague
@@ -44,7 +70,37 @@ export function CreateTournamentForm({ leagues }: CreateTournamentFormProps) {
     ? getLeagueTrophyUrl(selectedLeague.fifaIndexId, selectedLeague.name)
     : null;
 
+  function resizeSeats(count: number) {
+    const size = Math.min(128, Math.max(2, count || 2));
+    setMaxParticipants(size);
+    setSeats((current) => {
+      const next = current.slice(0, size);
+      while (next.length < size) next.push({ userId: "", fcTeamId: "" });
+      if (currentUserId) next[0] = { ...next[0], userId: currentUserId };
+      return next;
+    });
+  }
+
+  function changeLeague(leagueId: string) {
+    setSelectedLeagueId(leagueId);
+    setSeats((current) =>
+      current.map((seat, index) => ({
+        ...seat,
+        fcTeamId: "",
+        userId: index === 0 ? currentUserId : seat.userId,
+      }))
+    );
+  }
+
   function handleSubmit(formData: FormData) {
+    if (isAdmin) {
+      const roster = rosterPayload(seats, currentUserId);
+      if ("error" in roster && roster.error) {
+        toast.error(roster.error);
+        return;
+      }
+      if (roster.json) formData.set("roster", roster.json);
+    }
     startTransition(async () => {
       const result = await createTournament(formData);
       if (result.error) {
@@ -84,7 +140,9 @@ export function CreateTournamentForm({ leagues }: CreateTournamentFormProps) {
         <div>
           <Label>Competición</Label>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Elige la liga; los jugadores escogerán equipo de esa competición
+            {isAdmin
+              ? "Elige la liga. Tú asignas el equipo de cada jugador."
+              : "Elige la liga; los jugadores escogerán equipo de esa competición"}
           </p>
         </div>
 
@@ -161,7 +219,7 @@ export function CreateTournamentForm({ leagues }: CreateTournamentFormProps) {
                   <button
                     key={league.id}
                     type="button"
-                    onClick={() => setSelectedLeagueId(league.id)}
+                    onClick={() => changeLeague(league.id)}
                     className={cn(
                       "group relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
                       selected
@@ -221,6 +279,8 @@ export function CreateTournamentForm({ leagues }: CreateTournamentFormProps) {
           name="type"
           className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
           required
+          value={tournamentType}
+          onChange={(e) => setTournamentType(e.target.value)}
         >
           {Object.entries(TOURNAMENT_TYPES).map(([key, val]) => (
             <option key={key} value={key}>
@@ -237,9 +297,10 @@ export function CreateTournamentForm({ leagues }: CreateTournamentFormProps) {
             id="maxParticipants"
             name="maxParticipants"
             type="number"
-            defaultValue={16}
+            value={maxParticipants}
             min={2}
             max={128}
+            onChange={(event) => resizeSeats(Number(event.target.value))}
           />
         </div>
         <div className="space-y-2">
@@ -267,15 +328,34 @@ export function CreateTournamentForm({ leagues }: CreateTournamentFormProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {forceTwoLegs ? (
+          <input type="hidden" name="twoLegs" value="true" />
+        ) : null}
         <input
           type="checkbox"
           id="twoLegs"
-          name="twoLegs"
+          name={forceTwoLegs ? undefined : "twoLegs"}
           value="true"
+          defaultChecked={forceTwoLegs}
+          disabled={forceTwoLegs}
           className="rounded border-border"
         />
-        <Label htmlFor="twoLegs">Ida y vuelta</Label>
+        <Label htmlFor="twoLegs">
+          Ida y vuelta
+          {forceTwoLegs ? " (incluido en este formato)" : ""}
+        </Label>
       </div>
+
+      {isAdmin && currentUserId ? (
+        <AdminRosterFields
+          currentUserId={currentUserId}
+          currentNickname={currentNickname}
+          users={users}
+          leagueId={selectedLeagueId}
+          seats={seats}
+          onChange={setSeats}
+        />
+      ) : null}
 
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={() => router.back()}>

@@ -86,7 +86,7 @@ export function SquadRosterPanel({
           </div>
 
           <p className="text-[11px] text-muted-foreground">
-            Titulares y posiciones según SoFIFA FC26 (`nation_position` del CSV).
+            Titulares y posiciones según SoFIFA FC27 (`nation_position` del CSV).
           </p>
 
           <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-b from-emerald-900/50 via-emerald-800/30 to-emerald-950/60 shadow-inner">

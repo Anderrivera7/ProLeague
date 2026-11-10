@@ -34,7 +34,7 @@ export function SquadFormationPitch({ players }: SquadFormationPitchProps) {
       </div>
 
       <p className="text-[10px] text-muted-foreground">
-        Posiciones según SoFIFA FC26 (`nation_position` del CSV).
+        Posiciones según SoFIFA FC27 (`nation_position` del CSV).
       </p>
 
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-b from-emerald-950/40 via-emerald-900/20 to-emerald-950/50">

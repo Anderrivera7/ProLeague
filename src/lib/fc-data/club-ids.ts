@@ -291,7 +291,7 @@ export function getLeagueSubtitle(
   }
   if (fifaIndexId === INTL_LEAGUE_EA_ID) {
     const n = teamCount ?? 28;
-    return `Mundial FC26 · ${n} selecciones`;
+    return `Mundial FC27 · ${n} selecciones`;
   }
   return null;
 }

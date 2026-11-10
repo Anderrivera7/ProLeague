@@ -105,7 +105,7 @@ export function TeamPicker({
 
   async function handleRemoteTeam(eaId: string, name: string) {
     try {
-      toast.loading(`Importando ${name} desde CSV FC26...`, { id: "sync" });
+      toast.loading(`Importando ${name} desde CSV FC27...`, { id: "sync" });
       const result = await syncRemote.mutateAsync(eaId);
       toast.success(
         `${name} importado (${result.playersSynced} jugadores)`,
@@ -159,8 +159,8 @@ export function TeamPicker({
 
       {!isClubLeague && (
         <p className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-          Selecciones del Mundial FC26. Si eliges una sin plantilla en caché, se
-          importará desde el CSV FC26 (solo una vez).
+          Selecciones del Mundial FC27. Si eliges una sin plantilla en caché, se
+          importará desde el CSV FC27 (solo una vez).
         </p>
       )}
 

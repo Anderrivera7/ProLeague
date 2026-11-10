@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { TournamentRepository } from "@/repositories/tournament-repository";
+import { TeamRepository } from "@/repositories/team-repository";
+import { NotificationService } from "@/services/notification-service";
 import {
   generateTournamentFixture,
   initializeStandings,
@@ -57,9 +59,97 @@ export class TournamentService {
       status: "REGISTRATION",
     });
 
-    await TournamentRepository.addParticipant(tournament.id, creatorId, 1);
+    if (input.roster && input.roster.length > 0) {
+      try {
+        await TournamentService.assignRoster(
+          tournament.id,
+          creatorId,
+          input.roster,
+          input.fcLeagueId,
+          input.maxParticipants,
+          input.name
+        );
+      } catch (error) {
+        await TournamentRepository.delete(tournament.id);
+        throw error;
+      }
+    } else {
+      await TournamentRepository.addParticipant(tournament.id, creatorId, 1);
+    }
 
     return tournament;
+  }
+
+  /** El admin mete jugadores y les asigna equipo, sin que acepten. */
+  static async assignRoster(
+    tournamentId: string,
+    creatorId: string,
+    roster: { userId: string; fcTeamId: string }[],
+    fcLeagueId: string | undefined,
+    maxParticipants: number,
+    tournamentName: string
+  ) {
+    if (roster.length > maxParticipants) {
+      throw new Error("Hay más jugadores que cupos en el torneo");
+    }
+    if (!roster.some((slot) => slot.userId === creatorId)) {
+      throw new Error("Tienes que incluirte y elegir tu equipo");
+    }
+
+    const userIds = roster.map((slot) => slot.userId);
+    const teamIds = roster.map((slot) => slot.fcTeamId);
+    if (new Set(userIds).size !== userIds.length) {
+      throw new Error("Un jugador está repetido en el plantel");
+    }
+    if (new Set(teamIds).size !== teamIds.length) {
+      throw new Error("Un equipo está asignado a dos jugadores");
+    }
+
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, nickname: true },
+    });
+    if (users.length !== userIds.length) {
+      throw new Error("Hay un jugador que no existe");
+    }
+
+    const allowed = fcLeagueId
+      ? new Set(
+          (await TeamRepository.search("", fcLeagueId, 300)).map((team) => team.id)
+        )
+      : null;
+    const teams = await prisma.fcTeam.findMany({
+      where: { id: { in: teamIds } },
+      select: { id: true, name: true },
+    });
+    if (teams.length !== teamIds.length) {
+      throw new Error("Hay un equipo que no existe");
+    }
+    if (allowed && teamIds.some((id) => !allowed.has(id))) {
+      throw new Error("Un equipo no pertenece a la competición");
+    }
+
+    const creator = users.find((user) => user.id === creatorId);
+    const teamName = new Map(teams.map((team) => [team.id, team.name]));
+
+    for (const [index, slot] of roster.entries()) {
+      await prisma.tournamentParticipant.create({
+        data: {
+          tournamentId,
+          userId: slot.userId,
+          fcTeamId: slot.fcTeamId,
+          seed: index + 1,
+        },
+      });
+      if (slot.userId === creatorId) continue;
+      await NotificationService.create(prisma, {
+        userId: slot.userId,
+        type: "GENERAL",
+        title: "Te metieron a un torneo",
+        body: `${creator?.nickname ?? "Un admin"} te inscribió en ${tournamentName} con ${teamName.get(slot.fcTeamId) ?? "un equipo"}.`,
+        href: `/tournaments/${tournamentId}`,
+      });
+    }
   }
 
   static async ensureCreatorEnrolled(tournamentId: string, creatorId: string) {

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isTournamentAdmin } from "@/lib/auth/tournament-admin";
 import { TournamentService } from "@/services/tournament-service";
 import { FifaDbRepository } from "@/repositories/fifa-db-repository";
 import {
@@ -19,8 +20,12 @@ export async function getFcLeagues() {
   return FifaDbRepository.getLeagues();
 }
 
-export async function getFcTeams(leagueId?: string, search?: string) {
-  return FifaDbRepository.getTeams(search, leagueId, 100);
+export async function getFcTeams(
+  leagueId?: string,
+  search?: string,
+  limit = 100
+) {
+  return FifaDbRepository.getTeams(search, leagueId, limit);
 }
 
 export async function getFcTeam(teamId: string) {
@@ -30,6 +35,23 @@ export async function getFcTeam(teamId: string) {
 export async function createTournament(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "No autenticado" };
+
+  const rosterRaw = formValue(formData.get("roster"));
+  let roster: { userId: string; fcTeamId: string }[] | undefined;
+  if (typeof rosterRaw === "string") {
+    if (!isTournamentAdmin(user.nickname)) {
+      return { error: "Solo el admin puede armar el plantel del torneo" };
+    }
+    try {
+      const parsedRoster = JSON.parse(rosterRaw) as unknown;
+      if (!Array.isArray(parsedRoster)) {
+        return { error: "El plantel no es válido" };
+      }
+      roster = parsedRoster as { userId: string; fcTeamId: string }[];
+    } catch {
+      return { error: "El plantel no es válido" };
+    }
+  }
 
   const parsed = tournamentCreateSchema.safeParse({
     name: formData.get("name"),
@@ -42,6 +64,7 @@ export async function createTournament(formData: FormData) {
     startDate: formValue(formData.get("startDate")),
     endDate: formValue(formData.get("endDate")),
     fcLeagueId: formValue(formData.get("fcLeagueId")),
+    roster,
   });
 
   if (!parsed.success) {

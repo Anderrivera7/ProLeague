@@ -1,4 +1,6 @@
+import { prisma } from "@/lib/prisma";
 import { PlayerRepository } from "@/repositories/player-repository";
+import { buildFc27Squad } from "@/lib/fc-data/fc27-squads";
 import { importTeamByEaId } from "@/lib/fc-data/importer";
 import { getCsvSquadForNationality } from "@/lib/fc-data/csv-importer";
 import { getClubCsvRows } from "@/lib/fc-data/csv-club-importer";
@@ -86,6 +88,22 @@ export function needsSquadRefresh(
 
 export class PlayerService {
   static async syncByTeamEaId(teamId: string, eaId: string) {
+    const team = await prisma.fcTeam.findUnique({
+      where: { id: teamId },
+      select: { name: true, fifaIndexId: true },
+    });
+    const fc27 = team ? buildFc27Squad(team) : null;
+    if (fc27 && fc27.length > 0) {
+      const existing = await PlayerRepository.findByTeamId(teamId);
+      const same =
+        existing.length === fc27.length &&
+        fc27.every((player) =>
+          existing.some((row) => row.fifaIndexId === player.eaId)
+        );
+      if (same) return existing;
+      return PlayerRepository.replaceSquad(teamId, fc27);
+    }
+
     if (isClubEaId(eaId)) {
       const existing = await PlayerRepository.findByTeamId(teamId);
       if (existing.length > 0 && !needsClubCsvRefresh(eaId, existing)) {
