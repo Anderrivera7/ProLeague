@@ -8,6 +8,11 @@ import { calculateLevel } from "@/utils/points";
 import { NotificationService } from "@/services/notification-service";
 import { resolvePlayerImageUrl } from "@/lib/fc-data/player-image";
 import {
+  BALLON_DOR_IMAGE,
+  BALLON_DOR_PREFIX,
+  ballonDorTitle,
+} from "@/lib/awards/ballon-dor";
+import {
   GOLDEN_BOOT_IMAGE,
   GOLDEN_BOOT_PREFIX,
   goldenBootGoalCount,
@@ -325,8 +330,9 @@ export class TrophyService {
 
     try {
       await TrophyService.ensureGoldenBoot(db, input.tournamentId);
+      await TrophyService.ensureBallonDor(db, input.tournamentId);
     } catch (error) {
-      console.error("[golden-boot]", error);
+      console.error("[individual-award]", error);
     }
 
     await db.tournamentParticipant.update({
@@ -537,6 +543,85 @@ export class TrophyService {
         href: "/titles",
         metadata: {
           kind: "GOLDEN_BOOT",
+          tournamentId,
+          goals: top,
+        },
+      });
+    }
+
+    return participants.map((participant) => ({
+      userId: participant.userId,
+      nickname: participant.user.nickname,
+      goals: top,
+      clubName: participant.fcTeam?.name ?? null,
+      crestUrl: participant.fcTeam?.crestUrl ?? null,
+    }));
+  }
+
+  /** Balón de oro del mismo goleador. No suma títulos. Idempotente. */
+  static async ensureBallonDor(db: Db, tournamentId: string) {
+    const tournament = await db.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { id: true, name: true, status: true },
+    });
+    if (!tournament || tournament.status !== "COMPLETED") return [];
+
+    const rows = await db.matchPlayerStat.findMany({
+      where: {
+        goals: { gt: 0 },
+        match: { tournamentId, status: "COMPLETED" },
+      },
+      select: { userId: true, goals: true },
+    });
+    const totals = new Map<string, number>();
+    for (const row of rows) {
+      totals.set(row.userId, (totals.get(row.userId) ?? 0) + row.goals);
+    }
+    const top = Math.max(0, ...totals.values());
+    if (top <= 0) return [];
+
+    const winnerIds = [...totals.entries()]
+      .filter(([, goals]) => goals === top)
+      .map(([userId]) => userId);
+
+    const existing = await db.trophy.findMany({
+      where: { tournamentId, title: { startsWith: BALLON_DOR_PREFIX } },
+      select: { userId: true },
+    });
+    const already = new Set(existing.map((row) => row.userId));
+
+    const participants = await db.tournamentParticipant.findMany({
+      where: { tournamentId, userId: { in: winnerIds } },
+      select: {
+        userId: true,
+        user: { select: { nickname: true } },
+        fcTeam: { select: { name: true, crestUrl: true } },
+      },
+    });
+
+    for (const participant of participants) {
+      if (already.has(participant.userId)) continue;
+      await db.trophy.create({
+        data: {
+          userId: participant.userId,
+          tournamentId,
+          title: ballonDorTitle(tournament.name),
+          imageUrl: BALLON_DOR_IMAGE,
+          clubName: participant.fcTeam?.name ?? null,
+          clubCrestUrl: participant.fcTeam?.crestUrl ?? null,
+          placement: -1,
+          seasonName: `${top} goles`,
+          wonAt: new Date(),
+        },
+      });
+      await NotificationService.create(db, {
+        userId: participant.userId,
+        type: "GENERAL",
+        title: "Balón de Oro",
+        body: `Ganaste el Balón de Oro de ${tournament.name}.`,
+        href: "/titles",
+        metadata: {
+          kind: "BALLON_DOR",
           tournamentId,
           goals: top,
         },

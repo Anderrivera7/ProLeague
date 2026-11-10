@@ -16,6 +16,7 @@ import { TournamentRepository } from "@/repositories/tournament-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { TournamentService } from "@/services/tournament-service";
 import { TrophyService } from "@/services/trophy-service";
+import { BallonDorAward } from "@/features/titles/components/ballon-dor-award";
 import { GoldenBootAward } from "@/features/titles/components/golden-boot-award";
 import { prisma } from "@/lib/prisma";
 import { TOURNAMENT_TYPES } from "@/constants";
@@ -87,6 +88,9 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     tournament.status === "COMPLETED"
       ? await TrophyService.ensureGoldenBoot(prisma, tournament.id)
       : [];
+  if (tournament.status === "COMPLETED") {
+    await TrophyService.ensureBallonDor(prisma, tournament.id);
+  }
   const bootFaces =
     goldenBoot.length > 0
       ? await TrophyService.goldenBootFaces(
@@ -94,6 +98,20 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             where: {
               tournamentId: tournament.id,
               title: { startsWith: "Bota de Oro" },
+            },
+            include: {
+              tournament: { select: { id: true, name: true } },
+            },
+          })
+        )
+      : [];
+  const ballonFaces =
+    goldenBoot.length > 0
+      ? await TrophyService.goldenBootFaces(
+          await prisma.trophy.findMany({
+            where: {
+              tournamentId: tournament.id,
+              title: { startsWith: "Balón de Oro" },
             },
             include: {
               tournament: { select: { id: true, name: true } },
@@ -255,6 +273,21 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             )}
             {isCreator && <DeleteTournamentButton tournamentId={tournament.id} />}
           </div>
+
+          {ballonFaces.length > 0 && (
+            <div className="flex flex-wrap gap-4">
+              {ballonFaces.map((face) => (
+                <BallonDorAward
+                  key={face.id}
+                  playerName={face.playerName}
+                  portraitUrl={face.portraitUrl}
+                  goals={face.goals}
+                  crestUrl={face.crestUrl}
+                  clubName={face.faceClubName}
+                />
+              ))}
+            </div>
+          )}
 
           {bootFaces.length > 0 && (
             <div className="flex flex-wrap gap-4">

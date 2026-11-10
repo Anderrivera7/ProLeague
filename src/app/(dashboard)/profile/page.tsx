@@ -30,7 +30,10 @@ import {
 import { TrophyService } from "@/services/trophy-service";
 import { TitlesShowcase } from "@/features/titles/components/titles-showcase";
 import { GoldenBootShelf } from "@/features/titles/components/golden-boot-shelf";
+import { isBallonDorTitle } from "@/lib/awards/ballon-dor";
 import { isGoldenBootTitle } from "@/lib/awards/golden-boot";
+import { isIndividualAward } from "@/lib/awards/individual";
+import { BallonDorShelf } from "@/features/titles/components/ballon-dor-shelf";
 
 const menuItems = [
   { href: "/titles", label: "Títulos", icon: Crown, color: "text-amber-400 bg-amber-400/15" },
@@ -62,10 +65,13 @@ export default async function ProfilePage() {
   if (!user) redirect("/login");
 
   const titleTrophies = trophies.filter(
-    (trophy) => !isGoldenBootTitle(trophy.title)
+    (trophy) => !isIndividualAward(trophy.title)
   );
   const bootTrophies = trophies.filter((trophy) =>
     isGoldenBootTitle(trophy.title)
+  );
+  const ballonTrophies = trophies.filter((trophy) =>
+    isBallonDorTitle(trophy.title)
   );
 
   const progress = getLevelProgress(user.elo);
@@ -186,6 +192,7 @@ export default async function ProfilePage() {
           })}
         </div>
 
+        <BallonDorShelf awards={ballonTrophies} />
         <GoldenBootShelf boots={bootTrophies} />
         <TitlesShowcase trophies={titleTrophies} />
 

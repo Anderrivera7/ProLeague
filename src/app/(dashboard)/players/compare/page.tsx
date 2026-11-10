@@ -22,7 +22,12 @@ async function loadPlayer(id: string) {
       _count: {
         select: {
           trophies: {
-            where: { title: { not: { startsWith: "Bota de Oro" } } },
+            where: {
+              NOT: [
+                { title: { startsWith: "Bota de Oro" } },
+                { title: { startsWith: "Balón de Oro" } },
+              ],
+            },
           },
         },
       },

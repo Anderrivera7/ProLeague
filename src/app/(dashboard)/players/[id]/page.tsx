@@ -11,7 +11,10 @@ import { UserRepository } from "@/repositories/user-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { getCurrentUser } from "@/lib/auth/session";
 import { resolveTrophyImage } from "@/lib/fc-data/league-trophies";
+import { isBallonDorTitle } from "@/lib/awards/ballon-dor";
 import { isGoldenBootTitle } from "@/lib/awards/golden-boot";
+import { isIndividualAward } from "@/lib/awards/individual";
+import { BallonDorShelf } from "@/features/titles/components/ballon-dor-shelf";
 import { GoldenBootShelf } from "@/features/titles/components/golden-boot-shelf";
 import { CrestBadgeClient } from "@/components/ui/crest-badge-client";
 import { TrophyPicture } from "@/components/ui/trophy-picture";
@@ -41,10 +44,13 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   if (!player) notFound();
 
   const titleTrophies = player.trophies.filter(
-    (trophy) => !isGoldenBootTitle(trophy.title)
+    (trophy) => !isIndividualAward(trophy.title)
   );
   const bootTrophies = player.trophies.filter((trophy) =>
     isGoldenBootTitle(trophy.title)
+  );
+  const ballonTrophies = player.trophies.filter((trophy) =>
+    isBallonDorTitle(trophy.title)
   );
 
   const isOwnProfile = currentUser?.id === player.id;
@@ -159,6 +165,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           />
         </div>
 
+        <BallonDorShelf awards={ballonTrophies} />
         <GoldenBootShelf boots={bootTrophies} />
 
         <div className="grid gap-6 lg:grid-cols-2">
