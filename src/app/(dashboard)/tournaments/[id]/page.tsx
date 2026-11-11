@@ -392,10 +392,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 standings={standingsRows}
                 scorers={scorers}
                 cards={cards}
-                showBallon={
-                  ballonRanking.finalReached &&
-                  ballonFaces.every((face) => face.statLabel === "puntos")
-                }
+                showBallon={true}
                 ballon={ballonRanking.rows}
               />
             )}
