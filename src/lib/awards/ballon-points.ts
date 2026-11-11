@@ -233,7 +233,7 @@ export async function getBallonDorRanking(
     _sum: { goals: true },
   });
   const bestGoals = goalRows.reduce((max, row) => Math.max(max, row._sum.goals ?? 0), 0);
-  if (bestGoals > 0) {
+  if (tournament.status === "COMPLETED" && bestGoals > 0) {
     for (const row of goalRows) {
       if ((row._sum.goals ?? 0) !== bestGoals) continue;
       ensure(row.fcPlayerId, row.userId).scorer = TOP_SCORER;

@@ -238,7 +238,7 @@ export function TournamentStatsPanel({
                 <div>
                   <p className="text-base font-semibold leading-none">Balón de Oro</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    MVP 1 · Final 2 · Goleador 3 · Subcampeón 3 · Campeón 5
+                    MVP 1 · Final 2 · Goleador 3 al final · Subcampeón 3 · Campeón 5
                   </p>
                 </div>
               </div>
