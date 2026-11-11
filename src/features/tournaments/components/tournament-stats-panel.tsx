@@ -255,6 +255,7 @@ export function TournamentStatsPanel({
                       teamCrestUrl={row.crestUrl}
                       teamFifaIndexId={row.teamFifaIndexId}
                       nickname={row.nickname}
+                      variant="gold"
                       stat={
                         <div className="flex flex-col items-end">
                           <span className="text-xl font-black tabular-nums text-[#e2b045]">

@@ -39,6 +39,7 @@ export function PlayerLeaderRow({
   nickname,
   stat,
   showRank = true,
+  variant = "default",
 }: {
   rank: number;
   playerName: string;
@@ -50,8 +51,10 @@ export function PlayerLeaderRow({
   nickname: string;
   stat: React.ReactNode;
   showRank?: boolean;
+  variant?: "default" | "gold";
 }) {
   const isTop = showRank && rank <= 3;
+  const gold = variant === "gold";
   const portrait =
     playerEaId != null
       ? resolvePlayerImageUrl(playerEaId, playerImageUrl)
@@ -61,11 +64,15 @@ export function PlayerLeaderRow({
     <div
       className={cn(
         "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors",
-        showRank && rank === 1 &&
+        gold && rank === 1 &&
+          "border-[#e2b045]/80 bg-gradient-to-r from-[#e2b045]/25 via-[#8a5a12]/20 to-transparent shadow-[0_0_22px_-8px] shadow-[#e2b045]/70",
+        gold && rank !== 1 &&
+          "border-[#e2b045]/35 bg-gradient-to-r from-[#e2b045]/10 to-transparent",
+        !gold && showRank && rank === 1 &&
           "border-primary/50 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent shadow-[0_0_20px_-8px] shadow-primary/40",
-        showRank && rank === 2 && "border-border bg-muted/30",
-        showRank && rank === 3 && "border-border bg-muted/20",
-        (!showRank || rank > 3) && "border-border/60 bg-card/40"
+        !gold && showRank && rank === 2 && "border-border bg-muted/30",
+        !gold && showRank && rank === 3 && "border-border bg-muted/20",
+        !gold && (!showRank || rank > 3) && "border-border/60 bg-card/40"
       )}
     >
       {showRank ? <RankMedal rank={rank} /> : null}
@@ -73,7 +80,8 @@ export function PlayerLeaderRow({
       <Avatar
         className={cn(
           "h-11 w-11 border-2",
-          showRank && rank === 1 &&
+          gold && "border-[#ffe7a8] shadow-[0_0_12px_-2px] shadow-[#e2b045]/80",
+          !gold && showRank && rank === 1 &&
             "border-primary shadow-[0_0_12px_-2px] shadow-primary/60",
           showRank && rank === 2 && "border-slate-400/50",
           showRank && rank === 3 && "border-amber-700/50",
