@@ -22,7 +22,7 @@ export async function BallonDorShelf({
           El jugador del torneo. No cuenta como título.
         </p>
       </div>
-      <div className="flex flex-wrap justify-center gap-4 p-4 sm:justify-start">
+      <div className="flex flex-col gap-3 p-3 sm:flex-row sm:flex-wrap sm:justify-start sm:p-4">
         {faces.map((face) => (
           <BallonDorAward
             key={face.id}

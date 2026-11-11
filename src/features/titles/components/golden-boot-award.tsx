@@ -23,23 +23,25 @@ export function GoldenBootAward({
   const initials = playerName.slice(0, 2).toUpperCase();
 
   return (
-    <article className="inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-black/40 py-3 pl-1.5 pr-4 sm:gap-3.5 sm:py-3.5 sm:pr-5">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={GOLDEN_BOOT_IMAGE}
-        alt=""
-        className="shrink-0 object-contain"
-        style={{ height: 96, width: "auto", maxHeight: 96, maxWidth: 104 }}
-        draggable={false}
-      />
-      <Avatar className="h-16 w-16 shrink-0 border-2 border-amber-400/60">
+    <article className="flex w-full min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/40 py-2.5 pl-1.5 pr-3 sm:w-auto sm:gap-3.5 sm:py-3.5 sm:pr-5">
+      <div className="h-16 w-14 shrink-0 sm:h-24 sm:w-[6.5rem]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={GOLDEN_BOOT_IMAGE}
+          alt=""
+          className="object-contain"
+          style={{ height: "100%", width: "100%", maxHeight: "100%", maxWidth: "100%" }}
+          draggable={false}
+        />
+      </div>
+      <Avatar className="h-12 w-12 shrink-0 border-2 border-amber-400/60 sm:h-16 sm:w-16">
         {portraitUrl ? <AvatarImage src={portraitUrl} alt={playerName} /> : null}
         <AvatarFallback className="bg-amber-950 text-xs text-amber-100">
           {initials}
         </AvatarFallback>
       </Avatar>
-      <div className="min-w-0 max-w-[9.5rem]">
-        <p className="truncate text-base font-semibold">{playerName}</p>
+      <div className="min-w-0 flex-1 sm:max-w-[9.5rem] sm:flex-none">
+        <p className="truncate text-sm font-semibold sm:text-base">{playerName}</p>
         <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
           {crestUrl ? (
             <CrestBadgeClient
@@ -64,7 +66,7 @@ export function GoldenBootAward({
         ) : null}
       </div>
       <div className="shrink-0 pl-1 text-right">
-        <p className="text-4xl font-black leading-none tabular-nums text-amber-300">
+        <p className="text-3xl font-black leading-none tabular-nums text-amber-300 sm:text-4xl">
           {goals}
         </p>
         <p className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-amber-200/70">
