@@ -16,8 +16,8 @@ async function main() {
     const winners = await TrophyService.ensureBallonDor(prisma, tournament.id);
     console.log(
       tournament.name,
-      winners.map((winner) => `${winner.nickname} ${winner.goals}`).join(", ") ||
-        "sin goles"
+      winners.map((winner) => `${winner.nickname} ${winner.points}`).join(", ") ||
+        "sin puntos"
     );
   }
 }

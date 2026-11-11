@@ -7,6 +7,7 @@ export function BallonDorAward({
   playerName,
   portraitUrl,
   goals,
+  statLabel,
   crestUrl,
   clubName,
   tournamentName,
@@ -15,6 +16,7 @@ export function BallonDorAward({
   playerName: string;
   portraitUrl?: string | null;
   goals: number;
+  statLabel?: string;
   crestUrl?: string | null;
   clubName?: string | null;
   tournamentName?: string | null;
@@ -80,7 +82,7 @@ export function BallonDorAward({
             {goals}
           </p>
           <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ffe3a1]">
-            {goals === 1 ? "gol" : "goles"}
+            {statLabel ?? (goals === 1 ? "gol" : "goles")}
           </p>
         </div>
       </div>

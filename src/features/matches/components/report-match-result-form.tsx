@@ -2,14 +2,13 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { recordMatchResult } from "@/actions/match-actions";
-import { resolveTeamCrestUrl } from "@/lib/fc-data/club-ids";
+import { TeamCrest } from "@/components/shared/team-crest";
 import { Plus, Trash2 } from "lucide-react";
 
 interface SquadPlayer {
@@ -22,6 +21,7 @@ interface PlayerSide {
   nickname: string;
   teamName: string;
   crestUrl: string | null;
+  fifaIndexId?: string | null;
   side: "home" | "away";
   squad: SquadPlayer[];
 }
@@ -39,38 +39,6 @@ interface ReportMatchResultFormProps {
 
 function newEntry(): PlayerEntry {
   return { key: crypto.randomUUID(), fcPlayerId: "", count: 1 };
-}
-
-function TeamCrest({
-  name,
-  crestUrl,
-  size = 40,
-}: {
-  name: string;
-  crestUrl: string | null;
-  size?: number;
-}) {
-  const resolved = resolveTeamCrestUrl(crestUrl);
-  if (resolved) {
-    return (
-      <Image
-        src={resolved}
-        alt={name}
-        width={size}
-        height={size}
-        className="object-contain"
-        unoptimized
-      />
-    );
-  }
-  return (
-    <div
-      className="flex items-center justify-center rounded-full bg-primary/20 font-bold text-primary"
-      style={{ width: size, height: size, fontSize: size * 0.35 }}
-    >
-      {name.slice(0, 2).toUpperCase()}
-    </div>
-  );
 }
 
 function parseCount(value: string): number {
@@ -253,7 +221,12 @@ function sumGoals(entries: PlayerEntry[]) {
 function TeamHeader({ player }: { player: PlayerSide }) {
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      <TeamCrest name={player.teamName} crestUrl={player.crestUrl} size={44} />
+      <TeamCrest
+        name={player.teamName}
+        crestUrl={player.crestUrl}
+        fifaIndexId={player.fifaIndexId ?? undefined}
+        size={44}
+      />
       <p className="text-lg font-bold">{player.teamName}</p>
       <p className="text-xs text-muted-foreground">{player.nickname}</p>
     </div>
@@ -276,7 +249,7 @@ export function ReportMatchResultForm({
   const [awayReds, setAwayReds] = useState<PlayerEntry[]>([]);
   const [penaltiesHome, setPenaltiesHome] = useState(0);
   const [penaltiesAway, setPenaltiesAway] = useState(0);
-  const [mvpUserId, setMvpUserId] = useState("");
+  const [mvpFcPlayerId, setMvpFcPlayerId] = useState("");
 
   const homeScore = useMemo(() => sumGoals(homeGoals), [homeGoals]);
   const awayScore = useMemo(() => sumGoals(awayGoals), [awayGoals]);
@@ -289,6 +262,17 @@ export function ReportMatchResultForm({
       toast.error("Añade al menos un gol a algún jugador");
       return;
     }
+
+    const mvpPlayer = [...homePlayer.squad, ...awayPlayer.squad].find(
+      (player) => player.id === mvpFcPlayerId
+    );
+    if (!mvpPlayer) {
+      toast.error("Elige el jugador MVP del partido");
+      return;
+    }
+    const mvpUserId = homePlayer.squad.some((player) => player.id === mvpFcPlayerId)
+      ? homePlayer.userId
+      : awayPlayer.userId;
 
     startTransition(async () => {
       const playerStats = [
@@ -304,7 +288,8 @@ export function ReportMatchResultForm({
         formData.set("penaltiesHome", String(penaltiesHome));
         formData.set("penaltiesAway", String(penaltiesAway));
       }
-      if (mvpUserId) formData.set("mvpUserId", mvpUserId);
+      formData.set("mvpUserId", mvpUserId);
+      formData.set("mvpFcPlayerId", mvpFcPlayerId);
       formData.set("playerStats", JSON.stringify(playerStats));
 
       const result = await recordMatchResult(formData);
@@ -327,7 +312,7 @@ export function ReportMatchResultForm({
       <CardHeader>
         <CardTitle className="text-base">Registrar resultado</CardTitle>
         <p className="text-xs text-muted-foreground">
-          El rival debe confirmar el marcador. Victoria +3 · Empate +1 · Derrota 0 · MVP +1
+          El rival debe confirmar el marcador. Victoria +3 · Empate +1 · Derrota 0
         </p>
       </CardHeader>
       <CardContent>
@@ -390,23 +375,48 @@ export function ReportMatchResultForm({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>MVP del partido (+1 pt ranking global)</Label>
-            <div className="flex flex-wrap gap-2">
-              {players.map((p) => (
-                <Button
-                  key={p.userId}
-                  type="button"
-                  size="sm"
-                  variant={mvpUserId === p.userId ? "default" : "outline"}
-                  onClick={() =>
-                    setMvpUserId(mvpUserId === p.userId ? "" : p.userId)
-                  }
-                  className="gap-2"
-                >
-                  <TeamCrest name={p.teamName} crestUrl={p.crestUrl} size={20} />
-                  {p.teamName}
-                </Button>
+          <div className="space-y-3">
+            <div>
+              <Label>MVP del partido</Label>
+              <p className="text-xs text-muted-foreground">
+                1 punto al Balón de Oro. El de la final vale 2.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {players.map((side) => (
+                <div key={side.userId} className="rounded-xl border border-border bg-muted/20 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <TeamCrest
+                      name={side.teamName}
+                      crestUrl={side.crestUrl}
+                      fifaIndexId={side.fifaIndexId ?? undefined}
+                      size={22}
+                    />
+                    <p className="truncate text-sm font-semibold">{side.teamName}</p>
+                  </div>
+                  <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
+                    {side.squad.map((player) => {
+                      const selected = mvpFcPlayerId === player.id;
+                      return (
+                        <button
+                          key={player.id}
+                          type="button"
+                          onClick={() => setMvpFcPlayerId(player.id)}
+                          className={`flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors ${
+                            selected
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          <span className="truncate">{player.name}</span>
+                        </button>
+                      );
+                    })}
+                    {side.squad.length === 0 && (
+                      <p className="px-1 text-xs text-muted-foreground">Sin plantilla</p>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           </div>

@@ -8,6 +8,7 @@ import type { EnrichedPlayerStat } from "@/types/match-stats";
 interface MatchEventsSummaryLoaderProps {
   playerStats: EnrichedPlayerStat[];
   mvpNickname?: string | null;
+  mvpPlayerName?: string | null;
   penaltiesHome?: number | null;
   penaltiesAway?: number | null;
 }

@@ -43,6 +43,7 @@ export async function recordMatchResult(formData: FormData) {
     penaltiesHome: formData.get("penaltiesHome") || undefined,
     penaltiesAway: formData.get("penaltiesAway") || undefined,
     mvpUserId: formData.get("mvpUserId") || undefined,
+    mvpFcPlayerId: formData.get("mvpFcPlayerId") || undefined,
     playerStats,
   });
 

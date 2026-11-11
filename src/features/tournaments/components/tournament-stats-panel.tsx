@@ -7,7 +7,7 @@ import { TeamCrest } from "@/components/shared/team-crest";
 import { PlayerLeaderRow } from "@/components/shared/player-leader-row";
 import { cn } from "@/lib/utils";
 
-type Tab = "standings" | "scorers" | "cards";
+type Tab = "standings" | "ballon" | "scorers" | "cards";
 
 interface StandingRow {
   id: string;
@@ -47,17 +47,56 @@ interface CardRow {
   teamFifaIndexId?: string | null;
 }
 
+interface BallonRow {
+  fcPlayerId: string;
+  rank: number;
+  playerName: string;
+  nickname: string;
+  points: number;
+  portraitUrl?: string | null;
+  playerEaId?: string | null;
+  teamName?: string | null;
+  crestUrl?: string | null;
+  teamFifaIndexId?: string | null;
+  detail: string;
+}
+
 interface TournamentStatsPanelProps {
   standings: StandingRow[];
   scorers: ScorerRow[];
   cards: CardRow[];
+  ballon?: BallonRow[];
+  showBallon?: boolean;
 }
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: "standings", label: "Tabla" },
-  { id: "scorers", label: "Goleadores" },
-  { id: "cards", label: "Tarjetas" },
-];
+function AwardMark({
+  src,
+  alt,
+}: {
+  src: string;
+  alt: string;
+}) {
+  return (
+    <span className="relative block h-7 w-6 shrink-0">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        style={{ height: "100%", width: "100%", maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }}
+        draggable={false}
+      />
+    </span>
+  );
+}
+
+function CardMarks() {
+  return (
+    <span className="flex items-end gap-0.5" aria-hidden>
+      <span className="h-6 w-4 rounded-[3px] bg-gradient-to-b from-yellow-200 to-yellow-500 shadow-sm" />
+      <span className="h-6 w-4 rounded-[3px] bg-gradient-to-b from-red-400 to-red-700 shadow-sm" />
+    </span>
+  );
+}
 
 function TeamGamertagCell({
   teamName,
@@ -101,32 +140,46 @@ export function TournamentStatsPanel({
   standings,
   scorers,
   cards,
+  ballon = [],
+  showBallon = false,
 }: TournamentStatsPanelProps) {
   const [active, setActive] = useState<Tab>("standings");
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "standings", label: "Tabla" },
+    ...(showBallon ? [{ id: "ballon" as const, label: "Balón de Oro" }] : []),
+    { id: "scorers", label: "Goleadores" },
+    { id: "cards", label: "Tarjetas" },
+  ];
 
   return (
     <Card className="glass lg:col-span-1 overflow-hidden">
-      <CardContent className="flex p-0">
-        <div className="flex shrink-0 flex-col border-r border-border bg-muted/20">
+      <CardContent className="p-0">
+        <div className="grid grid-cols-2 gap-1 border-b border-border bg-muted/20 p-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActive(tab.id)}
               className={cn(
-                "px-3 py-4 text-[11px] font-medium leading-tight transition-colors",
-                "border-l-2 border-transparent hover:bg-muted/40",
-                active === tab.id &&
-                  "border-l-primary bg-primary/10 text-primary"
+                "flex min-h-12 items-center justify-center gap-2 rounded-xl px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                active === tab.id
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-background/60"
               )}
-              style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
             >
-              {tab.label}
+              {tab.id === "ballon" && (
+                <AwardMark src="/trophies/ballon-dor.png" alt="" />
+              )}
+              {tab.id === "scorers" && (
+                <AwardMark src="/trophies/golden-boot.png" alt="" />
+              )}
+              {tab.id === "cards" && <CardMarks />}
+              <span className="leading-tight">{tab.label}</span>
             </button>
           ))}
         </div>
 
-        <div className="min-w-0 flex-1 p-4">
+        <div className="min-w-0 p-4">
           {active === "standings" && (
             <div className="space-y-2 text-sm">
               <p className="text-base font-semibold mb-3">Tabla de posiciones</p>
@@ -178,9 +231,57 @@ export function TournamentStatsPanel({
             </div>
           )}
 
+          {active === "ballon" && (
+            <div className="space-y-2">
+              <div className="mb-3 flex items-center gap-2">
+                <AwardMark src="/trophies/ballon-dor.png" alt="" />
+                <div>
+                  <p className="text-base font-semibold leading-none">Balón de Oro</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    MVP 1 · Final 2 · Goleador 3 · Subcampeón 3 · Campeón 5
+                  </p>
+                </div>
+              </div>
+              {ballon.length > 0 ? (
+                <div className="space-y-2">
+                  {ballon.map((row) => (
+                    <PlayerLeaderRow
+                      key={row.fcPlayerId}
+                      rank={row.rank}
+                      playerName={row.playerName}
+                      playerImageUrl={row.portraitUrl}
+                      playerEaId={row.playerEaId}
+                      teamName={row.teamName}
+                      teamCrestUrl={row.crestUrl}
+                      teamFifaIndexId={row.teamFifaIndexId}
+                      nickname={row.nickname}
+                      stat={
+                        <div className="flex flex-col items-end">
+                          <span className="text-xl font-black tabular-nums text-[#e2b045]">
+                            {row.points}
+                          </span>
+                          <span className="max-w-24 text-right text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            {row.detail}
+                          </span>
+                        </div>
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Todavía no hay puntos. El MVP se elige al cerrar cada partido.
+                </p>
+              )}
+            </div>
+          )}
+
           {active === "scorers" && (
             <div className="space-y-2">
-              <p className="text-base font-semibold mb-3">Goleadores</p>
+              <div className="mb-3 flex items-center gap-2">
+                <AwardMark src="/trophies/golden-boot.png" alt="" />
+                <p className="text-base font-semibold">Goleadores</p>
+              </div>
               {scorers.length > 0 ? (
                 <div className="space-y-2">
                   {scorers.map((s) => (
@@ -230,7 +331,10 @@ export function TournamentStatsPanel({
 
           {active === "cards" && (
             <div className="space-y-2">
-              <p className="text-base font-semibold mb-3">Tarjetas</p>
+              <div className="mb-3 flex items-center gap-2">
+                <CardMarks />
+                <p className="text-base font-semibold">Tarjetas</p>
+              </div>
               {cards.length > 0 ? (
                 <div className="space-y-2">
                   {cards.map((c) => (

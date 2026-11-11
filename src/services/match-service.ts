@@ -29,6 +29,32 @@ function aggregateUserEvents(
 }
 
 export class MatchService {
+  private static async resolveMvp(
+    match: {
+      homeParticipant: { userId: string; fcTeamId: string | null };
+      awayParticipant: { userId: string; fcTeamId: string | null };
+    },
+    input: { mvpUserId?: string; mvpFcPlayerId?: string }
+  ) {
+    if (!input.mvpFcPlayerId) {
+      return { userId: input.mvpUserId ?? null, fcPlayerId: null as string | null };
+    }
+
+    const player = await prisma.fcPlayer.findUnique({
+      where: { id: input.mvpFcPlayerId },
+      select: { id: true, teamId: true },
+    });
+    if (!player) throw new Error("El jugador MVP no existe");
+
+    if (player.teamId && player.teamId === match.homeParticipant.fcTeamId) {
+      return { userId: match.homeParticipant.userId, fcPlayerId: player.id };
+    }
+    if (player.teamId && player.teamId === match.awayParticipant.fcTeamId) {
+      return { userId: match.awayParticipant.userId, fcPlayerId: player.id };
+    }
+    throw new Error("El MVP tiene que ser un jugador de uno de los dos equipos");
+  }
+
   /** Propone un resultado; el rival debe confirmarlo. */
   static async proposeResult(input: MatchResultInput, proposedByUserId: string) {
     const match = await prisma.match.findUnique({
@@ -67,6 +93,8 @@ export class MatchService {
       );
     }
 
+    const mvp = await this.resolveMvp(match, input);
+
     await prisma.match.update({
       where: { id: input.matchId },
       data: {
@@ -75,7 +103,8 @@ export class MatchService {
         proposedAwayScore: input.awayScore,
         proposedPenaltiesHome: input.penaltiesHome ?? null,
         proposedPenaltiesAway: input.penaltiesAway ?? null,
-        proposedMvpUserId: input.mvpUserId ?? null,
+        proposedMvpUserId: mvp.userId,
+        proposedMvpFcPlayerId: mvp.fcPlayerId,
         proposedByUserId,
         proposedPlayerStats: input.playerStats,
         proposedAt: new Date(),
@@ -125,6 +154,7 @@ export class MatchService {
       penaltiesHome: match.proposedPenaltiesHome ?? undefined,
       penaltiesAway: match.proposedPenaltiesAway ?? undefined,
       mvpUserId: match.proposedMvpUserId ?? undefined,
+      mvpFcPlayerId: match.proposedMvpFcPlayerId ?? undefined,
       playerStats,
     });
   }
@@ -163,6 +193,7 @@ export class MatchService {
         proposedPenaltiesHome: null,
         proposedPenaltiesAway: null,
         proposedMvpUserId: null,
+        proposedMvpFcPlayerId: null,
         proposedByUserId: null,
         proposedPlayerStats: Prisma.DbNull,
         proposedAt: null,
@@ -194,12 +225,13 @@ export class MatchService {
 
     const homeUser = match.homeParticipant.user;
     const awayUser = match.awayParticipant.user;
+    const mvp = await this.resolveMvp(match, input);
     const { homeNewPoints, awayNewPoints } = getMatchPointUpdates(
       homeUser.elo,
       awayUser.elo,
       input.homeScore,
       input.awayScore,
-      input.mvpUserId,
+      mvp.userId ?? undefined,
       homeUser.id,
       awayUser.id
     );
@@ -250,7 +282,8 @@ export class MatchService {
             awayScore: input.awayScore,
             penaltiesHome: input.penaltiesHome,
             penaltiesAway: input.penaltiesAway,
-            mvpUserId: input.mvpUserId,
+            mvpUserId: mvp.userId,
+            mvpFcPlayerId: mvp.fcPlayerId,
             status: "COMPLETED",
             playedAt: new Date(),
             proposedHomeScore: null,
@@ -258,6 +291,7 @@ export class MatchService {
             proposedPenaltiesHome: null,
             proposedPenaltiesAway: null,
             proposedMvpUserId: null,
+            proposedMvpFcPlayerId: null,
             proposedByUserId: null,
             proposedPlayerStats: Prisma.DbNull,
             proposedAt: null,
@@ -288,7 +322,7 @@ export class MatchService {
               yellowCards: homeEvents.yellowCards,
               redCards: homeEvents.redCards,
               ownGoals: homeEvents.ownGoals,
-              isMvp: input.mvpUserId === homeUser.id,
+              isMvp: mvp.userId === homeUser.id,
             },
             {
               matchId: input.matchId,
@@ -298,7 +332,7 @@ export class MatchService {
               yellowCards: awayEvents.yellowCards,
               redCards: awayEvents.redCards,
               ownGoals: awayEvents.ownGoals,
-              isMvp: input.mvpUserId === awayUser.id,
+              isMvp: mvp.userId === awayUser.id,
             },
           ],
         });
@@ -310,7 +344,7 @@ export class MatchService {
           gf: input.homeScore,
           ga: input.awayScore,
           newPoints: homeNewPoints,
-          mvp: input.mvpUserId === homeUser.id,
+          mvp: mvp.userId === homeUser.id,
           opponentId: awayUser.id,
           events: homeEvents,
         });
@@ -322,7 +356,7 @@ export class MatchService {
           gf: input.awayScore,
           ga: input.homeScore,
           newPoints: awayNewPoints,
-          mvp: input.mvpUserId === awayUser.id,
+          mvp: mvp.userId === awayUser.id,
           opponentId: homeUser.id,
           events: awayEvents,
         });
@@ -444,14 +478,14 @@ export class MatchService {
         MomentService.maybeMatchHonors(prisma, {
           userId: homeUser.id,
           goals: homeEvents.goals,
-          isMvp: input.mvpUserId === homeUser.id,
+          isMvp: mvp.userId === homeUser.id,
           opponentNickname: awayUser.nickname,
           href: matchHref,
         }),
         MomentService.maybeMatchHonors(prisma, {
           userId: awayUser.id,
           goals: awayEvents.goals,
-          isMvp: input.mvpUserId === awayUser.id,
+          isMvp: mvp.userId === awayUser.id,
           opponentNickname: homeUser.nickname,
           href: matchHref,
         }),

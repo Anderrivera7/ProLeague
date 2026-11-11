@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { getTeamCrestCandidates } from "@/lib/fc-data/club-ids";
 import { cn } from "@/lib/utils";
 import { Shield } from "lucide-react";
@@ -20,15 +20,19 @@ function TeamCrestInner({
   size = 36,
   className,
 }: TeamCrestProps) {
-  const candidates = getTeamCrestCandidates(crestUrl, fifaIndexId);
+  const candidates = getTeamCrestCandidates(crestUrl, fifaIndexId, name);
   const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [crestUrl, fifaIndexId, name]);
   const src = candidates[index] ?? null;
 
-  if (!src) {
+  if (!src || index >= candidates.length) {
     return (
       <span
         className={cn(
-          "flex items-center justify-center text-muted-foreground",
+          "inline-flex shrink-0 items-center justify-center text-muted-foreground",
           className
         )}
         style={{ width: size, height: size }}
@@ -40,19 +44,22 @@ function TeamCrestInner({
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={name}
-      width={size}
-      height={size}
-      loading="lazy"
-      decoding="async"
-      className={cn("object-contain", className)}
-      onError={() => {
-        if (index < candidates.length - 1) setIndex((i) => i + 1);
-      }}
-    />
+    <span
+      className={cn("inline-flex shrink-0 items-center justify-center overflow-hidden", className)}
+      style={{ width: size, height: size }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        style={{ width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+        onError={() => setIndex((current) => current + 1)}
+      />
+    </span>
   );
 }
 

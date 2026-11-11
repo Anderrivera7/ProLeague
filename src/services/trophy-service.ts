@@ -12,6 +12,7 @@ import {
   BALLON_DOR_PREFIX,
   ballonDorTitle,
 } from "@/lib/awards/ballon-dor";
+import { getBallonDorRanking } from "@/lib/awards/ballon-points";
 import {
   GOLDEN_BOOT_IMAGE,
   GOLDEN_BOOT_PREFIX,
@@ -558,7 +559,7 @@ export class TrophyService {
     }));
   }
 
-  /** Balón de oro del mismo goleador. No suma títulos. Idempotente. */
+  /** Balón de oro por puntos. No suma títulos. Idempotente. */
   static async ensureBallonDor(db: Db, tournamentId: string) {
     const tournament = await db.tournament.findUnique({
       where: { id: tournamentId },
@@ -566,28 +567,20 @@ export class TrophyService {
     });
     if (!tournament || tournament.status !== "COMPLETED") return [];
 
-    const rows = await db.matchPlayerStat.findMany({
-      where: {
-        goals: { gt: 0 },
-        match: { tournamentId, status: "COMPLETED" },
-      },
-      select: { userId: true, goals: true },
-    });
-    const totals = new Map<string, number>();
-    for (const row of rows) {
-      totals.set(row.userId, (totals.get(row.userId) ?? 0) + row.goals);
-    }
-    const top = Math.max(0, ...totals.values());
-    if (top <= 0) return [];
-
-    const winnerIds = [...totals.entries()]
-      .filter(([, goals]) => goals === top)
-      .map(([userId]) => userId);
-
     const existing = await db.trophy.findMany({
       where: { tournamentId, title: { startsWith: BALLON_DOR_PREFIX } },
-      select: { userId: true },
+      select: { userId: true, seasonName: true },
     });
+    if (existing.some((row) => !/pts/i.test(row.seasonName ?? ""))) {
+      return [];
+    }
+
+    const ranking = await getBallonDorRanking(db, tournamentId);
+    const top = ranking.rows[0]?.points ?? 0;
+    if (top <= 0) return [];
+    const winners = ranking.rows.filter((row) => row.points === top);
+    const winnerIds = [...new Set(winners.map((row) => row.userId))];
+
     const already = new Set(existing.map((row) => row.userId));
 
     const participants = await db.tournamentParticipant.findMany({
@@ -610,7 +603,7 @@ export class TrophyService {
           clubName: participant.fcTeam?.name ?? null,
           clubCrestUrl: participant.fcTeam?.crestUrl ?? null,
           placement: -1,
-          seasonName: `${top} goles`,
+          seasonName: `${top} pts`,
           wonAt: new Date(),
         },
       });
@@ -618,12 +611,12 @@ export class TrophyService {
         userId: participant.userId,
         type: "GENERAL",
         title: "Balón de Oro",
-        body: `Ganaste el Balón de Oro de ${tournament.name}.`,
+        body: `Ganaste el Balón de Oro de ${tournament.name} con ${top} puntos.`,
         href: "/titles",
         metadata: {
           kind: "BALLON_DOR",
           tournamentId,
-          goals: top,
+          points: top,
         },
       });
     }
@@ -631,10 +624,59 @@ export class TrophyService {
     return participants.map((participant) => ({
       userId: participant.userId,
       nickname: participant.user.nickname,
-      goals: top,
+      points: top,
       clubName: participant.fcTeam?.name ?? null,
       crestUrl: participant.fcTeam?.crestUrl ?? null,
     }));
+  }
+
+  /** Cara del Balón de Oro: puntos del jugador, o goles si el premio es anterior. */
+  static async ballonDorFaces<
+    T extends {
+      id: string;
+      userId: string;
+      tournamentId: string | null;
+      title: string;
+      seasonName: string | null;
+      clubName: string | null;
+      clubCrestUrl: string | null;
+      tournament?: { id: string; name: string } | null;
+    },
+  >(awards: T[]) {
+    const legacy = awards.filter((award) => !/pts/i.test(award.seasonName ?? ""));
+    const modern = awards.filter((award) => /pts/i.test(award.seasonName ?? ""));
+    const legacyFaces = (await this.goldenBootFaces(legacy)).map((face) => ({
+      ...face,
+      statLabel: "goles" as const,
+    }));
+
+    const modernFaces = await Promise.all(
+      modern.map(async (award) => {
+        const points = Number((award.seasonName ?? "").match(/(\d+)/)?.[1] ?? 0);
+        const ranking = award.tournamentId
+          ? await getBallonDorRanking(prisma, award.tournamentId)
+          : null;
+        const row =
+          ranking?.rows.find(
+            (candidate) =>
+              candidate.userId === award.userId && candidate.points === points
+          ) ?? ranking?.rows.find((candidate) => candidate.userId === award.userId);
+        return {
+          ...award,
+          playerName: row?.playerName ?? "Jugador",
+          portraitUrl: row?.portraitUrl ?? null,
+          goals: row?.points ?? points,
+          crestUrl: row?.crestUrl ?? award.clubCrestUrl,
+          faceClubName: row?.teamName ?? award.clubName,
+          statLabel: "puntos" as const,
+        };
+      })
+    );
+
+    const byId = new Map(
+      [...legacyFaces, ...modernFaces].map((face) => [face.id, face])
+    );
+    return awards.map((award) => byId.get(award.id)!);
   }
 
   /** Jugador de FC que más goles aportó a cada bota, para la carta. */

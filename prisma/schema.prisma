@@ -408,6 +408,7 @@ model Match {
 
   mvpUserId String?
   mvpUser   User?   @relation("MatchMVP", fields: [mvpUserId], references: [id])
+  mvpFcPlayerId String?
 
   /// Resultado propuesto pendiente de confirmación del rival
   proposedHomeScore     Int?
@@ -415,6 +416,7 @@ model Match {
   proposedPenaltiesHome Int?
   proposedPenaltiesAway Int?
   proposedMvpUserId     String?
+  proposedMvpFcPlayerId String?
   proposedByUserId      String?
   proposedByUser        User?     @relation("MatchResultProposer", fields: [proposedByUserId], references: [id])
   proposedPlayerStats   Json?

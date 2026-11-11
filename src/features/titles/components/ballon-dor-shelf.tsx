@@ -9,7 +9,7 @@ export async function BallonDorShelf({
 }) {
   if (awards.length === 0) return null;
 
-  const faces = await TrophyService.goldenBootFaces(awards);
+  const faces = await TrophyService.ballonDorFaces(awards);
 
   return (
     <section className="overflow-hidden rounded-3xl border border-[#e2b045]/50 bg-gradient-to-b from-[#3a280c] via-[#1a1408] to-[#0b0b0b] shadow-[0_0_40px_-24px_rgba(226,176,69,0.9)]">
@@ -29,6 +29,13 @@ export async function BallonDorShelf({
             playerName={face.playerName}
             portraitUrl={face.portraitUrl}
             goals={face.goals}
+            statLabel={
+              face.statLabel === "puntos"
+                ? face.goals === 1
+                  ? "punto"
+                  : "puntos"
+                : undefined
+            }
             crestUrl={face.crestUrl}
             clubName={face.faceClubName}
             tournamentName={

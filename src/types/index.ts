@@ -135,6 +135,7 @@ export interface MatchResultInput {
   penaltiesHome?: number;
   penaltiesAway?: number;
   mvpUserId?: string;
+  mvpFcPlayerId?: string;
   playerStats: {
     fcPlayerId: string;
     userId: string;

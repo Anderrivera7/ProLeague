@@ -91,6 +91,8 @@ export const CLUB_NAME_TO_TEAM_ID: Record<string, number> = {
   "FC Barcelona": 241,
   "Atlético Madrid": 240,
   "Real Madrid": 243,
+  "Real Betis": 449,
+  "Real Betis Balompié": 449,
   Anderlecht: 229,
   Palmeiras: 383,
   Flamengo: 1041,

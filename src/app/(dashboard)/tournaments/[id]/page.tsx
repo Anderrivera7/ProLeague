@@ -19,6 +19,7 @@ import { TrophyService } from "@/services/trophy-service";
 import { BallonDorAward } from "@/features/titles/components/ballon-dor-award";
 import { GoldenBootAward } from "@/features/titles/components/golden-boot-award";
 import { prisma } from "@/lib/prisma";
+import { getBallonDorRanking } from "@/lib/awards/ballon-points";
 import { TOURNAMENT_TYPES } from "@/constants";
 import { Shield, Trophy, UserPlus } from "lucide-react";
 import { GenerateFixtureButton } from "@/features/tournaments/components/generate-fixture-button";
@@ -105,20 +106,18 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           })
         )
       : [];
-  const ballonFaces =
-    goldenBoot.length > 0
-      ? await TrophyService.goldenBootFaces(
-          await prisma.trophy.findMany({
-            where: {
-              tournamentId: tournament.id,
-              title: { startsWith: "Balón de Oro" },
-            },
-            include: {
-              tournament: { select: { id: true, name: true } },
-            },
-          })
-        )
-      : [];
+  const ballonFaces = await TrophyService.ballonDorFaces(
+    await prisma.trophy.findMany({
+      where: {
+        tournamentId: tournament.id,
+        title: { startsWith: "Balón de Oro" },
+      },
+      include: {
+        tournament: { select: { id: true, name: true } },
+      },
+    })
+  );
+  const ballonRanking = await getBallonDorRanking(prisma, tournament.id);
 
   const [scorers, cards, alerts] = await Promise.all([
     StatsRepository.getTournamentScorerRanking(id),
@@ -143,6 +142,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     standingsRows.length > 0 ||
     scorers.length > 0 ||
     cards.length > 0 ||
+    ballonRanking.finalReached ||
     tournament.matches.some((m) => m.status === "COMPLETED");
 
   const coverUrl = tournament.fcLeague
@@ -282,6 +282,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                   playerName={face.playerName}
                   portraitUrl={face.portraitUrl}
                   goals={face.goals}
+                  statLabel={face.statLabel === "puntos" ? (face.goals === 1 ? "punto" : "puntos") : undefined}
                   crestUrl={face.crestUrl}
                   clubName={face.faceClubName}
                 />
@@ -391,6 +392,11 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 standings={standingsRows}
                 scorers={scorers}
                 cards={cards}
+                showBallon={
+                  ballonRanking.finalReached &&
+                  ballonFaces.every((face) => face.statLabel === "puntos")
+                }
+                ballon={ballonRanking.rows}
               />
             )}
 

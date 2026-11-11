@@ -13,6 +13,7 @@ import { MatchRepository } from "@/repositories/match-repository";
 import { PlayerRepository } from "@/repositories/player-repository";
 import { StatsRepository } from "@/repositories/stats-repository";
 import { getCurrentUser } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
 import { ArrowLeft, ClipboardEdit } from "lucide-react";
 
@@ -61,11 +62,17 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
       ? awayTeam?.name ?? awayUser.nickname
       : homeTeam?.name ?? homeUser.nickname;
 
-  const [h2hStats, h2hMatches, homeSquad, awaySquad] = await Promise.all([
+  const [h2hStats, h2hMatches, homeSquad, awaySquad, mvpPlayer] = await Promise.all([
     StatsRepository.getHeadToHead(h2hPerspectiveId, h2hOpponentId),
     StatsRepository.getHeadToHeadMatches(h2hPerspectiveId, h2hOpponentId, 5),
     homeTeam?.id ? PlayerRepository.findByTeamId(homeTeam.id) : Promise.resolve([]),
     awayTeam?.id ? PlayerRepository.findByTeamId(awayTeam.id) : Promise.resolve([]),
+    match.mvpFcPlayerId
+      ? prisma.fcPlayer.findUnique({
+          where: { id: match.mvpFcPlayerId },
+          select: { name: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const isCompleted = match.status === "COMPLETED";
@@ -221,6 +228,7 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
                 nickname: homeUser.nickname,
                 teamName: homeTeamName,
                 crestUrl: homeTeam?.crestUrl ?? null,
+                fifaIndexId: homeTeam?.fifaIndexId ?? null,
                 side: "home",
                 squad: homeSquad.map((p) => ({ id: p.id, name: p.name })),
               },
@@ -229,6 +237,7 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
                 nickname: awayUser.nickname,
                 teamName: awayTeamName,
                 crestUrl: awayTeam?.crestUrl ?? null,
+                fifaIndexId: awayTeam?.fifaIndexId ?? null,
                 side: "away",
                 squad: awaySquad.map((p) => ({ id: p.id, name: p.name })),
               },
@@ -240,6 +249,7 @@ export default async function MatchDetailPage({ params, searchParams }: PageProp
           <MatchEventsSummaryLoader
             playerStats={enrichedPlayerStats}
             mvpNickname={match.mvpUser?.nickname}
+            mvpPlayerName={mvpPlayer?.name}
             penaltiesHome={match.penaltiesHome}
             penaltiesAway={match.penaltiesAway}
           />

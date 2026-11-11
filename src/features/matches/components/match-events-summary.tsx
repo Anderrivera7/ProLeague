@@ -11,6 +11,7 @@ export type { EnrichedPlayerStat };
 interface MatchEventsSummaryProps {
   playerStats: EnrichedPlayerStat[];
   mvpNickname?: string | null;
+  mvpPlayerName?: string | null;
   penaltiesHome?: number | null;
   penaltiesAway?: number | null;
 }
@@ -25,6 +26,7 @@ function sortBy<T extends EnrichedPlayerStat>(
 export function MatchEventsSummary({
   playerStats,
   mvpNickname,
+  mvpPlayerName,
   penaltiesHome,
   penaltiesAway,
 }: MatchEventsSummaryProps) {
@@ -51,6 +53,7 @@ export function MatchEventsSummary({
     yellows.length === 0 &&
     reds.length === 0 &&
     !mvpNickname &&
+    !mvpPlayerName &&
     !hasPenalties
   ) {
     return null;
@@ -68,10 +71,10 @@ export function MatchEventsSummary({
           </p>
         )}
 
-        {mvpNickname && (
+        {(mvpPlayerName || mvpNickname) && (
           <div className="flex justify-center">
             <Badge variant="secondary">
-              MVP: {mvpNickname} (+1 pt ranking global)
+              MVP: {mvpPlayerName ?? mvpNickname}
             </Badge>
           </div>
         )}

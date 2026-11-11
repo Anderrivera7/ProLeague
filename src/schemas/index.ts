@@ -127,6 +127,7 @@ export const matchResultSchema = z.object({
   penaltiesHome: z.coerce.number().min(0).optional(),
   penaltiesAway: z.coerce.number().min(0).optional(),
   mvpUserId: z.string().uuid().optional(),
+  mvpFcPlayerId: z.string().uuid().optional(),
   playerStats: z.array(
     z.object({
       fcPlayerId: z.string().uuid(),
