@@ -9,6 +9,7 @@ type PlayerSide = {
   nickname: string;
   teamName: string;
   crestUrl: string | null;
+  fifaIndexId?: string | null;
   side: "home" | "away";
   squad: { id: string; name: string }[];
 };
